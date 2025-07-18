@@ -47,6 +47,7 @@ export const useLocationTracker = () => {
     setError(null);
     if (!navigator.geolocation) {
       setError('Geolocation is not supported by your browser.');
+      setLoading(false);
       return;
     }
     if (isTracking) return;
@@ -93,6 +94,7 @@ export const useLocationTracker = () => {
           setDistance((d) => d + newDistance);
         }
         previousPositionRef.current = { latitude, longitude };
+        if (loading) setLoading(false);
       },
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {
@@ -109,9 +111,11 @@ export const useLocationTracker = () => {
         distanceFilter: 10, // Update every 10 meters
       }
     );
-  }, [isTracking, stopTracking]);
+  }, [isTracking, stopTracking, loading]);
 
   useEffect(() => {
+    // On mount, just set loading to false. Tracking will be manually started.
+    setLoading(false);
     // Stop tracking when component unmounts
     return () => {
       stopTracking();

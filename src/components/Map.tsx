@@ -12,6 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 type GameMapProps = {
   apiKey: string;
   userPosition: { lat: number; lng: number } | null;
+  defaultCenter: { lat: number; lng: number };
   pois: PointOfInterest[];
   path: { lat: number; lng: number }[];
   onStartQuiz: (poi: PointOfInterest) => void;
@@ -120,7 +121,7 @@ const polylineOptions = {
     zIndex: 1
 };
 
-export const GameMap = ({ apiKey, userPosition, pois, path, onStartQuiz }: GameMapProps) => {
+export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, onStartQuiz }: GameMapProps) => {
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
     preventGoogleFontsLoading: true, 
@@ -144,14 +145,14 @@ export const GameMap = ({ apiKey, userPosition, pois, path, onStartQuiz }: GameM
     return <Skeleton className="h-full w-full" />;
   }
   
-  const center = userPosition || { lat: 0, lng: 0 };
+  const center = userPosition || defaultCenter;
 
   return (
     <div className="absolute inset-0">
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         center={center}
-        zoom={userPosition ? 15 : 2}
+        zoom={userPosition ? 15 : 12}
         options={{...mapOptions, gestureHandling: 'greedy' }}
       >
         {userPosition && (

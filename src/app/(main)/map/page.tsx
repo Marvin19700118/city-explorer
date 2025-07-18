@@ -13,11 +13,13 @@ import { Terminal } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 
+const TAIPEI_CENTER = { lat: 25.0330, lng: 121.5654 };
+
 const initialPois: PointOfInterest[] = [
-  { id: 'poi1', name: 'Central Park', position: { lat: 40.785091, lng: -73.968285 }, areaDescription: 'A large urban park in Manhattan, New York City, featuring walking paths, a zoo, and a carousel.', discovered: false },
-  { id: 'poi2', name: 'Eiffel Tower', position: { lat: 48.8584, lng: 2.2945 }, areaDescription: 'A wrought-iron lattice tower on the Champ de Mars in Paris, France.', discovered: false },
-  { id: 'poi3', name: 'Colosseum', position: { lat: 41.8902, lng: 12.4922 }, areaDescription: 'An oval amphitheatre in the centre of the city of Rome, Italy.', discovered: false },
-  { id: 'poi4', name: 'Mount Fuji', position: { lat: 35.3606, lng: 138.7278 }, areaDescription: 'An active volcano that is Japan\'s tallest peak, known for its symmetrical cone.', discovered: false },
+  { id: 'poi1', name: 'Taipei 101', position: { lat: 25.0339, lng: 121.5645 }, areaDescription: 'A supertall skyscraper in Xinyi District, Taipei, Taiwan. It was officially the world\'s tallest from its opening in 2004 until 2010.', discovered: false },
+  { id: 'poi2', name: 'National Palace Museum', position: { lat: 25.1026, lng: 121.5485 }, areaDescription: 'Located in Shilin, Taipei, it has a permanent collection of nearly 700,000 pieces of ancient Chinese imperial artifacts and artworks, making it one of the largest of its type in the world.', discovered: false },
+  { id: 'poi3', name: 'Chiang Kai-shek Memorial Hall', position: { lat: 25.0345, lng: 121.5218 }, areaDescription: 'A national monument, landmark and tourist attraction erected in memory of Chiang Kai-shek, former President of the Republic of China.', discovered: false },
+  { id: 'poi4', name: 'Ximending', position: { lat: 25.0479, lng: 121.5074 }, areaDescription: 'A neighborhood and shopping district in the Wanhua District of Taipei, Taiwan. It was the first pedestrian zone in Taiwan.', discovered: false },
 ];
 
 const XP_PER_KM = 100;
@@ -151,7 +153,7 @@ export default function MapPage() {
       );
     }
 
-    if (loading && isTracking) {
+    if (loading && !position) {
        return <Skeleton className="h-full w-full" />
     }
     
@@ -159,6 +161,7 @@ export default function MapPage() {
        <GameMap
         apiKey={googleMapsApiKey}
         userPosition={position}
+        defaultCenter={TAIPEI_CENTER}
         pois={pois}
         path={path}
         onStartQuiz={handleStartQuiz}
@@ -174,7 +177,7 @@ export default function MapPage() {
             <h1>City Unveiler</h1>
           </div>
           {!isTracking ? (
-            <Button onClick={startTracking} disabled={loading}>
+            <Button onClick={startTracking} disabled={loading && isTracking}>
               <Play /> Start Exploring
             </Button>
           ) : (
