@@ -144,55 +144,65 @@ export default function MapPage() {
 
 
   React.useEffect(() => {
-     // This effect handles level ups based on XP changes from any source (distance, quizzes, etc.)
-     setPet(currentPet => {
-        let currentXp = currentPet.xp;
-        let currentLevel = 1;
-        let xpForNext = 100;
-        let currentEvolutionStage = 1;
+    // This effect handles level ups based on XP changes.
+    // It calculates the new level and evolution state.
+    const currentPet = pet;
+    let currentXp = currentPet.xp;
+    let currentLevel = 1;
+    let xpForNext = 100;
+    let currentEvolutionStage = 1;
 
-        // Recalculate level from base XP
-        while (currentXp >= xpForNext) {
-            currentXp -= xpForNext;
-            currentLevel++;
-            xpForNext = Math.floor(xpForNext * 1.5);
-            
-            const newEvolutionStage = PET_EVOLUTION_LEVELS.filter(l => currentLevel >= l).length + 1;
-            if (newEvolutionStage > currentEvolutionStage) {
-                currentEvolutionStage = newEvolutionStage;
-            }
-        }
+    // Recalculate level from base XP
+    while (currentXp >= xpForNext) {
+        currentXp -= xpForNext;
+        currentLevel++;
+        xpForNext = Math.floor(xpForNext * 1.5);
         
-        const hasLeveledUp = currentLevel > currentPet.level;
-        const hasEvolved = currentEvolutionStage > currentPet.evolutionStage;
+        const newEvolutionStage = PET_EVOLUTION_LEVELS.filter(l => currentLevel >= l).length + 1;
+        if (newEvolutionStage > currentEvolutionStage) {
+            currentEvolutionStage = newEvolutionStage;
+        }
+    }
 
-        if (hasEvolved) {
-             toast({
+    const finalPetState: Pet = {
+        ...currentPet,
+        xp: Math.round(currentXp),
+        level: currentLevel,
+        xpToNextLevel: xpForNext,
+        evolutionStage: currentEvolutionStage,
+    };
+
+    // Only update state if something has actually changed to avoid infinite loops
+    if (finalPetState.level !== currentPet.level || finalPetState.evolutionStage !== currentPet.evolutionStage || finalPetState.xp !== currentPet.xp) {
+        setPet(finalPetState);
+        localStorage.setItem('pet', JSON.stringify(finalPetState));
+    }
+
+  }, [pet.xp]);
+
+  // Separate effect for showing toast notifications on level/evolution change
+  React.useEffect(() => {
+    // use a ref to track the previous state to compare against
+    const prevPetRef = React.useRef<Pet>();
+
+    if (prevPetRef.current) {
+        const prevPet = prevPetRef.current;
+        if (pet.evolutionStage > prevPet.evolutionStage) {
+            toast({
                 title: "Your pet evolved!",
-                description: `${currentPet.name} has reached a new form!`,
+                description: `${pet.name} has reached a new form!`,
             });
-        } else if (hasLeveledUp) {
+        } else if (pet.level > prevPet.level) {
             toast({
                 title: "Level Up!",
-                description: `${currentPet.name} is now level ${currentLevel}!`,
+                description: `${pet.name} is now level ${pet.level}!`,
             });
         }
-        
-        const finalPetState = {
-            ...currentPet,
-            xp: Math.round(currentXp),
-            level: currentLevel,
-            xpToNextLevel: xpForNext,
-            evolutionStage: currentEvolutionStage,
-        };
-
-        // Save pet state to local storage whenever it changes
-        localStorage.setItem('pet', JSON.stringify(finalPetState));
-
-        return finalPetState;
-    });
-
-  }, [pet.xp, toast]);
+    }
+    
+    // update the ref with the current pet state for the next render
+    prevPetRef.current = pet;
+  }, [pet.level, pet.evolutionStage, pet.name, toast]);
 
   React.useEffect(() => {
     if (!position || !isTracking || pois.length === 0) return;
