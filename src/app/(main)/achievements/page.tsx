@@ -33,7 +33,13 @@ export default function AchievementsPage() {
     const savedCityPoints = localStorage.getItem('cityPoints');
     
     const pois: PointOfInterest[] = savedPois ? JSON.parse(savedPois) : [];
-    const cityPoints: CityPoints = savedCityPoints ? JSON.parse(savedCityPoints) : {};
+    
+    let cityPoints: CityPoints = savedCityPoints ? JSON.parse(savedCityPoints) : {};
+    if (!savedCityPoints) {
+      // Default Taipei to 53 points for demo/testing purposes
+      cityPoints = { '台北市': 53 };
+      localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
+    }
     
     const stats: ProgressStats = taiwanCounties.reduce((acc, county) => {
       const countyPois = pois.filter(p => p.county === county);
@@ -82,13 +88,13 @@ export default function AchievementsPage() {
                     )}
                   </div>
                    <span className="text-sm font-normal text-muted-foreground">
-                    {countyProgress.discovered} / {countyProgress.total}
+                    {countyProgress.points} / {EXPERT_THRESHOLD}
                   </span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Progress value={percentage} className="h-2" />
-                <p className="text-right text-xs text-muted-foreground mt-1">{Math.round(percentage)}%</p>
+                <Progress value={(countyProgress.points / EXPERT_THRESHOLD) * 100} className="h-2" />
+                <p className="text-right text-xs text-muted-foreground mt-1">{Math.round((countyProgress.points / EXPERT_THRESHOLD) * 100)}%</p>
               </CardContent>
             </Card>
           )
