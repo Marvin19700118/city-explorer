@@ -55,7 +55,6 @@ export default function MapPage() {
   
   const [trips, setTrips] = React.useState<Trip[]>([]);
   const tripStartTimeRef = React.useRef<string | null>(null);
-  const prevPetRef = React.useRef<Pet>();
 
   const [pet, setPet] = React.useState<Pet>({
     name: 'Sparky',
@@ -65,6 +64,8 @@ export default function MapPage() {
     xpToNextLevel: XP_PER_LEVEL,
     evolutionStage: 1,
   });
+  
+  const prevPetRef = React.useRef<Pet>(pet);
 
   const [pois, setPois] = React.useState<PointOfInterest[]>([]);
   const [activeQuizPoi, setActiveQuizPoi] = React.useState<PointOfInterest | null>(null);
@@ -157,32 +158,32 @@ export default function MapPage() {
     
     const savedPet = localStorage.getItem('pet');
     if (savedPet) {
-        setPet(JSON.parse(savedPet));
+        const parsedPet = JSON.parse(savedPet);
+        setPet(parsedPet);
+        prevPetRef.current = parsedPet;
     }
   }, []);
 
   // Separate effect for showing toast notifications on level/evolution change
   React.useEffect(() => {
-    if (prevPetRef.current) {
-        const prevPet = prevPetRef.current;
-        if (pet.level > prevPet.level) {
-            if (pet.evolutionStage > prevPet.evolutionStage) {
-                toast({
-                    title: "您的寵物進化了！",
-                    description: `${pet.name} 已經達到了新的形態！`,
-                });
-            } else {
-                toast({
-                    title: "等級提升！",
-                    description: `${pet.name} 現在是 ${pet.level} 級了！`,
-                });
-            }
+    const prevPet = prevPetRef.current;
+    if (pet.level > prevPet.level) {
+        if (pet.evolutionStage > prevPet.evolutionStage) {
+            toast({
+                title: "您的寵物進化了！",
+                description: `${pet.name} 已經達到了新的形態！`,
+            });
+        } else {
+            toast({
+                title: "等級提升！",
+                description: `${pet.name} 現在是 ${pet.level} 級了！`,
+            });
         }
     }
     
     // update the ref with the current pet state for the next render
     prevPetRef.current = pet;
-  }, [pet.level, pet.evolutionStage, pet.name, toast]);
+  }, [pet, toast]);
 
 
   React.useEffect(() => {
@@ -403,5 +404,3 @@ export default function MapPage() {
     </div>
   );
 }
-
-    
