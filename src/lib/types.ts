@@ -1,7 +1,8 @@
 export type Pet = {
   name: string;
   level: number;
-  xp: number;
+  xp: number; // XP for the current level
+  totalXp: number; // Total accumulated XP across all levels
   xpToNextLevel: number;
   evolutionStage: number;
 };

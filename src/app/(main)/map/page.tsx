@@ -55,7 +55,6 @@ export default function MapPage() {
   const { position, distance, path, error, loading, isTracking, startTracking, stopTracking: trackerStop } = useLocationTracker();
   const { toast } = useToast();
   
-  const [totalDistance, setTotalDistance] = React.useState(0);
   const [trips, setTrips] = React.useState<Trip[]>([]);
   const tripStartTimeRef = React.useRef<string | null>(null);
   const prevPetRef = React.useRef<Pet>();
@@ -64,6 +63,7 @@ export default function MapPage() {
     name: 'Sparky',
     level: 1,
     xp: 0,
+    totalXp: 0,
     xpToNextLevel: XP_PER_LEVEL,
     evolutionStage: 1,
   });
@@ -100,19 +100,22 @@ export default function MapPage() {
       const existingTrips: Trip[] = existingTripsJSON ? JSON.parse(existingTripsJSON) : [];
       const updatedTrips = [...existingTrips, newTrip];
       localStorage.setItem('trips', JSON.stringify(updatedTrips));
-      setTrips(updatedTrips); // Update state to re-render map
+      setTrips(updatedTrips);
+
+      const distanceXp = distance * XP_PER_KM;
+      setPet(p => ({ ...p, totalXp: (p.totalXp || 0) + distanceXp }));
+
       toast({
         title: "旅程已儲存!",
         description: `您 ${distance.toFixed(2)} 公里的旅程已被儲存到紀錄中。`,
       });
-      setTotalDistance(prev => prev + distance);
     }
     trackerStop();
     tripStartTimeRef.current = null;
   };
-
+  
   const addXp = React.useCallback((amount: number) => {
-    setPet(p => ({ ...p, xp: p.xp + amount }));
+    setPet(p => ({ ...p, totalXp: (p.totalXp || 0) + amount }));
   }, []);
 
 
@@ -133,14 +136,11 @@ export default function MapPage() {
     if (existingTripsJSON) {
         const existingTrips: Trip[] = JSON.parse(existingTripsJSON);
         setTrips(existingTrips);
-        const savedTotalDistance = existingTrips.reduce((acc, trip) => acc + trip.distance, 0);
-        setTotalDistance(savedTotalDistance);
     } else {
         // If no trips exist, add the mock trip
         const initialTrips = [mockTrip];
         localStorage.setItem('trips', JSON.stringify(initialTrips));
         setTrips(initialTrips);
-        setTotalDistance(mockTrip.distance);
     }
     
     const savedPet = localStorage.getItem('pet');
@@ -151,19 +151,9 @@ export default function MapPage() {
 
 
   React.useEffect(() => {
-    // This effect runs whenever totalDistance or distance changes, calculating XP from distance
-    const distanceXp = (totalDistance + distance) * XP_PER_KM;
+    // This effect handles level ups based on total XP changes.
     const currentPet = pet;
-    const totalXp = distanceXp + (currentPet.xp - ((currentPet.level -1) * XP_PER_LEVEL)); // preserve quiz xp
-    setPet(p => ({ ...p, xp: totalXp }));
-  }, [distance, totalDistance]);
-
-
-  React.useEffect(() => {
-    // This effect handles level ups based on XP changes.
-    // It calculates the new level and evolution state.
-    const currentPet = pet;
-    const totalXp = currentPet.xp;
+    const totalXp = currentPet.totalXp || 0;
     
     const newLevel = 1 + Math.floor(totalXp / XP_PER_LEVEL);
     const xpIntoLevel = totalXp % XP_PER_LEVEL;
@@ -172,41 +162,36 @@ export default function MapPage() {
 
     const finalPetState: Pet = {
         ...currentPet,
-        xp: totalXp,
+        totalXp,
         level: newLevel,
+        xp: xpIntoLevel,
         xpToNextLevel: XP_PER_LEVEL,
         evolutionStage: newEvolutionStage,
     };
-
-    // We only need to update the pet's display values, not the base XP
-    setPet(p => ({
-        ...p, 
-        level: newLevel, 
-        xp: xpIntoLevel, // Display XP for current level
-        xpToNextLevel: XP_PER_LEVEL,
-        evolutionStage: newEvolutionStage,
-    }));
     
-    // We save the full pet state including total XP
+    // We only need to update the pet's display values, not the base XP
+    setPet(finalPetState);
     localStorage.setItem('pet', JSON.stringify(finalPetState));
 
-  }, [pet.xp]);
+  }, [pet.totalXp]);
 
   // Separate effect for showing toast notifications on level/evolution change
   React.useEffect(() => {
     // use a ref to track the previous state to compare against
     if (prevPetRef.current) {
         const prevPet = prevPetRef.current;
-        if (pet.evolutionStage > prevPet.evolutionStage) {
-            toast({
-                title: "您的寵物進化了！",
-                description: `${pet.name} 已經達到了新的形態！`,
-            });
-        } else if (pet.level > prevPet.level) {
-            toast({
-                title: "等級提升！",
-                description: `${pet.name} 現在是 ${pet.level} 級了！`,
-            });
+        if (pet.level > prevPet.level) {
+            if (pet.evolutionStage > prevPet.evolutionStage) {
+                toast({
+                    title: "您的寵物進化了！",
+                    description: `${pet.name} 已經達到了新的形態！`,
+                });
+            } else {
+                toast({
+                    title: "等級提升！",
+                    description: `${pet.name} 現在是 ${pet.level} 級了！`,
+                });
+            }
         }
     }
     
