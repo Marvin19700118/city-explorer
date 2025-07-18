@@ -49,37 +49,37 @@ export default function SettingsPage() {
     <div className="p-4 space-y-6">
       <header className="flex items-center gap-2 text-2xl font-bold font-headline text-primary">
         <Settings className="h-6 w-6" />
-        <h2>Settings</h2>
+        <h2>設定</h2>
       </header>
       
       <Card>
         <CardHeader>
-          <CardTitle>Account</CardTitle>
-          <CardDescription>Manage your account settings.</CardDescription>
+          <CardTitle>帳號</CardTitle>
+          <CardDescription>管理您的帳號設定</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
-            <Label htmlFor="email" className="text-muted-foreground">Email</Label>
+            <Label htmlFor="email" className="text-muted-foreground">電子郵件</Label>
             <span id="email" className="font-mono text-sm">{user?.email}</span>
           </div>
           <Button onClick={handleSignOut} variant="outline" className="w-full">
             <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
+            登出
           </Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Map</CardTitle>
-          <CardDescription>Customize your map experience.</CardDescription>
+          <CardTitle>地圖</CardTitle>
+          <CardDescription>自訂您的地圖體驗</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="fog-opacity" className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Palette className="h-4 w-4" />
-                    <span>Fog Opacity</span>
+                    <span>戰爭迷霧不透明度</span>
                 </div>
                 <span>{settings.fogOpacity}%</span>
             </Label>
@@ -97,14 +97,14 @@ export default function SettingsPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle>Notifications</CardTitle>
-          <CardDescription>Manage in-app notifications.</CardDescription>
+          <CardTitle>通知</CardTitle>
+          <CardDescription>管理應用程式內的通知</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
             <Label htmlFor="area-notifications" className="flex items-center gap-2">
               <Bell className="h-4 w-4" />
-              <span>Area Discovery Notifications (3km)</span>
+              <span>新區域探索通知 (3公里)</span>
             </Label>
             <Switch
               id="area-notifications"

@@ -19,10 +19,10 @@ import { createGuide } from '@/app/actions';
 const TAIPEI_CENTER = { lat: 25.0330, lng: 121.5654 };
 
 const initialPois: PointOfInterest[] = [
-  { id: 'poi1', name: 'Taipei 101', position: { lat: 25.0339, lng: 121.5645 }, areaDescription: 'A supertall skyscraper in Xinyi District, Taipei, Taiwan. It was officially the world\'s tallest from its opening in 2004 until 2010.', discovered: false, county: '台北市' },
-  { id: 'poi2', name: 'National Palace Museum', position: { lat: 25.1026, lng: 121.5485 }, areaDescription: 'Located in Shilin, Taipei, it has a permanent collection of nearly 700,000 pieces of ancient Chinese imperial artifacts and artworks, making it one of the largest of its type in the world.', discovered: false, county: '台北市' },
-  { id: 'poi3', name: 'Chiang Kai-shek Memorial Hall', position: { lat: 25.0345, lng: 121.5218 }, areaDescription: 'A national monument, landmark and tourist attraction erected in memory of Chiang Kai-shek, former President of the Republic of China.', discovered: false, county: '台北市' },
-  { id: 'poi4', name: 'Ximending', position: { lat: 25.0479, lng: 121.5074 }, areaDescription: 'A neighborhood and shopping district in the Wanhua District of Taipei, Taiwan. It was the first pedestrian zone in Taiwan.', discovered: false, county: '台北市' },
+  { id: 'poi1', name: '台北101', position: { lat: 25.0339, lng: 121.5645 }, areaDescription: '一座位於台灣台北市信義區的摩天大樓。樓高509.2公尺，地上101層、地下5層，總樓地板面積37萬4千平方公尺，由李祖原聯合建築師事務所設計。於1999年動工，2004年12月31日完工開幕。', discovered: false, county: '台北市' },
+  { id: 'poi2', name: '國立故宮博物院', position: { lat: 25.1026, lng: 121.5485 }, areaDescription: '位於台灣台北市士林區，為台灣最具規模的博物館以及台灣八景之一，也是古代中國藝術史與漢學研究機構。館舍在1965年11月12日落成。', discovered: false, county: '台北市' },
+  { id: 'poi3', name: '中正紀念堂', position: { lat: 25.0345, lng: 121.5218 }, areaDescription: '為紀念中華民國第一任總統蔣中正而興建，是位於臺灣臺北市中正區的國家紀念建築。全區250,000平方公尺，主樓高76公尺。', discovered: false, county: '台北市' },
+  { id: 'poi4', name: '西門町', position: { lat: 25.0479, lng: 121.5074 }, areaDescription: '位於臺灣臺北市萬華區東北方，為臺北市西區最重要且國際化程度最高的消費商圈，以年輕族群為主要的消費對象，並吸引了許多國際觀光客以自助旅行造訪此處。', discovered: false, county: '台北市' },
 ];
 
 const mockTrip: Trip = {
@@ -99,8 +99,8 @@ export default function MapPage() {
       localStorage.setItem('trips', JSON.stringify(updatedTrips));
       setTrips(updatedTrips); // Update state to re-render map
       toast({
-        title: "Trip Saved!",
-        description: `Your ${distance.toFixed(2)} km trip has been saved to history.`,
+        title: "旅程已儲存!",
+        description: `您 ${distance.toFixed(2)} 公里的旅程已被儲存到紀錄中。`,
       });
       setTotalDistance(prev => prev + distance);
     }
@@ -109,13 +109,8 @@ export default function MapPage() {
   };
 
   const addXp = React.useCallback((amount: number) => {
-    toast({
-        title: "XP Gained!",
-        description: `You earned ${amount} XP.`,
-    });
-    // This will trigger the useEffect for leveling up
     setPet(p => ({ ...p, xp: p.xp + amount }));
-  }, [toast]);
+  }, []);
 
 
   React.useEffect(() => {
@@ -203,13 +198,13 @@ export default function MapPage() {
         const prevPet = prevPetRef.current;
         if (pet.evolutionStage > prevPet.evolutionStage) {
             toast({
-                title: "Your pet evolved!",
-                description: `${pet.name} has reached a new form!`,
+                title: "您的寵物進化了！",
+                description: `${pet.name} 已經達到了新的形態！`,
             });
         } else if (pet.level > prevPet.level) {
             toast({
-                title: "Level Up!",
-                description: `${pet.name} is now level ${pet.level}!`,
+                title: "等級提升！",
+                description: `${pet.name} 現在是 ${pet.level} 級了！`,
             });
         }
     }
@@ -248,8 +243,8 @@ export default function MapPage() {
         updatedPois = updatedPois.map(p => p.id === poi.id ? { ...p, discovered: true } : p);
         didDiscover = true;
         toast({
-            title: "New Area Discovered!",
-            description: `You've unveiled ${poi.name}.`,
+            title: "發現新區域！",
+            description: `您已揭開 ${poi.name} 的面紗。`,
             variant: "default",
         });
       }
@@ -290,15 +285,15 @@ export default function MapPage() {
     if (areaName) {
         const localPoi: PointOfInterest = {
             id: `local-${Date.now()}`,
-            name: 'Current Location',
+            name: '目前位置',
             position: position,
-            areaDescription: `The user is currently near ${areaName}.`,
+            areaDescription: `使用者目前位於 ${areaName} 附近。`,
             discovered: true,
-            county: 'Current Location',
+            county: '目前位置',
         };
         setActiveQuizPoi(localPoi);
     } else {
-        toast({ title: "Could not identify location", description: "Failed to find address details for your current position.", variant: "destructive" });
+        toast({ title: "無法識別位置", description: "無法獲取您目前位置的詳細地址。", variant: "destructive" });
     }
   };
 
@@ -309,7 +304,7 @@ export default function MapPage() {
     setGuideData(null);
     const areaName = await getAreaNameFromPosition(position);
     if (!areaName) {
-         toast({ title: "Could not identify location", description: "Failed to find address details for your current position.", variant: "destructive" });
+         toast({ title: "無法識別位置", description: "無法獲取您目前位置的詳細地址。", variant: "destructive" });
          setIsGuideLoading(false);
          return;
     }
@@ -320,7 +315,7 @@ export default function MapPage() {
     if (result) {
         setGuideData(result);
     } else {
-        toast({ title: "Guide Generation Failed", description: "Could not generate a guide for this area.", variant: "destructive" });
+        toast({ title: "導覽生成失敗", description: "無法為此區域生成導覽。", variant: "destructive" });
     }
   }
 
@@ -336,9 +331,9 @@ export default function MapPage() {
         <div className="p-4">
           <Alert>
             <Terminal className="h-4 w-4" />
-            <AlertTitle>Google Maps API Key Missing</AlertTitle>
+            <AlertTitle>缺少 Google Maps API 金鑰</AlertTitle>
             <AlertDescription>
-              Please add your Google Maps API key to the .env file to display the map.
+              請將您的 Google Maps API 金鑰加入到 .env 檔案中以顯示地圖。
             </AlertDescription>
           </Alert>
         </div>
@@ -350,7 +345,7 @@ export default function MapPage() {
         <div className="p-4">
           <Alert variant="destructive">
             <Terminal className="h-4 w-4" />
-            <AlertTitle>Location Error</AlertTitle>
+            <AlertTitle>定位錯誤</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         </div>

@@ -31,14 +31,14 @@ export default function HistoryPage() {
     <div className="p-4 space-y-6">
       <header className="flex items-center gap-2 text-2xl font-bold font-headline text-primary">
         <History className="h-6 w-6" />
-        <h2>Exploration History</h2>
+        <h2>探索紀錄</h2>
       </header>
 
       {trips.length === 0 ? (
         <div className="text-center p-8 bg-muted/50 rounded-lg">
           <MapPin className="w-16 h-16 mx-auto text-accent" />
-          <h3 className="text-2xl font-bold mt-4">No Trips Yet</h3>
-          <p className="text-muted-foreground mt-2">Go to the Map tab and start exploring to record your first trip!</p>
+          <h3 className="text-2xl font-bold mt-4">還沒有任何旅程</h3>
+          <p className="text-muted-foreground mt-2">到「地圖」分頁開始探索，記錄您的第一趟旅程吧！</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -48,7 +48,7 @@ export default function HistoryPage() {
                 <CardTitle className="flex items-center justify-between text-lg">
                    <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>Trip on {new Date(trip.date).toLocaleDateString()}</span>
+                    <span>{new Date(trip.date).toLocaleDateString()} 的旅程</span>
                   </div>
                 </CardTitle>
                  <CardDescription className="flex items-center gap-2 pt-1">
@@ -62,7 +62,7 @@ export default function HistoryPage() {
                 <div className="flex items-center justify-between text-muted-foreground">
                     <div className="flex items-center gap-2 text-accent font-bold">
                         <Footprints className="h-5 w-5" />
-                        <span>{trip.distance.toFixed(2)} km</span>
+                        <span>{trip.distance.toFixed(2)} 公里</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <Timer className="h-5 w-5" />
@@ -70,7 +70,7 @@ export default function HistoryPage() {
                     </div>
                 </div>
                 <CardDescription>
-                  A journey of {trip.path.length} recorded points.
+                  一段包含 {trip.path.length} 個紀錄點的旅程。
                 </CardDescription>
               </CardContent>
             </Card>

@@ -36,10 +36,10 @@ export default function StatsPage() {
         <div className="p-4 space-y-6">
             <header className="flex items-center gap-2 text-2xl font-bold font-headline text-primary">
                 <BarChart2 className="h-6 w-6" />
-                <h2>Your Stats</h2>
+                <h2>您的統計資料</h2>
             </header>
             <div className="text-center p-8 bg-muted/50 rounded-lg">
-                <p>Loading stats...</p>
+                <p>正在載入統計資料...</p>
             </div>
         </div>
     );
@@ -51,23 +51,23 @@ export default function StatsPage() {
     <div className="p-4 space-y-6">
       <header className="flex items-center gap-2 text-2xl font-bold font-headline text-primary">
         <BarChart2 className="h-6 w-6" />
-        <h2>Your Stats</h2>
+        <h2>您的統計資料</h2>
       </header>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl text-accent">
             <Map className="h-5 w-5" />
-            City Exploration
+            城市探索
           </CardTitle>
         </CardHeader>
         <CardContent>
           <StatsDisplay 
             percentage={explorationPercentage} 
-            label="Taipei"
+            label="台北市"
             value={poiStats.discovered}
             total={poiStats.total}
-            unit="POIs Discovered"
+            unit="個景點已探索"
           />
         </CardContent>
       </Card>
@@ -77,24 +77,24 @@ export default function StatsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
                 <Compass className="h-5 w-5" />
-                Total Distance
+                總距離
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold font-headline text-primary">{tripStats.totalDistance.toFixed(2)}</p>
-            <p className="text-sm text-muted-foreground">km</p>
+            <p className="text-sm text-muted-foreground">公里</p>
           </CardContent>
         </Card>
         <Card>
            <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
                 <CheckCircle className="h-5 w-5" />
-                Trips Taken
+                已完成旅程
             </CardTitle>
           </CardHeader>
           <CardContent>
              <p className="text-3xl font-bold font-headline text-primary">{tripStats.totalTrips}</p>
-             <p className="text-sm text-muted-foreground">adventures</p>
+             <p className="text-sm text-muted-foreground">次冒險</p>
           </CardContent>
         </Card>
       </div>

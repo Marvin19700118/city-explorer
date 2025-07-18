@@ -23,7 +23,7 @@ import { Trophy } from 'lucide-react';
 const navItems = [
   { href: '/map', label: '地圖', icon: Map },
   { href: '/stats', label: '統計', icon: BarChart2 },
-  { href: '/history', label: '歷史', icon: History },
+  { href: '/history', label: '紀錄', icon: History },
   { href: '/achievements', label: '成就', icon: Gem },
   { href: '/settings', label: '設定', icon: Settings },
 ];
@@ -75,7 +75,7 @@ export default function MainAppLayout({
                 <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
-                  Sign Out
+                  登出
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

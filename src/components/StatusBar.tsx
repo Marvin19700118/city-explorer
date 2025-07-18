@@ -16,7 +16,7 @@ export const StatusBar = ({ distance, pet }: StatusBarProps) => {
         <p className="font-headline text-lg font-bold text-foreground">
           {distance.toFixed(2)} km
         </p>
-        <p className="text-xs text-muted-foreground">Explored</p>
+        <p className="text-xs text-muted-foreground">已探索</p>
       </div>
       <Separator orientation="vertical" className="h-16" />
       <div className="col-span-2">
