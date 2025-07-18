@@ -10,6 +10,7 @@ import type { Pet, PointOfInterest } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const initialPois: PointOfInterest[] = [
   { id: 'poi1', name: 'Central Park', position: { lat: 40.785091, lng: -73.968285 }, areaDescription: 'A large urban park in Manhattan, New York City, featuring walking paths, a zoo, and a carousel.', discovered: false },
@@ -22,7 +23,7 @@ const XP_PER_KM = 100;
 const PET_EVOLUTION_LEVELS = [5, 10, 15];
 
 export default function MapPage() {
-  const { position, distance, error } = useLocationTracker();
+  const { position, distance, error, loading: locationLoading } = useLocationTracker();
   const { toast } = useToast();
 
   const [pet, setPet] = React.useState<Pet>({
@@ -81,7 +82,6 @@ export default function MapPage() {
   React.useEffect(() => {
     if (!position) return;
       
-    // Haversine formula to calculate distance between two lat/lng points
     const getDistanceInKm = (pos1: { lat: number; lng: number }, pos2: { lat: number; lng: number }) => {
       const R = 6371; // Radius of the earth in km
       const dLat = (pos2.lat - pos1.lat) * (Math.PI / 180);
@@ -96,7 +96,7 @@ export default function MapPage() {
       return R * c;
     };
       
-    const DISCOVERY_RADIUS_KM = 1; // 1km discovery radius
+    const DISCOVERY_RADIUS_KM = 1; 
     const undiscoveredPois = pois.filter(p => !p.discovered);
 
     for (const poi of undiscoveredPois) {
@@ -123,6 +123,47 @@ export default function MapPage() {
 
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
+  const renderMapContent = () => {
+    if (!googleMapsApiKey) {
+      return (
+        <div className="p-4">
+          <Alert>
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Google Maps API Key Missing</AlertTitle>
+            <AlertDescription>
+              Please add your Google Maps API key to the .env file to display the map.
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+    
+    if (error) {
+       return (
+        <div className="p-4">
+          <Alert variant="destructive">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Location Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+
+    if (locationLoading) {
+       return <Skeleton className="h-full w-full" />
+    }
+    
+    return (
+       <GameMap
+        apiKey={googleMapsApiKey}
+        userPosition={position}
+        pois={pois}
+        onStartQuiz={handleStartQuiz}
+      />
+    )
+  }
+
   return (
     <div className="flex h-full flex-col">
         <header className="flex items-center justify-center gap-2 p-4 font-headline text-2xl font-bold text-primary">
@@ -131,32 +172,7 @@ export default function MapPage() {
         </header>
 
         <div className="relative flex-1">
-          {!googleMapsApiKey ? (
-            <div className="p-4">
-              <Alert>
-                <Terminal className="h-4 w-4" />
-                <AlertTitle>Google Maps API Key Missing</AlertTitle>
-                <AlertDescription>
-                  Please add your Google Maps API key to .env to display the map.
-                </AlertDescription>
-              </Alert>
-            </div>
-          ) : error ? (
-            <div className="p-4">
-              <Alert variant="destructive">
-                <Terminal className="h-4 w-4" />
-                <AlertTitle>Location Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            </div>
-          ) : (
-            <GameMap
-              apiKey={googleMapsApiKey}
-              userPosition={position}
-              pois={pois}
-              onStartQuiz={handleStartQuiz}
-            />
-          )}
+          {renderMapContent()}
         </div>
 
         <div className="border-t-2 border-primary/20 p-2">

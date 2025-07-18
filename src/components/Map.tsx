@@ -107,26 +107,19 @@ const mapOptions = {
 };
 
 export const GameMap = ({ apiKey, userPosition, pois, onStartQuiz }: GameMapProps) => {
-  const [mapError, setMapError] = React.useState<Error | null>(null);
-
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
-    // Prevent the script from being injected if there's no key
     preventGoogleFontsLoading: true, 
   });
   
-  const handleError = React.useCallback((error: Error) => {
-    setMapError(error);
-  }, []);
-
-  if (loadError || mapError) {
+  if (loadError) {
     return (
-       <div className="flex h-full w-full items-center justify-center p-4">
+       <div className="flex h-full w-full items-center justify-center p-4 absolute inset-0 bg-background z-10">
          <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Map Load Error</AlertTitle>
             <AlertDescription>
-                Could not load the map. Please ensure your Google Maps API key is valid, has billing enabled, and the 'Maps JavaScript API' is enabled in the Google Cloud Console.
+                Could not load the map. This is often due to an invalid or misconfigured API key. Please ensure your Google Maps API key is correct, has billing enabled, and that the &apos;Maps JavaScript API&apos; is enabled in your Google Cloud Console.
             </AlertDescription>
         </Alert>
        </div>
@@ -145,11 +138,7 @@ export const GameMap = ({ apiKey, userPosition, pois, onStartQuiz }: GameMapProp
         mapContainerStyle={mapContainerStyle}
         center={center}
         zoom={userPosition ? 15 : 2}
-        options={mapOptions}
-        onLoad={() => setMapError(null)}
-        onUnmount={() => setMapError(null)}
-        {...({ options: { ...mapOptions, gestureHandling: 'greedy' } })}
-        {...(window.google && window.google.maps && window.google.maps.version ? { onLoadError: handleError } : {})}
+        options={{...mapOptions, gestureHandling: 'greedy' }}
       >
         {userPosition && (
           <MarkerF

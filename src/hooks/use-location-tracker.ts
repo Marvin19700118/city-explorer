@@ -27,24 +27,32 @@ export const useLocationTracker = () => {
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [distance, setDistance] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const previousPositionRef = useRef<{ latitude: number, longitude: number} | null>(null);
   const watchIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!navigator.geolocation) {
       setError('Geolocation is not supported by your browser.');
+      setLoading(false);
       return;
     }
+
+    let isMounted = true;
 
     // Get initial position
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        if (!isMounted) return;
         const { latitude, longitude } = pos.coords;
         setPosition({ lat: latitude, lng: longitude });
         previousPositionRef.current = { latitude, longitude };
+        setLoading(false);
       },
       (err) => {
+        if (!isMounted) return;
         setError(`Error getting location: ${err.message}`);
+        setLoading(false);
       },
       { enableHighAccuracy: true }
     );
@@ -52,6 +60,7 @@ export const useLocationTracker = () => {
     // Watch for position changes
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
+        if (!isMounted) return;
         const { latitude, longitude } = pos.coords;
         const newPosition = { lat: latitude, lng: longitude };
         setPosition(newPosition);
@@ -66,6 +75,7 @@ export const useLocationTracker = () => {
         previousPositionRef.current = { latitude, longitude };
       },
       (err) => {
+         if (!isMounted) return;
         setError(`Error watching location: ${err.message}`);
       },
       {
@@ -77,11 +87,12 @@ export const useLocationTracker = () => {
     );
 
     return () => {
+      isMounted = false;
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
     };
   }, []);
 
-  return { position, distance, error };
+  return { position, distance, error, loading };
 };
