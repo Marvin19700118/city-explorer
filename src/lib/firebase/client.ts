@@ -7,13 +7,13 @@ const firebaseConfig = {
   apiKey: "AIzaSyDXJf1XrYYWX_z-zyWeZEz5STRebTC7jNQ",
   authDomain: "city-unveiler.firebaseapp.com",
   projectId: "city-unveiler",
-  storageBucket: "city-unveiler.firebasestorage.app",
+  storageBucket: "city-unveiler.appspot.com",
   messagingSenderId: "1003377700516",
   appId: "1:1003377700516:web:8adbafbd3b53e4c33ac031"
 };
 
 // Always treat Firebase as configured since the config is hardcoded.
-const firebaseConfigured = true;
+export const firebaseConfigured = true;
 
 let app: FirebaseApp;
 let auth: Auth;
@@ -26,4 +26,4 @@ if (!getApps().length) {
 auth = getAuth(app);
 
 
-export { app, auth, firebaseConfigured };
+export { app, auth };
