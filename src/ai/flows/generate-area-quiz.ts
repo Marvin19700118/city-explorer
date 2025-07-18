@@ -25,12 +25,12 @@ const GenerateAreaQuizOutputSchema = z.object({
   quiz: z.array(
     z.object({
       question: z.string().describe('The quiz question.'),
-      answers: z.array(z.string()).describe('Possible answers to the question.'),
+      answers: z.array(z.string()).describe('An array of 4 possible answers to the question.'),
       correctAnswerIndex: z
         .number()
         .describe('The index of the correct answer in the answers array.'),
     })
-  ).describe('An array of quiz questions, answers and correct answer indices.'),
+  ).describe('An array of 5 quiz questions, their answers, and correct answer indices.'),
 });
 export type GenerateAreaQuizOutput = z.infer<typeof GenerateAreaQuizOutputSchema>;
 
@@ -42,11 +42,11 @@ const generateAreaQuizPrompt = ai.definePrompt({
   name: 'generateAreaQuizPrompt',
   input: {schema: GenerateAreaQuizInputSchema},
   output: {schema: GenerateAreaQuizOutputSchema},
-  prompt: `You are an AI quiz generator. Generate a quiz based on the following area description. The quiz should have multiple choice questions.
+  prompt: `You are an AI quiz generator. Generate a 5-question multiple-choice quiz based on the following area description. Each question should have 4 possible answers. The questions should be interesting and related to the history, culture, or landmarks of the area.
 
 Area Description: {{{areaDescription}}}
 
-Output the quiz as a JSON object. Each question should have a question field, an answers field (an array of strings), and a correctAnswerIndex field (the index of the correct answer in the answers array).`,
+Output the quiz as a JSON object. Each question should have a question field, an answers field (an array of 4 strings), and a correctAnswerIndex field (the 0-based index of the correct answer in the answers array).`,
 });
 
 const generateAreaQuizFlow = ai.defineFlow(

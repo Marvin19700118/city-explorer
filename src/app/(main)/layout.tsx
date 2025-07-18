@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { signOut } from '@/lib/firebase/auth';
 import { firebaseConfigured } from '@/lib/firebase/client';
+import { Trophy } from 'lucide-react';
 
 const navItems = [
   { href: '/map', label: '地圖', icon: Map },
@@ -62,7 +63,7 @@ export default function MainAppLayout({
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-black font-body text-foreground">
       <div className="relative mx-auto flex h-[800px] max-h-[90vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl border-4 border-primary/50 bg-background shadow-2xl shadow-primary/20">
-        <header className="absolute right-2 top-2 z-20">
+        <header className="absolute right-2 top-2 z-20 flex items-center gap-2">
           {firebaseConfigured && user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

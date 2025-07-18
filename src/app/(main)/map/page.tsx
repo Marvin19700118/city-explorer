@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { MapPin, Play, Square } from 'lucide-react';
+import { MapPin, Play, Square, Trophy } from 'lucide-react';
 import { StatusBar } from '@/components/StatusBar';
 import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
@@ -96,6 +96,15 @@ export default function MapPage() {
     tripStartTimeRef.current = null;
   };
 
+  const addXp = React.useCallback((amount: number) => {
+    toast({
+        title: "XP Gained!",
+        description: `You earned ${amount} XP.`,
+    });
+    // This will trigger the useEffect for leveling up
+    setPet(p => ({ ...p, xp: p.xp + amount }));
+  }, [toast]);
+
 
   React.useEffect(() => {
     // Load saved data from localStorage on mount
@@ -119,18 +128,30 @@ export default function MapPage() {
         setTrips(initialTrips);
         setTotalDistance(mockTrip.distance);
     }
+    
+    const savedPet = localStorage.getItem('pet');
+    if (savedPet) {
+        setPet(JSON.parse(savedPet));
+    }
   }, []);
 
 
   React.useEffect(() => {
-    const newXp = (totalDistance + distance) * XP_PER_KM;
-    
-    setPet(currentPet => {
-        let currentXp = newXp;
+    // This effect runs whenever totalDistance or distance changes, calculating XP from distance
+    const distanceXp = (totalDistance + distance) * XP_PER_KM;
+    setPet(currentPet => ({...currentPet, xp: distanceXp}));
+  }, [distance, totalDistance]);
+
+
+  React.useEffect(() => {
+     // This effect handles level ups based on XP changes from any source (distance, quizzes, etc.)
+     setPet(currentPet => {
+        let currentXp = currentPet.xp;
         let currentLevel = 1;
         let xpForNext = 100;
         let currentEvolutionStage = 1;
 
+        // Recalculate level from base XP
         while (currentXp >= xpForNext) {
             currentXp -= xpForNext;
             currentLevel++;
@@ -156,17 +177,22 @@ export default function MapPage() {
                 description: `${currentPet.name} is now level ${currentLevel}!`,
             });
         }
-
-        return {
+        
+        const finalPetState = {
             ...currentPet,
             xp: Math.round(currentXp),
             level: currentLevel,
             xpToNextLevel: xpForNext,
             evolutionStage: currentEvolutionStage,
         };
+
+        // Save pet state to local storage whenever it changes
+        localStorage.setItem('pet', JSON.stringify(finalPetState));
+
+        return finalPetState;
     });
 
-  }, [distance, totalDistance, toast]);
+  }, [pet.xp, toast]);
 
   React.useEffect(() => {
     if (!position || !isTracking || pois.length === 0) return;
@@ -213,6 +239,36 @@ export default function MapPage() {
 
   const handleStartQuiz = (poi: PointOfInterest) => {
     setActiveQuizPoi(poi);
+  };
+  
+  const handleStartLocalChallenge = async () => {
+    if (!position || !googleMapsApiKey) return;
+
+    try {
+        const geocoder = new window.google.maps.Geocoder();
+        const response = await geocoder.geocode({ location: position });
+        
+        if (response.results && response.results[0]) {
+            // Find a descriptive name for the area
+            const areaName = 
+                response.results.find(r => r.types.includes('locality'))?.formatted_address || 
+                response.results[0].formatted_address;
+
+            const localPoi: PointOfInterest = {
+                id: `local-${Date.now()}`,
+                name: 'Current Location',
+                position: position,
+                areaDescription: `The user is currently near ${areaName}.`,
+                discovered: true
+            };
+            setActiveQuizPoi(localPoi);
+        } else {
+             toast({ title: "Could not identify location", description: "Failed to find address details for your current position.", variant: "destructive" });
+        }
+    } catch (error) {
+        console.error("Reverse geocoding failed", error);
+        toast({ title: "Geocoding Error", description: "Could not fetch location details.", variant: "destructive" });
+    }
   };
 
   const handleCloseQuiz = () => {
@@ -272,15 +328,20 @@ export default function MapPage() {
             <MapPin className="h-6 w-6" />
             <h1>City Unveiler</h1>
           </div>
-          {!isTracking ? (
-            <Button onClick={handleStartTracking} disabled={loading && isTracking}>
-              <Play /> Start Exploring
+          <div className="flex items-center gap-2">
+             <Button onClick={handleStartLocalChallenge} disabled={!position || isTracking} variant="outline" size="sm">
+              <Trophy /> 在地挑戰
             </Button>
-          ) : (
-            <Button onClick={stopTracking} variant="destructive">
-              <Square /> Stop
-            </Button>
-          )}
+            {!isTracking ? (
+              <Button onClick={handleStartTracking} disabled={loading} size="sm">
+                <Play /> Start
+              </Button>
+            ) : (
+              <Button onClick={stopTracking} variant="destructive" size="sm">
+                <Square /> Stop
+              </Button>
+            )}
+          </div>
         </header>
 
         <div className="relative flex-1">
@@ -294,6 +355,7 @@ export default function MapPage() {
         poi={activeQuizPoi}
         isOpen={!!activeQuizPoi}
         onClose={handleCloseQuiz}
+        onQuizComplete={addXp}
       />
     </div>
   );

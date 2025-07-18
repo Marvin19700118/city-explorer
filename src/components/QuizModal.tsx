@@ -16,7 +16,7 @@ import { Skeleton } from './ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { createQuiz } from '@/app/actions';
 import type { PointOfInterest, QuizData, QuizQuestion } from '@/lib/types';
-import { CheckCircle, XCircle, BrainCircuit, RotateCw } from 'lucide-react';
+import { CheckCircle, XCircle, BrainCircuit, RotateCw, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -24,9 +24,13 @@ type QuizModalProps = {
   poi: PointOfInterest | null;
   isOpen: boolean;
   onClose: () => void;
+  onQuizComplete: (xpGained: number) => void;
 };
 
-export const QuizModal = ({ poi, isOpen, onClose }: QuizModalProps) => {
+const XP_PER_CORRECT_ANSWER = 10;
+const PERFECT_SCORE_BONUS_XP = 50;
+
+export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalProps) => {
   const [quizData, setQuizData] = React.useState<QuizData | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(0);
@@ -41,8 +45,10 @@ export const QuizModal = ({ poi, isOpen, onClose }: QuizModalProps) => {
     setQuizData(null);
     try {
       const data = await createQuiz(poi.areaDescription);
-      if (data) {
-        setQuizData(data);
+      if (data && data.questions.length > 0) {
+        // We only want 3 questions for a local challenge
+        const questions = poi.name === "Current Location" ? data.questions.slice(0, 3) : data.questions;
+        setQuizData({ questions });
       } else {
         toast({ title: "Quiz Generation Failed", description: "Could not generate a quiz for this area.", variant: "destructive"});
         onClose();
@@ -82,12 +88,28 @@ export const QuizModal = ({ poi, isOpen, onClose }: QuizModalProps) => {
   const handleNextQuestion = () => {
     setShowResult(false);
     setSelectedAnswer(null);
-    setCurrentQuestionIndex(i => i + 1);
+    if (isQuizFinished) {
+        // Handle quiz completion and award XP
+        const totalXp = score * XP_PER_CORRECT_ANSWER;
+        const isPerfect = score === quizData?.questions.length;
+        const finalXp = totalXp + (isPerfect ? PERFECT_SCORE_BONUS_XP : 0);
+        
+        if (finalXp > 0) {
+            onQuizComplete(finalXp);
+        }
+        
+        // Show final score card
+        setCurrentQuestionIndex(i => i + 1);
+
+    } else {
+       setCurrentQuestionIndex(i => i + 1);
+    }
   };
   
   const currentQuestion = quizData?.questions[currentQuestionIndex];
   const isCorrect = selectedAnswer === currentQuestion?.correctAnswerIndex;
   const isQuizFinished = quizData ? currentQuestionIndex === quizData.questions.length - 1 : false;
+  const isPerfectScore = score === quizData?.questions.length;
 
   const renderContent = () => {
     if (isLoading) {
@@ -105,11 +127,18 @@ export const QuizModal = ({ poi, isOpen, onClose }: QuizModalProps) => {
     }
 
     if (!currentQuestion) {
+      const xpGained = score * XP_PER_CORRECT_ANSWER + (isPerfectScore ? PERFECT_SCORE_BONUS_XP : 0);
       return (
-        <div className="text-center">
-            <p className="text-lg">Quiz Complete!</p>
-            <p className="text-4xl font-bold font-headline my-4 text-primary">{score} / {quizData?.questions.length}</p>
-            <p className="text-muted-foreground">You've earned {score * 10} bonus XP!</p>
+        <div className="text-center space-y-2">
+            <p className="text-lg font-semibold">Quiz Complete!</p>
+            <p className="text-5xl font-bold font-headline my-2 text-primary">{score} / {quizData?.questions.length}</p>
+            {isPerfectScore && (
+                <div className="flex items-center justify-center gap-2 text-accent font-bold">
+                    <Award className="h-6 w-6" />
+                    <p>Perfect Score! +{PERFECT_SCORE_BONUS_XP} XP Bonus!</p>
+                </div>
+            )}
+            <p className="text-muted-foreground">You've earned a total of <span className="font-bold text-foreground">{xpGained}</span> bonus XP!</p>
         </div>
       );
     }
@@ -148,7 +177,7 @@ export const QuizModal = ({ poi, isOpen, onClose }: QuizModalProps) => {
             {isCorrect ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
             <AlertTitle>{isCorrect ? "Correct!" : "Incorrect!"}</AlertTitle>
             <AlertDescription>
-              {isCorrect ? "Great job explorer!" : `The correct answer was: ${currentQuestion.answers[currentQuestion.correctAnswerIndex]}`}
+              {isCorrect ? `Great job explorer! +${XP_PER_CORRECT_ANSWER} XP` : `The correct answer was: ${currentQuestion.answers[currentQuestion.correctAnswerIndex]}`}
             </AlertDescription>
           </Alert>
         )}
@@ -179,10 +208,10 @@ export const QuizModal = ({ poi, isOpen, onClose }: QuizModalProps) => {
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-headline text-2xl text-primary">
-            <BrainCircuit /> Area Quiz: {poi?.name}
+            <BrainCircuit /> {poi?.name === 'Current Location' ? '在地挑戰' : `Area Quiz: ${poi?.name}`}
           </DialogTitle>
           <DialogDescription>
-            Test your knowledge about this newly discovered area!
+            Test your knowledge about this area!
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">{renderContent()}</div>
