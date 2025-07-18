@@ -1,26 +1,28 @@
 'use client';
 
 import * as React from 'react';
-import { Map, MapPin } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { StatusBar } from '@/components/StatusBar';
 import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
 import { useLocationTracker } from '@/hooks/use-location-tracker';
 import type { Pet, PointOfInterest } from '@/lib/types';
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Terminal } from 'lucide-react';
 
 const initialPois: PointOfInterest[] = [
-  { id: 'poi1', name: 'Central Park', position: { x: 45, y: 30 }, areaDescription: 'A large urban park in Manhattan, New York City, featuring walking paths, a zoo, and a carousel.', discovered: false },
-  { id: 'poi2', name: 'Eiffel Tower', position: { x: 75, y: 65 }, areaDescription: 'A wrought-iron lattice tower on the Champ de Mars in Paris, France.', discovered: false },
-  { id: 'poi3', name: 'Colosseum', position: { x: 20, y: 80 }, areaDescription: 'An oval amphitheatre in the centre of the city of Rome, Italy.', discovered: false },
-  { id: 'poi4', name: 'Mount Fuji', position: { x: 90, y: 10 }, areaDescription: 'An active volcano that is Japan\'s tallest peak, known for its symmetrical cone.', discovered: false },
+  { id: 'poi1', name: 'Central Park', position: { lat: 40.785091, lng: -73.968285 }, areaDescription: 'A large urban park in Manhattan, New York City, featuring walking paths, a zoo, and a carousel.', discovered: false },
+  { id: 'poi2', name: 'Eiffel Tower', position: { lat: 48.8584, lng: 2.2945 }, areaDescription: 'A wrought-iron lattice tower on the Champ de Mars in Paris, France.', discovered: false },
+  { id: 'poi3', name: 'Colosseum', position: { lat: 41.8902, lng: 12.4922 }, areaDescription: 'An oval amphitheatre in the centre of the city of Rome, Italy.', discovered: false },
+  { id: 'poi4', name: 'Mount Fuji', position: { lat: 35.3606, lng: 138.7278 }, areaDescription: 'An active volcano that is Japan\'s tallest peak, known for its symmetrical cone.', discovered: false },
 ];
 
 const XP_PER_KM = 100;
 const PET_EVOLUTION_LEVELS = [5, 10, 15];
 
 export default function MapPage() {
-  const { position, distance } = useLocationTracker();
+  const { position, distance, error } = useLocationTracker();
   const { toast } = useToast();
 
   const [pet, setPet] = React.useState<Pet>({
@@ -77,15 +79,30 @@ export default function MapPage() {
   }, [distance, toast]);
 
   React.useEffect(() => {
-    const DISCOVERY_RADIUS = 10;
+    if (!position) return;
+      
+    // Haversine formula to calculate distance between two lat/lng points
+    const getDistanceInKm = (pos1: { lat: number; lng: number }, pos2: { lat: number; lng: number }) => {
+      const R = 6371; // Radius of the earth in km
+      const dLat = (pos2.lat - pos1.lat) * (Math.PI / 180);
+      const dLon = (pos2.lng - pos1.lng) * (Math.PI / 180);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(pos1.lat * (Math.PI / 180)) *
+        Math.cos(pos2.lat * (Math.PI / 180)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+      
+    const DISCOVERY_RADIUS_KM = 1; // 1km discovery radius
     const undiscoveredPois = pois.filter(p => !p.discovered);
 
     for (const poi of undiscoveredPois) {
-      const dx = poi.position.x - position.x;
-      const dy = poi.position.y - position.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
+      const dist = getDistanceInKm(poi.position, position);
 
-      if (dist < DISCOVERY_RADIUS) {
+      if (dist < DISCOVERY_RADIUS_KM) {
         setPois(prevPois => prevPois.map(p => p.id === poi.id ? { ...p, discovered: true } : p));
         toast({
             title: "New Area Discovered!",
@@ -104,6 +121,8 @@ export default function MapPage() {
     setActiveQuizPoi(null);
   };
 
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
   return (
     <div className="flex h-full flex-col">
         <header className="flex items-center justify-center gap-2 p-4 font-headline text-2xl font-bold text-primary">
@@ -112,11 +131,32 @@ export default function MapPage() {
         </header>
 
         <div className="relative flex-1">
-          <GameMap
-            userPosition={position}
-            pois={pois}
-            onStartQuiz={handleStartQuiz}
-          />
+          {!googleMapsApiKey ? (
+            <div className="p-4">
+              <Alert>
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>Google Maps API Key Missing</AlertTitle>
+                <AlertDescription>
+                  Please add your Google Maps API key to .env to display the map.
+                </AlertDescription>
+              </Alert>
+            </div>
+          ) : error ? (
+            <div className="p-4">
+              <Alert variant="destructive">
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>Location Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            </div>
+          ) : (
+            <GameMap
+              apiKey={googleMapsApiKey}
+              userPosition={position}
+              pois={pois}
+              onStartQuiz={handleStartQuiz}
+            />
+          )}
         </div>
 
         <div className="border-t-2 border-primary/20 p-2">

@@ -19,7 +19,7 @@ export type QuizData = {
 export type PointOfInterest = {
   id: string;
   name: string;
-  position: { x: number; y: number };
+  position: { lat: number; lng: number };
   areaDescription: string;
   discovered: boolean;
 };

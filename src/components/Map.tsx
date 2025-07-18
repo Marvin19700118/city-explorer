@@ -1,94 +1,167 @@
 'use client';
 
 import * as React from 'react';
-import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
 import { cn } from '@/lib/utils';
 import type { PointOfInterest } from '@/lib/types';
 import { Button } from './ui/button';
-import { MapPin, Sparkles } from 'lucide-react';
+import { Sparkles, MapPin } from 'lucide-react';
+import { Skeleton } from './ui/skeleton';
 
 type GameMapProps = {
-  userPosition: { x: number; y: number };
+  apiKey: string;
+  userPosition: { lat: number; lng: number } | null;
   pois: PointOfInterest[];
   onStartQuiz: (poi: PointOfInterest) => void;
 };
 
-const FOG_GRID_SIZE = 15;
-const REVEAL_RADIUS = 2.5;
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%',
+};
 
-export const GameMap = ({ userPosition, pois, onStartQuiz }: GameMapProps) => {
-  const fogTiles = React.useMemo(() => {
-    return Array.from({ length: FOG_GRID_SIZE * FOG_GRID_SIZE });
-  }, []);
+const mapOptions = {
+  disableDefaultUI: true,
+  zoomControl: true,
+  styles: [
+    { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+    {
+      featureType: 'administrative.locality',
+      elementType: 'labels.text.fill',
+      stylers: [{ color: '#d59563' }],
+    },
+    {
+      featureType: 'poi',
+      elementType: 'labels.text.fill',
+      stylers: [{ color: '#d59563' }],
+    },
+    {
+      featureType: 'poi.park',
+      elementType: 'geometry',
+      stylers: [{ color: '#263c3f' }],
+    },
+    {
+      featureType: 'poi.park',
+      elementType: 'labels.text.fill',
+      stylers: [{ color: '#6b9a76' }],
+    },
+    {
+      featureType: 'road',
+      elementType: 'geometry',
+      stylers: [{ color: '#38414e' }],
+    },
+    {
+      featureType: 'road',
+      elementType: 'geometry.stroke',
+      stylers: [{ color: '#212a37' }],
+    },
+    {
+      featureType: 'road',
+      elementType: 'labels.text.fill',
+      stylers: [{ color: '#9ca5b3' }],
+    },
+    {
+      featureType: 'road.highway',
+      elementType: 'geometry',
+      stylers: [{ color: '#746855' }],
+    },
+    {
+      featureType: 'road.highway',
+      elementType: 'geometry.stroke',
+      stylers: [{ color: '#1f2835' }],
+    },
+    {
+      featureType: 'road.highway',
+      elementType: 'labels.text.fill',
+      stylers: [{ color: '#f3d19c' }],
+    },
+    {
+      featureType: 'transit',
+      elementType: 'geometry',
+      stylers: [{ color: '#2f3948' }],
+    },
+    {
+      featureType: 'transit.station',
+      elementType: 'labels.text.fill',
+      stylers: [{ color: '#d59563' }],
+    },
+    {
+      featureType: 'water',
+      elementType: 'geometry',
+      stylers: [{ color: '#17263c' }],
+    },
+    {
+      featureType: 'water',
+      elementType: 'labels.text.fill',
+      stylers: [{ color: '#515c6d' }],
+    },
+    {
+      featureType: 'water',
+      elementType: 'labels.text.stroke',
+      stylers: [{ color: '#17263c' }],
+    },
+  ],
+};
+
+export const GameMap = ({ apiKey, userPosition, pois, onStartQuiz }: GameMapProps) => {
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: apiKey,
+  });
+
+  if (loadError) {
+    return <div>Error loading maps</div>;
+  }
+
+  if (!isLoaded) {
+    return <Skeleton className="h-full w-full" />;
+  }
+  
+  const center = userPosition || { lat: 0, lng: 0 };
 
   return (
-    <div className="absolute inset-0 overflow-hidden rounded-t-lg">
-      <Image
-        src="https://placehold.co/800x800.png"
-        alt="City Map"
-        layout="fill"
-        objectFit="cover"
-        className="opacity-50"
-        data-ai-hint="night city map"
-      />
-
-      <div className="absolute inset-0 grid grid-cols-15 grid-rows-15">
-        {fogTiles.map((_, i) => {
-          const x = i % FOG_GRID_SIZE;
-          const y = Math.floor(i / FOG_GRID_SIZE);
-          const gridX = (userPosition.x / 100) * FOG_GRID_SIZE;
-          const gridY = (userPosition.y / 100) * FOG_GRID_SIZE;
-          const dist = Math.sqrt(Math.pow(x - gridX, 2) + Math.pow(y - gridY, 2));
-          const isRevealed = dist < REVEAL_RADIUS;
-
-          return (
-            <div
-              key={i}
-              className={cn(
-                'transition-opacity duration-1000 ease-in-out',
-                isRevealed ? 'opacity-0' : 'opacity-100'
-              )}
-              style={{
-                backgroundColor: 'rgba(18, 18, 18, 0.8)',
-                backdropFilter: 'blur(2px)',
-              }}
-            />
-          );
-        })}
-      </div>
-
-      {/* User Pin */}
-      <div
-        className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2"
-        style={{ left: `${userPosition.x}%`, top: `${userPosition.y}%`, transition: 'left 2s linear, top 2s linear' }}
+    <div className="absolute inset-0">
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
+        center={center}
+        zoom={userPosition ? 15 : 2}
+        options={mapOptions}
       >
-        <div className="h-full w-full rounded-full bg-primary ring-4 ring-primary/30 animate-pulse" />
-      </div>
+        {userPosition && (
+          <MarkerF
+            position={userPosition}
+            icon={{
+              path: 'M-10,0a10,10 0 1,0 20,0a10,10 0 1,0 -20,0',
+              fillColor: 'hsl(var(--primary))',
+              fillOpacity: 1,
+              strokeColor: 'hsl(var(--primary-foreground))',
+              strokeWeight: 2,
+              scale: 1,
+            }}
+          />
+        )}
 
-      {/* Points of Interest */}
-      {pois.map((poi) => (
-        <div
-          key={poi.id}
-          className="absolute -translate-x-1/2 -translate-y-1/2"
-          style={{ left: `${poi.position.x}%`, top: `${poi.position.y}%` }}
-        >
-          <Button
-            size="icon"
-            variant={poi.discovered ? 'default' : 'secondary'}
-            className={cn(
-              "rounded-full h-10 w-10 transition-all duration-500",
-              poi.discovered ? 'scale-100 animate-bounce' : 'scale-75 opacity-70',
-              poi.discovered && "bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/50"
-            )}
-            onClick={() => onStartQuiz(poi)}
-            disabled={!poi.discovered}
-            aria-label={`Start quiz for ${poi.name}`}
-          >
-            {poi.discovered ? <Sparkles className="h-5 w-5"/> : <MapPin className="h-5 w-5" />}
-          </Button>
-        </div>
-      ))}
+        {pois.map((poi) => (
+          <MarkerF
+            key={poi.id}
+            position={poi.position}
+            onClick={() => poi.discovered && onStartQuiz(poi)}
+            title={poi.name}
+            icon={{
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale: poi.discovered ? 8 : 5,
+              fillColor: poi.discovered ? 'hsl(var(--accent))' : 'hsl(var(--muted))',
+              fillOpacity: poi.discovered ? 1 : 0.7,
+              strokeColor: 'hsl(var(--background))',
+              strokeWeight: 2,
+            }}
+            options={{
+              cursor: poi.discovered ? 'pointer' : 'default',
+            }}
+          />
+        ))}
+      </GoogleMap>
     </div>
   );
 };

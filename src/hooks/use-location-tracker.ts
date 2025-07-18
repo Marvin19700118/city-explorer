@@ -2,51 +2,86 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-const MAP_WIDTH = 100;
-const MAP_HEIGHT = 100;
-const SPEED_KMH = 5; // walking speed
-const UPDATE_INTERVAL_MS = 2000;
+// Haversine formula to calculate distance between two lat/lng points
+const haversineDistance = (
+  coords1: { latitude: number; longitude: number },
+  coords2: { latitude: number; longitude: number }
+) => {
+  const toRad = (x: number) => (x * Math.PI) / 180;
+
+  const R = 6371; // Earth's radius in km
+  const dLat = toRad(coords2.latitude - coords1.latitude);
+  const dLon = toRad(coords2.longitude - coords1.longitude);
+  const lat1 = toRad(coords1.latitude);
+  const lat2 = toRad(coords2.latitude);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+};
 
 export const useLocationTracker = () => {
-  const [position, setPosition] = useState({ x: 50, y: 50 });
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [distance, setDistance] = useState(0);
-  const previousPositionRef = useRef(position);
+  const [error, setError] = useState<string | null>(null);
+  const previousPositionRef = useRef<{ latitude: number, longitude: number} | null>(null);
+  const watchIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const angle = Math.random() * 2 * Math.PI;
-      const distancePerInterval = (SPEED_KMH * 1000 / 3600) * (UPDATE_INTERVAL_MS / 1000);
-      
-      // We scale distance for game purposes. A "map unit" is not a meter.
-      // Let's say 1 map unit = 10 meters. So distance in map units is distancePerInterval / 10.
-      const step = distancePerInterval / 10;
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser.');
+      return;
+    }
 
-      setPosition(prev => {
-        const newPos = {
-          x: Math.max(0, Math.min(MAP_WIDTH, prev.x + Math.cos(angle) * step)),
-          y: Math.max(0, Math.min(MAP_HEIGHT, prev.y + Math.sin(angle) * step)),
-        };
-        previousPositionRef.current = prev;
-        return newPos;
-      });
+    // Get initial position
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setPosition({ lat: latitude, lng: longitude });
+        previousPositionRef.current = { latitude, longitude };
+      },
+      (err) => {
+        setError(`Error getting location: ${err.message}`);
+      },
+      { enableHighAccuracy: true }
+    );
+    
+    // Watch for position changes
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const newPosition = { lat: latitude, lng: longitude };
+        setPosition(newPosition);
 
-    }, UPDATE_INTERVAL_MS);
+        if (previousPositionRef.current) {
+          const newDistance = haversineDistance(
+            previousPositionRef.current,
+            { latitude, longitude }
+          );
+          setDistance((d) => d + newDistance);
+        }
+        previousPositionRef.current = { latitude, longitude };
+      },
+      (err) => {
+        setError(`Error watching location: ${err.message}`);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+        distanceFilter: 10, // Update every 10 meters
+      }
+    );
 
-    return () => clearInterval(interval);
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
   }, []);
 
-  useEffect(() => {
-    const prev = previousPositionRef.current;
-    const dx = position.x - prev.x;
-    const dy = position.y - prev.y;
-    // Again, this is in map units. We convert back to a "real" distance for our stats.
-    const distanceInMapUnits = Math.sqrt(dx * dx + dy * dy);
-    const distanceInKm = distanceInMapUnits * 10 / 1000;
-
-    if (distanceInKm > 0) {
-        setDistance(d => d + distanceInKm);
-    }
-  }, [position]);
-
-  return { position, distance };
+  return { position, distance, error };
 };
