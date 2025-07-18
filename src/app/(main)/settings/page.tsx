@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -13,7 +14,7 @@ import type { Settings as AppSettings } from '@/lib/types';
 
 export default function SettingsPage() {
   const [settings, setSettings] = React.useState<AppSettings>({
-    fogOpacity: 50,
+    fogOpacity: 0,
     areaNotifications: true,
   });
   const [isClient, setIsClient] = React.useState(false);
@@ -91,8 +92,8 @@ export default function SettingsPage() {
             </Label>
             <Slider
               id="fog-opacity"
-              min={30}
-              max={70}
+              min={0}
+              max={80}
               step={1}
               value={[settings.fogOpacity]}
               onValueChange={(value) => handleSettingsChange('fogOpacity', value[0])}
