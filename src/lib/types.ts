@@ -43,3 +43,8 @@ export type GuideData = {
   guideText: string;
   audioDataUri: string;
 };
+
+export type Settings = {
+  fogOpacity: number;
+  areaNotifications: boolean;
+};

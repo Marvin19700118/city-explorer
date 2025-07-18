@@ -8,7 +8,7 @@ import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
 import { GuideModal } from '@/components/GuideModal';
 import { useLocationTracker } from '@/hooks/use-location-tracker';
-import type { Pet, PointOfInterest, Trip, GuideData } from '@/lib/types';
+import type { Pet, PointOfInterest, Trip, GuideData, Settings } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
@@ -73,6 +73,11 @@ export default function MapPage() {
   const [guideData, setGuideData] = React.useState<GuideData | null>(null);
   const [isGuideLoading, setIsGuideLoading] = React.useState(false);
   
+  const [settings, setSettings] = React.useState<Settings>({
+    fogOpacity: 50,
+    areaNotifications: true,
+  });
+
   const handleStartTracking = () => {
     tripStartTimeRef.current = new Date().toISOString();
     startTracking();
@@ -115,6 +120,10 @@ export default function MapPage() {
 
   React.useEffect(() => {
     // Load saved data from localStorage on mount
+    const savedSettings = localStorage.getItem('settings');
+    if (savedSettings) {
+        setSettings(JSON.parse(savedSettings));
+    }
     const savedPois = localStorage.getItem('pois');
     if (savedPois) {
       setPois(JSON.parse(savedPois));
@@ -226,7 +235,7 @@ export default function MapPage() {
       return R * c;
     };
       
-    const DISCOVERY_RADIUS_KM = 0.5; // 500 meters
+    const DISCOVERY_RADIUS_KM = settings.areaNotifications ? 3 : 0.5; // 3km or 500m
     let updatedPois = pois;
     let didDiscover = false;
 
@@ -250,7 +259,7 @@ export default function MapPage() {
         setPois(updatedPois);
         localStorage.setItem('pois', JSON.stringify(updatedPois));
     }
-  }, [position, pois, toast, isTracking]);
+  }, [position, pois, toast, isTracking, settings.areaNotifications]);
 
   const handleStartQuiz = (poi: PointOfInterest) => {
     setActiveQuizPoi(poi);
@@ -361,6 +370,7 @@ export default function MapPage() {
         path={path}
         trips={trips}
         onStartQuiz={handleStartQuiz}
+        fogOpacity={settings.fogOpacity}
       />
     )
   }

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { GoogleMap, useJsApiLoader, MarkerF, PolylineF } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, MarkerF, PolylineF, PolygonF } from '@react-google-maps/api';
 import { cn } from '@/lib/utils';
 import type { PointOfInterest, Trip } from '@/lib/types';
 import { Button } from './ui/button';
@@ -17,6 +17,7 @@ type GameMapProps = {
   path: { lat: number; lng: number }[];
   trips: Trip[];
   onStartQuiz: (poi: PointOfInterest) => void;
+  fogOpacity: number;
 };
 
 const mapContainerStyle = {
@@ -123,12 +124,45 @@ const historicalPathOptions = {
     zIndex: 1
 };
 
-export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips, onStartQuiz }: GameMapProps) => {
+// A huge polygon to cover the whole world, with holes for discovered areas
+const createFogPaths = (pois: PointOfInterest[]) => {
+    const WORLD_CORNERS = [
+        { lat: 90, lng: -180 },
+        { lat: 90, lng: 180 },
+        { lat: -90, lng: 180 },
+        { lat: -90, lng: -180 },
+    ];
+
+    const discoveredPoiHoles = pois.filter(p => p.discovered).map(poi => {
+        // Create a small square hole around the discovered POI
+        const radius = 0.01; // Approx 1.1km
+        return [
+            { lat: poi.position.lat - radius, lng: poi.position.lng - radius },
+            { lat: poi.position.lat + radius, lng: poi.position.lng - radius },
+            { lat: poi.position.lat + radius, lng: poi.position.lng + radius },
+            { lat: poi.position.lat - radius, lng: poi.position.lng + radius },
+        ];
+    });
+
+    return [WORLD_CORNERS, ...discoveredPoiHoles];
+}
+
+export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips, onStartQuiz, fogOpacity }: GameMapProps) => {
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
     preventGoogleFontsLoading: true, 
   });
   
+  const fogPaths = React.useMemo(() => createFogPaths(pois), [pois]);
+  const fogOptions = React.useMemo(() => ({
+    fillColor: '#000000',
+    fillOpacity: fogOpacity / 100,
+    strokeWeight: 0,
+    clickable: false,
+    zIndex: 1,
+  }), [fogOpacity]);
+
+
   if (loadError) {
     return (
        <div className="flex h-full w-full items-center justify-center p-4 absolute inset-0 bg-background z-10">
@@ -171,6 +205,8 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips
           />
         )}
         
+        <PolygonF paths={fogPaths} options={fogOptions} />
+        
         {/* Draw historical paths */}
         {trips.map(trip => (
             <PolylineF key={trip.id} path={trip.path} options={historicalPathOptions} />
@@ -195,6 +231,7 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips
             }}
             options={{
               cursor: poi.discovered ? 'pointer' : 'default',
+              zIndex: 2, // Ensure POIs are above the fog
             }}
           />
         ))}
