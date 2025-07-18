@@ -64,8 +64,6 @@ export default function MapPage() {
     xpToNextLevel: XP_PER_LEVEL,
     evolutionStage: 1,
   });
-  
-  const prevPetRef = React.useRef<Pet>(pet);
 
   const [pois, setPois] = React.useState<PointOfInterest[]>([]);
   const [activeQuizPoi, setActiveQuizPoi] = React.useState<PointOfInterest | null>(null);
@@ -113,9 +111,17 @@ export default function MapPage() {
   const addXp = React.useCallback((amount: number) => {
     setPet(p => {
       const newTotalXp = (p.totalXp || 0) + amount;
-      const newLevel = 1 + Math.floor(newTotalXp / XP_PER_LEVEL);
+      const newLevel = Math.floor(newTotalXp / XP_PER_LEVEL) + 1;
       const xpIntoLevel = newTotalXp % XP_PER_LEVEL;
-      const newEvolutionStage = [5, 10, 15].filter(l => newLevel >= l).length + 1;
+      
+      let newEvolutionStage = 1;
+      if (newLevel >= 15) {
+        newEvolutionStage = 4;
+      } else if (newLevel >= 10) {
+        newEvolutionStage = 3;
+      } else if (newLevel >= 5) {
+        newEvolutionStage = 2;
+      }
 
       const finalPetState = {
         ...p,
@@ -160,31 +166,8 @@ export default function MapPage() {
     if (savedPet) {
         const parsedPet = JSON.parse(savedPet);
         setPet(parsedPet);
-        prevPetRef.current = parsedPet;
     }
   }, []);
-
-  // Separate effect for showing toast notifications on level/evolution change
-  React.useEffect(() => {
-    const prevPet = prevPetRef.current;
-    if (pet.level > prevPet.level) {
-        if (pet.evolutionStage > prevPet.evolutionStage) {
-            toast({
-                title: "您的寵物進化了！",
-                description: `${pet.name} 已經達到了新的形態！`,
-            });
-        } else {
-            toast({
-                title: "等級提升！",
-                description: `${pet.name} 現在是 ${pet.level} 級了！`,
-            });
-        }
-    }
-    
-    // update the ref with the current pet state for the next render
-    prevPetRef.current = pet;
-  }, [pet, toast]);
-
 
   React.useEffect(() => {
     if (!position || !isTracking || pois.length === 0) return;
@@ -240,10 +223,13 @@ export default function MapPage() {
         const response = await geocoder.geocode({ location: pos });
         
         if (response.results && response.results[0]) {
-            // Find a descriptive name for the area
-            return response.results.find(r => r.types.includes('administrative_area_level_1'))?.formatted_address || 
-                   response.results.find(r => r.types.includes('locality'))?.formatted_address || 
-                   response.results[0].formatted_address;
+            // Find the administrative area (county/city)
+            const areaComponent = response.results.find(r => r.types.includes('administrative_area_level_1'));
+            if (areaComponent) {
+                return areaComponent.formatted_address;
+            }
+            // Fallback to the most specific result
+            return response.results[0].formatted_address;
         }
         return null;
      } catch (err) {
