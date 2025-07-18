@@ -30,6 +30,7 @@ export default function MapPage() {
   const { toast } = useToast();
   
   const [totalDistance, setTotalDistance] = React.useState(0);
+  const [trips, setTrips] = React.useState<Trip[]>([]);
 
   const [pet, setPet] = React.useState<Pet>({
     name: 'Sparky',
@@ -52,7 +53,9 @@ export default function MapPage() {
       };
       const existingTripsJSON = localStorage.getItem('trips');
       const existingTrips: Trip[] = existingTripsJSON ? JSON.parse(existingTripsJSON) : [];
-      localStorage.setItem('trips', JSON.stringify([...existingTrips, newTrip]));
+      const updatedTrips = [...existingTrips, newTrip];
+      localStorage.setItem('trips', JSON.stringify(updatedTrips));
+      setTrips(updatedTrips); // Update state to re-render map
       toast({
         title: "Trip Saved!",
         description: `Your ${distance.toFixed(2)} km trip has been saved to history.`,
@@ -66,6 +69,7 @@ export default function MapPage() {
   React.useEffect(() => {
     const existingTripsJSON = localStorage.getItem('trips');
     const existingTrips: Trip[] = existingTripsJSON ? JSON.parse(existingTripsJSON) : [];
+    setTrips(existingTrips);
     const savedTotalDistance = existingTrips.reduce((acc, trip) => acc + trip.distance, 0);
     setTotalDistance(savedTotalDistance);
   }, []);
@@ -199,6 +203,7 @@ export default function MapPage() {
         defaultCenter={TAIPEI_CENTER}
         pois={pois}
         path={path}
+        trips={trips}
         onStartQuiz={handleStartQuiz}
       />
     )

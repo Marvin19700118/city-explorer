@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { GoogleMap, useJsApiLoader, MarkerF, PolylineF } from '@react-google-maps/api';
 import { cn } from '@/lib/utils';
-import type { PointOfInterest } from '@/lib/types';
+import type { PointOfInterest, Trip } from '@/lib/types';
 import { Button } from './ui/button';
 import { Sparkles, MapPin, AlertTriangle } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
@@ -15,6 +15,7 @@ type GameMapProps = {
   defaultCenter: { lat: number; lng: number };
   pois: PointOfInterest[];
   path: { lat: number; lng: number }[];
+  trips: Trip[];
   onStartQuiz: (poi: PointOfInterest) => void;
 };
 
@@ -108,20 +109,21 @@ const mapOptions = {
   ],
 };
 
-const polylineOptions = {
+const currentPathOptions = {
     strokeColor: 'hsl(var(--primary))',
-    strokeOpacity: 0.8,
+    strokeOpacity: 0.9,
+    strokeWeight: 5,
+    zIndex: 2
+};
+
+const historicalPathOptions = {
+    strokeColor: 'hsl(var(--primary))',
+    strokeOpacity: 0.3,
     strokeWeight: 4,
-    fillColor: 'hsl(var(--primary))',
-    fillOpacity: 0.35,
-    clickable: false,
-    editable: false,
-    visible: true,
-    radius: 30000,
     zIndex: 1
 };
 
-export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, onStartQuiz }: GameMapProps) => {
+export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips, onStartQuiz }: GameMapProps) => {
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
     preventGoogleFontsLoading: true, 
@@ -169,7 +171,13 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, onSta
           />
         )}
         
-        {path.length > 1 && <PolylineF path={path} options={polylineOptions} />}
+        {/* Draw historical paths */}
+        {trips.map(trip => (
+            <PolylineF key={trip.id} path={trip.path} options={historicalPathOptions} />
+        ))}
+
+        {/* Draw current path */}
+        {path.length > 1 && <PolylineF path={path} options={currentPathOptions} />}
 
         {pois.map((poi) => (
           <MarkerF
