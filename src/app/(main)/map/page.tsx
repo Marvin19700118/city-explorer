@@ -40,7 +40,7 @@ export default function MapPage() {
     evolutionStage: 1,
   });
 
-  const [pois, setPois] = React.useState<PointOfInterest[]>(initialPois);
+  const [pois, setPois] = React.useState<PointOfInterest[]>([]);
   const [activeQuizPoi, setActiveQuizPoi] = React.useState<PointOfInterest | null>(null);
   
   const stopTracking = () => {
@@ -67,6 +67,14 @@ export default function MapPage() {
 
 
   React.useEffect(() => {
+    // Load saved data from localStorage on mount
+    const savedPois = localStorage.getItem('pois');
+    if (savedPois) {
+      setPois(JSON.parse(savedPois));
+    } else {
+      setPois(initialPois);
+    }
+    
     const existingTripsJSON = localStorage.getItem('trips');
     const existingTrips: Trip[] = existingTripsJSON ? JSON.parse(existingTripsJSON) : [];
     setTrips(existingTrips);
@@ -122,7 +130,7 @@ export default function MapPage() {
   }, [distance, totalDistance, toast]);
 
   React.useEffect(() => {
-    if (!position || !isTracking) return;
+    if (!position || !isTracking || pois.length === 0) return;
       
     const getDistanceInKm = (pos1: { lat: number; lng: number }, pos2: { lat: number; lng: number }) => {
       const R = 6371; // Radius of the earth in km
@@ -139,19 +147,28 @@ export default function MapPage() {
     };
       
     const DISCOVERY_RADIUS_KM = 0.5; // 500 meters
-    const undiscoveredPois = pois.filter(p => !p.discovered);
+    let updatedPois = pois;
+    let didDiscover = false;
+
+    const undiscoveredPois = updatedPois.filter(p => !p.discovered);
 
     for (const poi of undiscoveredPois) {
       const dist = getDistanceInKm(poi.position, position);
 
       if (dist < DISCOVERY_RADIUS_KM) {
-        setPois(prevPois => prevPois.map(p => p.id === poi.id ? { ...p, discovered: true } : p));
+        updatedPois = updatedPois.map(p => p.id === poi.id ? { ...p, discovered: true } : p);
+        didDiscover = true;
         toast({
             title: "New Area Discovered!",
             description: `You've unveiled ${poi.name}.`,
             variant: "default",
         });
       }
+    }
+    
+    if (didDiscover) {
+        setPois(updatedPois);
+        localStorage.setItem('pois', JSON.stringify(updatedPois));
     }
   }, [position, pois, toast, isTracking]);
 
