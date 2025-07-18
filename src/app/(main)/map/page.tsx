@@ -77,6 +77,9 @@ export default function MapPage() {
     fogOpacity: 50,
     areaNotifications: true,
   });
+  
+  // Hardcoded to true since we removed the dynamic check
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const handleStartTracking = () => {
     tripStartTimeRef.current = new Date().toISOString();
@@ -261,7 +264,7 @@ export default function MapPage() {
   };
 
   const getAreaNameFromPosition = async (pos: {lat: number, lng: number}): Promise<string | null> => {
-     if (!googleMapsApiKey) return null;
+     if (!googleMapsApiKey || !window.google) return null;
      try {
         const geocoder = new window.google.maps.Geocoder();
         const response = await geocoder.geocode({ location: pos });
@@ -323,7 +326,6 @@ export default function MapPage() {
     setActiveQuizPoi(null);
   };
 
-  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const renderMapContent = () => {
     if (!googleMapsApiKey) {

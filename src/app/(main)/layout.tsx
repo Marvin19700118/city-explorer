@@ -1,24 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { Map, BarChart2, Gem, Settings, User, History } from 'lucide-react';
+import { Map, BarChart2, Gem, Settings, History } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/use-auth';
-import { useRouter } from 'next/navigation';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Button } from '@/components/ui/button';
-import { signOut } from '@/lib/firebase/auth';
-import { firebaseConfigured } from '@/lib/firebase/client';
-import { Trophy } from 'lucide-react';
 
 const navItems = [
   { href: '/map', label: '地圖', icon: Map },
@@ -34,53 +20,10 @@ export default function MainAppLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  React.useEffect(() => {
-    if (!loading && !user && firebaseConfigured) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
-  
-  const handleSignOut = async () => {
-    await signOut();
-    router.push('/login');
-  };
-
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="h-16 w-16 animate-spin rounded-full border-4 border-dashed border-primary"></div>
-      </div>
-    );
-  }
-  
-  if (!user && firebaseConfigured) {
-    return null; // or a redirect component
-  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-black font-body text-foreground">
       <div className="relative mx-auto flex h-[800px] max-h-[90vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl border-4 border-primary/50 bg-background shadow-2xl shadow-primary/20">
-        <header className="absolute right-2 top-2 z-20 flex items-center gap-2">
-          {firebaseConfigured && user && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full bg-background/50 backdrop-blur-sm">
-                  <User className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  登出
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </header>
         <main className="flex-1 overflow-auto">{children}</main>
 
         <nav className="border-t-2 border-primary/20 bg-background">
