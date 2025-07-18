@@ -7,7 +7,7 @@
  * It uses a Genkit prompt to generate the quiz content.
  *
  * @interface GenerateAreaQuizInput - Input type for the generateAreaQuiz function.
- * @interface GenerateAreaQuizOutput - Output type for the generateAreaQuiz function.
+ * @interface GenerateAreaQuizOutput - Output type for the generateAreaquiz function.
  * @function generateAreaQuiz - Main function to generate the area quiz.
  */
 
@@ -42,11 +42,11 @@ const generateAreaQuizPrompt = ai.definePrompt({
   name: 'generateAreaQuizPrompt',
   input: {schema: GenerateAreaQuizInputSchema},
   output: {schema: GenerateAreaQuizOutputSchema},
-  prompt: `You are an AI quiz generator. Generate a 5-question multiple-choice quiz based on the following area description. Each question should have 4 possible answers. The questions should be interesting and related to the history, culture, or landmarks of the area.
+  prompt: `您是一位 AI 測驗產生器。請根據以下地區描述，產生一個包含 5 個問題的選擇題測驗。每個問題應有 4 個可能的答案。問題應與該地區的歷史、文化或地標相關且有趣。請用繁體中文回答。
 
-Area Description: {{{areaDescription}}}
+地區描述: {{{areaDescription}}}
 
-Output the quiz as a JSON object. Each question should have a question field, an answers field (an array of 4 strings), and a correctAnswerIndex field (the 0-based index of the correct answer in the answers array).`,
+將測驗結果輸出為 JSON 物件。每個問題應包含一個 question 欄位、一個 answers 欄位（包含 4 個字串的陣列）以及一個 correctAnswerIndex 欄位（答案在 answers 陣列中的 0-based 索引）。`,
 });
 
 const generateAreaQuizFlow = ai.defineFlow(
