@@ -54,6 +54,7 @@ export default function MapPage() {
   const [totalDistance, setTotalDistance] = React.useState(0);
   const [trips, setTrips] = React.useState<Trip[]>([]);
   const tripStartTimeRef = React.useRef<string | null>(null);
+  const prevPetRef = React.useRef<Pet>();
 
   const [pet, setPet] = React.useState<Pet>({
     name: 'Sparky',
@@ -183,8 +184,6 @@ export default function MapPage() {
   // Separate effect for showing toast notifications on level/evolution change
   React.useEffect(() => {
     // use a ref to track the previous state to compare against
-    const prevPetRef = React.useRef<Pet>();
-
     if (prevPetRef.current) {
         const prevPet = prevPetRef.current;
         if (pet.evolutionStage > prevPet.evolutionStage) {
