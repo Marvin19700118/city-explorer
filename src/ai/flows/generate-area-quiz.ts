@@ -18,8 +18,6 @@ const GenerateAreaQuizInputSchema = z.object({
   areaDescription: z
     .string()
     .describe('A detailed description of the area for which the quiz is to be generated.'),
-  lat: z.number().optional().describe('The latitude of the location.'),
-  lng: z.number().optional().describe('The longitude of the location.'),
 });
 export type GenerateAreaQuizInput = z.infer<typeof GenerateAreaQuizInputSchema>;
 
@@ -37,10 +35,9 @@ const GenerateAreaQuizOutputSchema = z.object({
 export type GenerateAreaQuizOutput = z.infer<typeof GenerateAreaQuizOutputSchema>;
 
 export async function generateAreaQuiz(input: GenerateAreaQuizInput): Promise<GenerateAreaQuizOutput> {
-  // For local challenges, we only want 3 questions. The prompt itself doesn't easily support variable array length,
-  // so we generate 5 and slice it down.
   const result = await generateAreaQuizFlow(input);
-  if (input.lat && result.quiz.length > 3) {
+  // For local challenges, we only want 3 questions.
+  if (result.quiz.length > 3) {
     result.quiz = result.quiz.slice(0, 3);
   }
   return result;
@@ -50,11 +47,8 @@ const generateAreaQuizPrompt = ai.definePrompt({
   name: 'generateAreaQuizPrompt',
   input: {schema: GenerateAreaQuizInputSchema},
   output: {schema: GenerateAreaQuizOutputSchema},
-  prompt: `您是一位 AI 測驗產生器。請根據以下地區描述，產生一個包含 5 個問題的選擇題測驗。每個問題應有 4 個可能的答案。
+  prompt: `您是一位 AI 測驗產生器。請根據以下地區描述，產生一個包含 3-5 個問題的選擇題測驗。每個問題應有 4 個可能的答案。
 問題應與該地區的歷史、文化或地標相關且有趣。
-{{#if lat}}
-請特別專注於以經緯度 ({{lat}}, {{lng}}) 為中心，方圓 2 公里內的人文歷史、景點或特殊事件。
-{{/if}}
 請用繁體中文回答。
 
 地區描述: {{{areaDescription}}}

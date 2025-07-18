@@ -241,7 +241,8 @@ export default function MapPage() {
         
         if (response.results && response.results[0]) {
             // Find a descriptive name for the area
-            return response.results.find(r => r.types.includes('locality'))?.formatted_address || 
+            return response.results.find(r => r.types.includes('administrative_area_level_1'))?.formatted_address || 
+                   response.results.find(r => r.types.includes('locality'))?.formatted_address || 
                    response.results[0].formatted_address;
         }
         return null;
@@ -260,7 +261,7 @@ export default function MapPage() {
             id: `local-${Date.now()}`,
             name: '目前位置',
             position: position,
-            areaDescription: `使用者目前位於 ${areaName} 附近。經緯度為 ${position.lat}, ${position.lng}。`,
+            areaDescription: `使用者目前位於 ${areaName} 附近。`,
             discovered: true,
             county: '目前位置',
         };
@@ -284,8 +285,6 @@ export default function MapPage() {
     
     const result = await createGuide({ 
         locationDescription: areaName,
-        lat: position.lat,
-        lng: position.lng
     });
     setIsGuideLoading(false);
 
