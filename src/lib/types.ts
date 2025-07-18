@@ -48,3 +48,7 @@ export type Settings = {
   fogOpacity: number;
   areaNotifications: boolean;
 };
+
+export type CityPoints = {
+  [cityName: string]: number;
+};

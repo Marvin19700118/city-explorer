@@ -15,7 +15,7 @@ import { Label } from './ui/label';
 import { Skeleton } from './ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { createQuiz } from '@/app/actions';
-import type { PointOfInterest, QuizData, QuizQuestion } from '@/lib/types';
+import type { PointOfInterest, QuizData, QuizQuestion, CityPoints } from '@/lib/types';
 import { CheckCircle, XCircle, BrainCircuit, RotateCw, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,8 @@ type QuizModalProps = {
 
 const XP_PER_CORRECT_ANSWER = 10;
 const PERFECT_SCORE_BONUS_XP = 50;
+const POINTS_PER_CORRECT_ANSWER = 10;
+
 
 export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalProps) => {
   const [quizData, setQuizData] = React.useState<QuizData | null>(null);
@@ -96,6 +98,15 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
         
         if (finalXp > 0) {
             onQuizComplete(finalXp);
+        }
+
+        // Save city points
+        if (poi && poi.county !== '目前位置') {
+            const pointsGained = score * POINTS_PER_CORRECT_ANSWER;
+            const savedPoints = localStorage.getItem('cityPoints');
+            const cityPoints: CityPoints = savedPoints ? JSON.parse(savedPoints) : {};
+            cityPoints[poi.county] = (cityPoints[poi.county] || 0) + pointsGained;
+            localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
         }
         
         // Show final score card
