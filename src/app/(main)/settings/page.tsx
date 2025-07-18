@@ -71,7 +71,7 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>通知</CardTitle>
           <CardDescription>管理應用程式內的通知</CardDescription>
-        </Header>
+        </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
             <Label htmlFor="area-notifications" className="flex items-center gap-2">
