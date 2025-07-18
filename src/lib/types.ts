@@ -34,4 +34,6 @@ export type Trip = {
   date: string;
   distance: number;
   path: LatLng[];
+  startTime: string | null;
+  endTime: string | null;
 };

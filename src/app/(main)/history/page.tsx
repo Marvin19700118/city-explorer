@@ -1,9 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { History, MapPin, Footprints, Calendar } from 'lucide-react';
+import { History, MapPin, Footprints, Calendar, Clock, Timer } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { Trip } from '@/lib/types';
+import { formatDistance } from 'date-fns';
 
 export default function HistoryPage() {
   const [trips, setTrips] = React.useState<Trip[]>([]);
@@ -16,6 +17,11 @@ export default function HistoryPage() {
       setTrips(JSON.parse(savedTrips).sort((a: Trip, b: Trip) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     }
   }, []);
+  
+  const getTripDuration = (trip: Trip) => {
+    if (!trip.startTime || !trip.endTime) return "N/A";
+    return formatDistance(new Date(trip.endTime), new Date(trip.startTime), { includeSeconds: true });
+  }
 
   if (!isClient) {
     return null; // or a loading skeleton
@@ -40,19 +46,30 @@ export default function HistoryPage() {
             <Card key={trip.id}>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between text-lg">
-                  <span>Trip on {new Date(trip.date).toLocaleDateString()}</span>
-                  <div className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>{new Date(trip.date).toLocaleTimeString()}</span>
+                   <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span>Trip on {new Date(trip.date).toLocaleDateString()}</span>
                   </div>
                 </CardTitle>
+                 <CardDescription className="flex items-center gap-2 pt-1">
+                   <Clock className="h-4 w-4" />
+                   <span>
+                      {trip.startTime ? new Date(trip.startTime).toLocaleTimeString() : 'N/A'} - {trip.endTime ? new Date(trip.endTime).toLocaleTimeString() : 'N/A'}
+                   </span>
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 text-accent font-bold">
-                  <Footprints className="h-5 w-5" />
-                  <span>{trip.distance.toFixed(2)} km</span>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between text-muted-foreground">
+                    <div className="flex items-center gap-2 text-accent font-bold">
+                        <Footprints className="h-5 w-5" />
+                        <span>{trip.distance.toFixed(2)} km</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Timer className="h-5 w-5" />
+                        <span>{getTripDuration(trip)}</span>
+                    </div>
                 </div>
-                <CardDescription className="mt-2">
+                <CardDescription>
                   A journey of {trip.path.length} recorded points.
                 </CardDescription>
               </CardContent>

@@ -31,6 +31,7 @@ export default function MapPage() {
   
   const [totalDistance, setTotalDistance] = React.useState(0);
   const [trips, setTrips] = React.useState<Trip[]>([]);
+  const tripStartTimeRef = React.useRef<string | null>(null);
 
   const [pet, setPet] = React.useState<Pet>({
     name: 'Sparky',
@@ -43,6 +44,11 @@ export default function MapPage() {
   const [pois, setPois] = React.useState<PointOfInterest[]>([]);
   const [activeQuizPoi, setActiveQuizPoi] = React.useState<PointOfInterest | null>(null);
   
+  const handleStartTracking = () => {
+    tripStartTimeRef.current = new Date().toISOString();
+    startTracking();
+  }
+
   const stopTracking = () => {
     if (path.length > 1 && distance > 0.01) { // only save meaningful trips
       const newTrip: Trip = {
@@ -50,6 +56,8 @@ export default function MapPage() {
         date: new Date().toISOString(),
         distance: distance,
         path: path,
+        startTime: tripStartTimeRef.current,
+        endTime: new Date().toISOString(),
       };
       const existingTripsJSON = localStorage.getItem('trips');
       const existingTrips: Trip[] = existingTripsJSON ? JSON.parse(existingTripsJSON) : [];
@@ -63,6 +71,7 @@ export default function MapPage() {
       setTotalDistance(prev => prev + distance);
     }
     trackerStop();
+    tripStartTimeRef.current = null;
   };
 
 
@@ -234,7 +243,7 @@ export default function MapPage() {
             <h1>City Unveiler</h1>
           </div>
           {!isTracking ? (
-            <Button onClick={startTracking} disabled={loading && isTracking}>
+            <Button onClick={handleStartTracking} disabled={loading && isTracking}>
               <Play /> Start Exploring
             </Button>
           ) : (
