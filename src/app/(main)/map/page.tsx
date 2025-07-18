@@ -153,7 +153,9 @@ export default function MapPage() {
   React.useEffect(() => {
     // This effect runs whenever totalDistance or distance changes, calculating XP from distance
     const distanceXp = (totalDistance + distance) * XP_PER_KM;
-    setPet(currentPet => ({...currentPet, xp: distanceXp}));
+    const currentPet = pet;
+    const totalXp = distanceXp + (currentPet.xp - ((currentPet.level -1) * XP_PER_LEVEL)); // preserve quiz xp
+    setPet(p => ({ ...p, xp: totalXp }));
   }, [distance, totalDistance]);
 
 
@@ -323,22 +325,12 @@ export default function MapPage() {
   };
 
 
-  const renderMapContent = () => {
-    if (!googleMapsApiKey) {
-      return (
-        <div className="p-4">
-          <Alert>
-            <Terminal className="h-4 w-4" />
-            <AlertTitle>缺少 Google Maps API 金鑰</AlertTitle>
-            <AlertDescription>
-              請將您的 Google Maps API 金鑰加入到 .env 檔案中以顯示地圖。
-            </AlertDescription>
-          </Alert>
-        </div>
-      );
+  const renderMapComponent = () => {
+    if (loading && !position) {
+      return <Skeleton className="h-full w-full" />
     }
     
-    if (error) {
+    if (error && !position) {
        return (
         <div className="p-4">
           <Alert variant="destructive">
@@ -350,8 +342,18 @@ export default function MapPage() {
       );
     }
 
-    if (loading) {
-       return <Skeleton className="h-full w-full" />
+    if (!googleMapsApiKey) {
+      return (
+        <div className="p-4">
+          <Alert>
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>缺少 Google Maps API 金鑰</AlertTitle>
+            <AlertDescription>
+              請提供您的 Google Maps API 金鑰以顯示地圖。
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
     }
     
     return (
@@ -404,8 +406,8 @@ export default function MapPage() {
           </div>
         </header>
 
-        <div className="relative flex-1">
-          {renderMapContent()}
+        <div className="relative flex-1 bg-muted">
+          {renderMapComponent()}
         </div>
 
         <div className="border-t-2 border-primary/20 p-2">

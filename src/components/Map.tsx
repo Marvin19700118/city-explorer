@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -5,7 +6,7 @@ import { GoogleMap, useJsApiLoader, MarkerF, PolylineF, PolygonF } from '@react-
 import { cn } from '@/lib/utils';
 import type { PointOfInterest, Trip } from '@/lib/types';
 import { Button } from './ui/button';
-import { Sparkles, MapPin, AlertTriangle } from 'lucide-react';
+import { Sparkles, MapPin, AlertTriangle, LocateFixed } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
@@ -23,11 +24,14 @@ type GameMapProps = {
 const mapContainerStyle = {
   width: '100%',
   height: '100%',
+  position: 'absolute',
+  top: 0,
+  left: 0,
 };
 
 const mapOptions = {
   disableDefaultUI: true,
-  zoomControl: true,
+  zoomControl: false,
   styles: [
     { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
     { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
@@ -153,6 +157,22 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips
     preventGoogleFontsLoading: true, 
   });
   
+  const mapRef = React.useRef<google.maps.Map | null>(null);
+
+  const onLoad = React.useCallback(function callback(map: google.maps.Map) {
+    mapRef.current = map;
+  }, []);
+
+  const onUnmount = React.useCallback(function callback(map: google.maps.Map) {
+    mapRef.current = null;
+  }, []);
+
+  const handleRecenter = () => {
+    if (mapRef.current && userPosition) {
+      mapRef.current.panTo(userPosition);
+    }
+  };
+
   const fogPaths = React.useMemo(() => createFogPaths(pois), [pois]);
   const fogOptions = React.useMemo(() => ({
     fillColor: '#000000',
@@ -178,18 +198,20 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips
   }
 
   if (!isLoaded) {
-    return <Skeleton className="h-full w-full" />;
+    return <Skeleton className="absolute inset-0" />;
   }
   
   const center = userPosition || defaultCenter;
 
   return (
-    <div className="absolute inset-0">
+    <>
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         center={center}
         zoom={userPosition ? 15 : 12}
         options={{...mapOptions, gestureHandling: 'greedy' }}
+        onLoad={onLoad}
+        onUnmount={onUnmount}
       >
         {userPosition && (
           <MarkerF
@@ -236,6 +258,16 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips
           />
         ))}
       </GoogleMap>
-    </div>
+       <Button
+        variant="secondary"
+        size="icon"
+        className="absolute bottom-4 right-4 z-10 shadow-lg"
+        onClick={handleRecenter}
+        disabled={!userPosition}
+        aria-label="Recenter map"
+      >
+        <LocateFixed className="h-5 w-5" />
+      </Button>
+    </>
   );
 };
