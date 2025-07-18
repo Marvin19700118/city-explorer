@@ -5,8 +5,9 @@ import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
 import { cn } from '@/lib/utils';
 import type { PointOfInterest } from '@/lib/types';
 import { Button } from './ui/button';
-import { Sparkles, MapPin } from 'lucide-react';
+import { Sparkles, MapPin, AlertTriangle } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 type GameMapProps = {
   apiKey: string;
@@ -106,12 +107,30 @@ const mapOptions = {
 };
 
 export const GameMap = ({ apiKey, userPosition, pois, onStartQuiz }: GameMapProps) => {
+  const [mapError, setMapError] = React.useState<Error | null>(null);
+
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
+    // Prevent the script from being injected if there's no key
+    preventGoogleFontsLoading: true, 
   });
+  
+  const handleError = React.useCallback((error: Error) => {
+    setMapError(error);
+  }, []);
 
-  if (loadError) {
-    return <div>Error loading maps</div>;
+  if (loadError || mapError) {
+    return (
+       <div className="flex h-full w-full items-center justify-center p-4">
+         <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Map Load Error</AlertTitle>
+            <AlertDescription>
+                Could not load the map. Please ensure your Google Maps API key is valid, has billing enabled, and the 'Maps JavaScript API' is enabled in the Google Cloud Console.
+            </AlertDescription>
+        </Alert>
+       </div>
+    );
   }
 
   if (!isLoaded) {
@@ -127,6 +146,10 @@ export const GameMap = ({ apiKey, userPosition, pois, onStartQuiz }: GameMapProp
         center={center}
         zoom={userPosition ? 15 : 2}
         options={mapOptions}
+        onLoad={() => setMapError(null)}
+        onUnmount={() => setMapError(null)}
+        {...({ options: { ...mapOptions, gestureHandling: 'greedy' } })}
+        {...(window.google && window.google.maps && window.google.maps.version ? { onLoadError: handleError } : {})}
       >
         {userPosition && (
           <MarkerF
