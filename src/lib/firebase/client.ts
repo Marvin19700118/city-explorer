@@ -15,7 +15,15 @@ const firebaseConfig = {
 // Always treat Firebase as configured since the config is hardcoded.
 const firebaseConfigured = true;
 
-const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth: Auth = getAuth(app);
+let app: FirebaseApp;
+let auth: Auth;
+
+if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
+} else {
+    app = getApp();
+}
+auth = getAuth(app);
+
 
 export { app, auth, firebaseConfigured };
