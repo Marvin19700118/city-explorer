@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -179,7 +180,7 @@ export default function MapPage() {
     };
 
     // Only update state if something has actually changed to avoid infinite loops
-    if (finalPetState.level !== currentPet.level || finalPetState.evolutionStage !== currentPet.evolutionStage || finalPetp.xp !== currentPet.xp) {
+    if (finalPetState.level !== currentPet.level || finalPetState.evolutionStage !== currentPet.evolutionStage || finalPetState.xp !== currentPet.xp) {
         setPet(finalPetState);
         localStorage.setItem('pet', JSON.stringify(finalPetState));
     }
@@ -420,3 +421,5 @@ export default function MapPage() {
     </div>
   );
 }
+
+    
