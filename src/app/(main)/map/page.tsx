@@ -22,6 +22,28 @@ const initialPois: PointOfInterest[] = [
   { id: 'poi4', name: 'Ximending', position: { lat: 25.0479, lng: 121.5074 }, areaDescription: 'A neighborhood and shopping district in the Wanhua District of Taipei, Taiwan. It was the first pedestrian zone in Taiwan.', discovered: false },
 ];
 
+const mockTrip: Trip = {
+  id: 'mock-trip-1',
+  date: new Date(Date.now() - 86400000).toISOString(), // Yesterday
+  distance: 1.05,
+  path: [
+    { lat: 25.0330, lng: 121.5220 },
+    { lat: 25.0335, lng: 121.5225 },
+    { lat: 25.0340, lng: 121.5230 },
+    { lat: 25.0345, lng: 121.5235 },
+    { lat: 25.0350, lng: 121.5230 },
+    { lat: 25.0355, lng: 121.5225 },
+    { lat: 25.0360, lng: 121.5220 },
+    { lat: 25.0365, lng: 121.5225 },
+    { lat: 25.0370, lng: 121.5230 },
+    { lat: 25.0375, lng: 121.5235 },
+    { lat: 25.0380, lng: 121.5240 },
+  ],
+  startTime: new Date(Date.now() - 86400000 - 900000).toISOString(), // Yesterday, 15 minutes duration
+  endTime: new Date(Date.now() - 86400000).toISOString(),
+};
+
+
 const XP_PER_KM = 100;
 const PET_EVOLUTION_LEVELS = [5, 10, 15];
 
@@ -85,10 +107,18 @@ export default function MapPage() {
     }
     
     const existingTripsJSON = localStorage.getItem('trips');
-    const existingTrips: Trip[] = existingTripsJSON ? JSON.parse(existingTripsJSON) : [];
-    setTrips(existingTrips);
-    const savedTotalDistance = existingTrips.reduce((acc, trip) => acc + trip.distance, 0);
-    setTotalDistance(savedTotalDistance);
+    if (existingTripsJSON) {
+        const existingTrips: Trip[] = JSON.parse(existingTripsJSON);
+        setTrips(existingTrips);
+        const savedTotalDistance = existingTrips.reduce((acc, trip) => acc + trip.distance, 0);
+        setTotalDistance(savedTotalDistance);
+    } else {
+        // If no trips exist, add the mock trip
+        const initialTrips = [mockTrip];
+        localStorage.setItem('trips', JSON.stringify(initialTrips));
+        setTrips(initialTrips);
+        setTotalDistance(mockTrip.distance);
+    }
   }, []);
 
 
