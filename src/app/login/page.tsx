@@ -30,7 +30,7 @@ export default function LoginPage() {
       <div className="relative mx-auto flex h-[800px] max-h-[90vh] w-full max-w-sm flex-col justify-between overflow-hidden rounded-2xl border-4 border-primary/50 bg-background p-8 text-center shadow-2xl shadow-primary/20">
         <div className="flex flex-col items-center justify-center gap-2 font-headline text-3xl font-bold text-primary">
           <MapPin className="h-10 w-10" />
-          <h1>City Unveiler</h1>
+          <h1>城市探險家</h1>
           <p className="mt-2 text-base font-body font-normal text-muted-foreground">
             Explore the world, one step at a time.
           </p>

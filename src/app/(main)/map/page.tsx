@@ -369,7 +369,7 @@ export default function MapPage() {
         <header className="flex items-center justify-between gap-1 p-4 font-headline text-2xl font-bold text-primary">
           <div className="flex items-center gap-2">
             <MapPin className="h-6 w-6" />
-            <h1>City Unveiler</h1>
+            <h1>城市探險家</h1>
           </div>
           <div className="flex items-center gap-2">
              <Button

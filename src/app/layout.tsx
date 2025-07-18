@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'City Unveiler',
+  title: '城市探險家',
   description: 'An urban exploration game.',
 };
 
