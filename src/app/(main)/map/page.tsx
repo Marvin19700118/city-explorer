@@ -78,8 +78,7 @@ export default function MapPage() {
     areaNotifications: true,
   });
   
-  // Hardcoded to true since we removed the dynamic check
-  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const googleMapsApiKey = "AIzaSyBqo8q0xhqqh3TZVYm7GKFijtbJz2lE-RM";
 
   const handleStartTracking = () => {
     tripStartTimeRef.current = new Date().toISOString();
