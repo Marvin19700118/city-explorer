@@ -47,7 +47,6 @@ const mockTrip: Trip = {
 };
 
 
-const XP_PER_KM = 100;
 const XP_PER_LEVEL = 100;
 const PET_EVOLUTION_LEVELS = [5, 10, 15];
 
@@ -101,9 +100,6 @@ export default function MapPage() {
       const updatedTrips = [...existingTrips, newTrip];
       localStorage.setItem('trips', JSON.stringify(updatedTrips));
       setTrips(updatedTrips);
-
-      const distanceXp = distance * XP_PER_KM;
-      setPet(p => ({ ...p, totalXp: (p.totalXp || 0) + distanceXp }));
 
       toast({
         title: "旅程已儲存!",
@@ -413,3 +409,5 @@ export default function MapPage() {
     </div>
   );
 }
+
+    
