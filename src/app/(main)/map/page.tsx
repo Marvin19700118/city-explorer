@@ -6,7 +6,7 @@ import { StatusBar } from '@/components/StatusBar';
 import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
 import { useLocationTracker } from '@/hooks/use-location-tracker';
-import type { Pet, PointOfInterest } from '@/lib/types';
+import type { Pet, PointOfInterest, Trip } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
@@ -26,8 +26,10 @@ const XP_PER_KM = 100;
 const PET_EVOLUTION_LEVELS = [5, 10, 15];
 
 export default function MapPage() {
-  const { position, distance, path, error, loading, isTracking, startTracking, stopTracking } = useLocationTracker();
+  const { position, distance, path, error, loading, isTracking, startTracking, stopTracking: trackerStop } = useLocationTracker();
   const { toast } = useToast();
+  
+  const [totalDistance, setTotalDistance] = React.useState(0);
 
   const [pet, setPet] = React.useState<Pet>({
     name: 'Sparky',
@@ -39,17 +41,44 @@ export default function MapPage() {
 
   const [pois, setPois] = React.useState<PointOfInterest[]>(initialPois);
   const [activeQuizPoi, setActiveQuizPoi] = React.useState<PointOfInterest | null>(null);
+  
+  const stopTracking = () => {
+    if (path.length > 1 && distance > 0.01) { // only save meaningful trips
+      const newTrip: Trip = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        distance: distance,
+        path: path,
+      };
+      const existingTripsJSON = localStorage.getItem('trips');
+      const existingTrips: Trip[] = existingTripsJSON ? JSON.parse(existingTripsJSON) : [];
+      localStorage.setItem('trips', JSON.stringify([...existingTrips, newTrip]));
+      toast({
+        title: "Trip Saved!",
+        description: `Your ${distance.toFixed(2)} km trip has been saved to history.`,
+      });
+      setTotalDistance(prev => prev + distance);
+    }
+    trackerStop();
+  };
+
 
   React.useEffect(() => {
-    const newXp = distance * XP_PER_KM;
+    const existingTripsJSON = localStorage.getItem('trips');
+    const existingTrips: Trip[] = existingTripsJSON ? JSON.parse(existingTripsJSON) : [];
+    const savedTotalDistance = existingTrips.reduce((acc, trip) => acc + trip.distance, 0);
+    setTotalDistance(savedTotalDistance);
+  }, []);
+
+
+  React.useEffect(() => {
+    const newXp = (totalDistance + distance) * XP_PER_KM;
     
     setPet(currentPet => {
-        if (newXp <= currentPet.xp) return currentPet;
-
         let currentXp = newXp;
-        let currentLevel = currentPet.level;
-        let xpForNext = currentPet.xpToNextLevel;
-        let currentEvolutionStage = currentPet.evolutionStage;
+        let currentLevel = 1;
+        let xpForNext = 100;
+        let currentEvolutionStage = 1;
 
         while (currentXp >= xpForNext) {
             currentXp -= xpForNext;
@@ -59,16 +88,22 @@ export default function MapPage() {
             const newEvolutionStage = PET_EVOLUTION_LEVELS.filter(l => currentLevel >= l).length + 1;
             if (newEvolutionStage > currentEvolutionStage) {
                 currentEvolutionStage = newEvolutionStage;
-                toast({
-                    title: "Your pet evolved!",
-                    description: `${currentPet.name} has reached a new form!`,
-                });
-            } else {
-                toast({
-                    title: "Level Up!",
-                    description: `${currentPet.name} is now level ${currentLevel}!`,
-                });
             }
+        }
+        
+        const hasLeveledUp = currentLevel > currentPet.level;
+        const hasEvolved = currentEvolutionStage > currentPet.evolutionStage;
+
+        if (hasEvolved) {
+             toast({
+                title: "Your pet evolved!",
+                description: `${currentPet.name} has reached a new form!`,
+            });
+        } else if (hasLeveledUp) {
+            toast({
+                title: "Level Up!",
+                description: `${currentPet.name} is now level ${currentLevel}!`,
+            });
         }
 
         return {
@@ -80,7 +115,7 @@ export default function MapPage() {
         };
     });
 
-  }, [distance, toast]);
+  }, [distance, totalDistance, toast]);
 
   React.useEffect(() => {
     if (!position || !isTracking) return;

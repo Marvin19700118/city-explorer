@@ -28,3 +28,10 @@ export type LatLng = {
   lat: number;
   lng: number;
 };
+
+export type Trip = {
+  id: string;
+  date: string;
+  distance: number;
+  path: LatLng[];
+};
