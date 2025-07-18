@@ -18,6 +18,7 @@ import { createQuiz } from '@/app/actions';
 import type { PointOfInterest, QuizData, QuizQuestion } from '@/lib/types';
 import { CheckCircle, XCircle, BrainCircuit, RotateCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 type QuizModalProps = {
   poi: PointOfInterest | null;
@@ -58,11 +59,15 @@ export const QuizModal = ({ poi, isOpen, onClose }: QuizModalProps) => {
     if (isOpen && poi) {
       fetchQuiz();
     } else {
-      setQuizData(null);
-      setCurrentQuestionIndex(0);
-      setSelectedAnswer(null);
-      setShowResult(false);
-      setScore(0);
+      // Reset state when closing
+      const timer = setTimeout(() => {
+        setQuizData(null);
+        setCurrentQuestionIndex(0);
+        setSelectedAnswer(null);
+        setShowResult(false);
+        setScore(0);
+      }, 300); // Delay to allow for close animation
+      return () => clearTimeout(timer);
     }
   }, [isOpen, poi, fetchQuiz]);
 
@@ -139,8 +144,8 @@ export const QuizModal = ({ poi, isOpen, onClose }: QuizModalProps) => {
           })}
         </RadioGroup>
         {showResult && (
-          <Alert variant={isCorrect ? "default" : "destructive"} className={cn(isCorrect ? "border-green-500" : "")}>
-            {isCorrect ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4" />}
+          <Alert variant={isCorrect ? "default" : "destructive"} className={cn(isCorrect ? "border-green-500 text-green-500" : "border-destructive text-destructive", "bg-opacity-10")}>
+            {isCorrect ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
             <AlertTitle>{isCorrect ? "Correct!" : "Incorrect!"}</AlertTitle>
             <AlertDescription>
               {isCorrect ? "Great job explorer!" : `The correct answer was: ${currentQuestion.answers[currentQuestion.correctAnswerIndex]}`}
