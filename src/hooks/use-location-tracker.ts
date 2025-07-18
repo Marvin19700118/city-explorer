@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 // Haversine formula to calculate distance between two lat/lng points
 const haversineDistance = (
@@ -26,33 +26,53 @@ const haversineDistance = (
 export const useLocationTracker = () => {
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [distance, setDistance] = useState(0);
+  const [path, setPath] = useState<{ lat: number; lng: number }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isTracking, setIsTracking] = useState(false);
+
   const previousPositionRef = useRef<{ latitude: number, longitude: number} | null>(null);
   const watchIdRef = useRef<number | null>(null);
 
-  useEffect(() => {
+  const stopTracking = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setIsTracking(false);
+    previousPositionRef.current = null;
+  }, []);
+
+  const startTracking = useCallback(() => {
+    setError(null);
     if (!navigator.geolocation) {
       setError('Geolocation is not supported by your browser.');
-      setLoading(false);
       return;
     }
+    if (isTracking) return;
 
-    let isMounted = true;
+    setLoading(true);
+    setIsTracking(true);
+    setPath([]); // Clear previous path
 
     // Get initial position
-    navigator.geolocation.getCurrentPosition(
+     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        if (!isMounted) return;
         const { latitude, longitude } = pos.coords;
-        setPosition({ lat: latitude, lng: longitude });
+        const newPos = { lat: latitude, lng: longitude };
+        setPosition(newPos);
+        setPath(p => [...p, newPos]);
         previousPositionRef.current = { latitude, longitude };
         setLoading(false);
       },
       (err) => {
-        if (!isMounted) return;
-        setError(`Error getting location: ${err.message}`);
+        if (err.code === err.PERMISSION_DENIED) {
+            setError('Location access denied. Please enable location permissions in your browser settings.');
+        } else {
+            setError(`Error getting location: ${err.message}`);
+        }
         setLoading(false);
+        setIsTracking(false);
       },
       { enableHighAccuracy: true }
     );
@@ -60,10 +80,10 @@ export const useLocationTracker = () => {
     // Watch for position changes
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        if (!isMounted) return;
         const { latitude, longitude } = pos.coords;
         const newPosition = { lat: latitude, lng: longitude };
         setPosition(newPosition);
+        setPath(p => [...p, newPosition]);
 
         if (previousPositionRef.current) {
           const newDistance = haversineDistance(
@@ -75,8 +95,12 @@ export const useLocationTracker = () => {
         previousPositionRef.current = { latitude, longitude };
       },
       (err) => {
-         if (!isMounted) return;
-        setError(`Error watching location: ${err.message}`);
+        if (err.code === err.PERMISSION_DENIED) {
+            setError('Location access denied. Please enable location permissions in your browser settings.');
+        } else {
+            setError(`Error watching location: ${err.message}`);
+        }
+        stopTracking();
       },
       {
         enableHighAccuracy: true,
@@ -85,14 +109,14 @@ export const useLocationTracker = () => {
         distanceFilter: 10, // Update every 10 meters
       }
     );
+  }, [isTracking, stopTracking]);
 
+  useEffect(() => {
+    // Stop tracking when component unmounts
     return () => {
-      isMounted = false;
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
+      stopTracking();
     };
-  }, []);
+  }, [stopTracking]);
 
-  return { position, distance, error, loading };
+  return { position, distance, error, loading, isTracking, path, startTracking, stopTracking };
 };

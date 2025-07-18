@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, MarkerF, PolylineF } from '@react-google-maps/api';
 import { cn } from '@/lib/utils';
 import type { PointOfInterest } from '@/lib/types';
 import { Button } from './ui/button';
@@ -13,6 +13,7 @@ type GameMapProps = {
   apiKey: string;
   userPosition: { lat: number; lng: number } | null;
   pois: PointOfInterest[];
+  path: { lat: number; lng: number }[];
   onStartQuiz: (poi: PointOfInterest) => void;
 };
 
@@ -106,7 +107,20 @@ const mapOptions = {
   ],
 };
 
-export const GameMap = ({ apiKey, userPosition, pois, onStartQuiz }: GameMapProps) => {
+const polylineOptions = {
+    strokeColor: 'hsl(var(--primary))',
+    strokeOpacity: 0.8,
+    strokeWeight: 4,
+    fillColor: 'hsl(var(--primary))',
+    fillOpacity: 0.35,
+    clickable: false,
+    editable: false,
+    visible: true,
+    radius: 30000,
+    zIndex: 1
+};
+
+export const GameMap = ({ apiKey, userPosition, pois, path, onStartQuiz }: GameMapProps) => {
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
     preventGoogleFontsLoading: true, 
@@ -153,6 +167,8 @@ export const GameMap = ({ apiKey, userPosition, pois, onStartQuiz }: GameMapProp
             }}
           />
         )}
+        
+        {path.length > 1 && <PolylineF path={path} options={polylineOptions} />}
 
         {pois.map((poi) => (
           <MarkerF

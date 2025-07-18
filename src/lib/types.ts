@@ -23,3 +23,8 @@ export type PointOfInterest = {
   areaDescription: string;
   discovered: boolean;
 };
+
+export type LatLng = {
+  lat: number;
+  lng: number;
+};
