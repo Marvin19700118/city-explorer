@@ -376,7 +376,7 @@ export default function MapPage() {
                 onClick={handleLocalGuide}
                 disabled={!position || isGuideLoading}
                 size="icon"
-                variant="outline"
+                className="bg-sky-500 hover:bg-sky-600 text-white"
              >
                 <Mic />
              </Button>
