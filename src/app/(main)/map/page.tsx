@@ -1,17 +1,19 @@
 'use client';
 
 import * as React from 'react';
-import { MapPin, Play, Square, Trophy } from 'lucide-react';
+import { MapPin, Play, Square, Trophy, Mic } from 'lucide-react';
 import { StatusBar } from '@/components/StatusBar';
 import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
+import { GuideModal } from '@/components/GuideModal';
 import { useLocationTracker } from '@/hooks/use-location-tracker';
-import type { Pet, PointOfInterest, Trip } from '@/lib/types';
+import type { Pet, PointOfInterest, Trip, GuideData } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { createGuide } from '@/app/actions';
 
 const TAIPEI_CENTER = { lat: 25.0330, lng: 121.5654 };
 
@@ -66,6 +68,9 @@ export default function MapPage() {
 
   const [pois, setPois] = React.useState<PointOfInterest[]>([]);
   const [activeQuizPoi, setActiveQuizPoi] = React.useState<PointOfInterest | null>(null);
+  
+  const [guideData, setGuideData] = React.useState<GuideData | null>(null);
+  const [isGuideLoading, setIsGuideLoading] = React.useState(false);
   
   const handleStartTracking = () => {
     tripStartTimeRef.current = new Date().toISOString();
@@ -174,7 +179,7 @@ export default function MapPage() {
     };
 
     // Only update state if something has actually changed to avoid infinite loops
-    if (finalPetState.level !== currentPet.level || finalPetState.evolutionStage !== currentPet.evolutionStage || finalPetState.xp !== currentPet.xp) {
+    if (finalPetState.level !== currentPet.level || finalPetState.evolutionStage !== currentPet.evolutionStage || finalPetp.xp !== currentPet.xp) {
         setPet(finalPetState);
         localStorage.setItem('pet', JSON.stringify(finalPetState));
     }
@@ -249,36 +254,64 @@ export default function MapPage() {
   const handleStartQuiz = (poi: PointOfInterest) => {
     setActiveQuizPoi(poi);
   };
-  
-  const handleStartLocalChallenge = async () => {
-    if (!position || !googleMapsApiKey) return;
 
-    try {
+  const getAreaNameFromPosition = async (pos: {lat: number, lng: number}): Promise<string | null> => {
+     if (!googleMapsApiKey) return null;
+     try {
         const geocoder = new window.google.maps.Geocoder();
-        const response = await geocoder.geocode({ location: position });
+        const response = await geocoder.geocode({ location: pos });
         
         if (response.results && response.results[0]) {
             // Find a descriptive name for the area
-            const areaName = 
-                response.results.find(r => r.types.includes('locality'))?.formatted_address || 
-                response.results[0].formatted_address;
-
-            const localPoi: PointOfInterest = {
-                id: `local-${Date.now()}`,
-                name: 'Current Location',
-                position: position,
-                areaDescription: `The user is currently near ${areaName}.`,
-                discovered: true
-            };
-            setActiveQuizPoi(localPoi);
-        } else {
-             toast({ title: "Could not identify location", description: "Failed to find address details for your current position.", variant: "destructive" });
+            return response.results.find(r => r.types.includes('locality'))?.formatted_address || 
+                   response.results[0].formatted_address;
         }
-    } catch (error) {
-        console.error("Reverse geocoding failed", error);
-        toast({ title: "Geocoding Error", description: "Could not fetch location details.", variant: "destructive" });
+        return null;
+     } catch (err) {
+        console.error("Reverse geocoding failed", err);
+        return null;
+     }
+  }
+  
+  const handleStartLocalChallenge = async () => {
+    if (!position) return;
+    const areaName = await getAreaNameFromPosition(position);
+    
+    if (areaName) {
+        const localPoi: PointOfInterest = {
+            id: `local-${Date.now()}`,
+            name: 'Current Location',
+            position: position,
+            areaDescription: `The user is currently near ${areaName}.`,
+            discovered: true
+        };
+        setActiveQuizPoi(localPoi);
+    } else {
+        toast({ title: "Could not identify location", description: "Failed to find address details for your current position.", variant: "destructive" });
     }
   };
+
+  const handleLocalGuide = async () => {
+    if (!position) return;
+
+    setIsGuideLoading(true);
+    setGuideData(null);
+    const areaName = await getAreaNameFromPosition(position);
+    if (!areaName) {
+         toast({ title: "Could not identify location", description: "Failed to find address details for your current position.", variant: "destructive" });
+         setIsGuideLoading(false);
+         return;
+    }
+    
+    const result = await createGuide(areaName);
+    setIsGuideLoading(false);
+
+    if (result) {
+        setGuideData(result);
+    } else {
+        toast({ title: "Guide Generation Failed", description: "Could not generate a guide for this area.", variant: "destructive" });
+    }
+  }
 
   const handleCloseQuiz = () => {
     setActiveQuizPoi(null);
@@ -332,12 +365,19 @@ export default function MapPage() {
 
   return (
     <div className="flex h-full flex-col">
-        <header className="flex items-center justify-between gap-2 p-4 font-headline text-2xl font-bold text-primary">
+        <header className="flex items-center justify-between gap-1 p-4 font-headline text-2xl font-bold text-primary">
           <div className="flex items-center gap-2">
             <MapPin className="h-6 w-6" />
             <h1>City Unveiler</h1>
           </div>
           <div className="flex items-center gap-2">
+             <Button
+                onClick={handleLocalGuide}
+                disabled={!position || isGuideLoading}
+                size="sm"
+             >
+                <Mic /> AI在地解說
+             </Button>
              <Button 
                 onClick={handleStartLocalChallenge} 
                 disabled={!position} 
@@ -370,6 +410,12 @@ export default function MapPage() {
         isOpen={!!activeQuizPoi}
         onClose={handleCloseQuiz}
         onQuizComplete={addXp}
+      />
+      <GuideModal
+        data={guideData}
+        isOpen={!!guideData}
+        isLoading={isGuideLoading}
+        onClose={() => setGuideData(null)}
       />
     </div>
   );

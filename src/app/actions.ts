@@ -1,6 +1,7 @@
 'use server';
 
 import { generateAreaQuiz } from '@/ai/flows/generate-area-quiz';
+import { generateLocalGuide } from '@/ai/flows/generate-local-guide';
 import type { QuizData } from '@/lib/types';
 
 export async function createQuiz(areaDescription: string): Promise<QuizData | null> {
@@ -15,4 +16,14 @@ export async function createQuiz(areaDescription: string): Promise<QuizData | nu
     console.error('Error generating quiz:', error);
     return null;
   }
+}
+
+export async function createGuide(locationDescription: string) {
+    try {
+        const result = await generateLocalGuide({ locationDescription });
+        return result;
+    } catch (error) {
+        console.error("Error generating guide:", error);
+        return null;
+    }
 }

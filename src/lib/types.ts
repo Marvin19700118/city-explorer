@@ -37,3 +37,8 @@ export type Trip = {
   startTime: string | null;
   endTime: string | null;
 };
+
+export type GuideData = {
+  guideText: string;
+  audioDataUri: string;
+};
