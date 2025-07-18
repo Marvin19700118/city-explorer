@@ -74,7 +74,7 @@ export default function MapPage() {
   const [isGuideLoading, setIsGuideLoading] = React.useState(false);
   
   const [settings, setSettings] = React.useState<Settings>({
-    fogOpacity: 0,
+    fogOpacity: 70,
     areaNotifications: true,
   });
   

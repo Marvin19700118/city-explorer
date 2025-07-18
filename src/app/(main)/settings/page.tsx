@@ -14,7 +14,7 @@ import type { Settings as AppSettings } from '@/lib/types';
 
 export default function SettingsPage() {
   const [settings, setSettings] = React.useState<AppSettings>({
-    fogOpacity: 0,
+    fogOpacity: 70,
     areaNotifications: true,
   });
   const [isClient, setIsClient] = React.useState(false);
