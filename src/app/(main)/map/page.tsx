@@ -338,7 +338,12 @@ export default function MapPage() {
             <h1>City Unveiler</h1>
           </div>
           <div className="flex items-center gap-2">
-             <Button onClick={handleStartLocalChallenge} disabled={!position} variant="outline" size="sm">
+             <Button 
+                onClick={handleStartLocalChallenge} 
+                disabled={!position} 
+                size="sm"
+                className="bg-accent hover:bg-accent/90"
+             >
               <Trophy /> 在地挑戰
             </Button>
             {!isTracking ? (
