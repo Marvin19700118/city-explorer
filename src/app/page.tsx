@@ -36,42 +36,45 @@ export default function Home() {
 
   React.useEffect(() => {
     const newXp = distance * XP_PER_KM;
-    if (newXp <= pet.xp) return;
+    
+    setPet(currentPet => {
+        if (newXp <= currentPet.xp) return currentPet;
 
-    let currentXp = newXp;
-    let currentLevel = pet.level;
-    let xpForNext = pet.xpToNextLevel;
-    let currentEvolutionStage = pet.evolutionStage;
+        let currentXp = newXp;
+        let currentLevel = currentPet.level;
+        let xpForNext = currentPet.xpToNextLevel;
+        let currentEvolutionStage = currentPet.evolutionStage;
 
-    while (currentXp >= xpForNext) {
-      currentXp -= xpForNext;
-      currentLevel++;
-      xpForNext = Math.floor(xpForNext * 1.5);
-      
-      const newEvolutionStage = PET_EVOLUTION_LEVELS.filter(l => currentLevel >= l).length + 1;
-      if (newEvolutionStage > currentEvolutionStage) {
-        currentEvolutionStage = newEvolutionStage;
-        toast({
-            title: "Your pet evolved!",
-            description: `${pet.name} has reached a new form!`,
-        });
-      } else {
-        toast({
-            title: "Level Up!",
-            description: `${pet.name} is now level ${currentLevel}!`,
-        });
-      }
-    }
+        while (currentXp >= xpForNext) {
+            currentXp -= xpForNext;
+            currentLevel++;
+            xpForNext = Math.floor(xpForNext * 1.5);
+            
+            const newEvolutionStage = PET_EVOLUTION_LEVELS.filter(l => currentLevel >= l).length + 1;
+            if (newEvolutionStage > currentEvolutionStage) {
+                currentEvolutionStage = newEvolutionStage;
+                toast({
+                    title: "Your pet evolved!",
+                    description: `${currentPet.name} has reached a new form!`,
+                });
+            } else {
+                toast({
+                    title: "Level Up!",
+                    description: `${currentPet.name} is now level ${currentLevel}!`,
+                });
+            }
+        }
 
-    setPet({
-      ...pet,
-      xp: Math.round(currentXp),
-      level: currentLevel,
-      xpToNextLevel: xpForNext,
-      evolutionStage: currentEvolutionStage,
+        return {
+            ...currentPet,
+            xp: Math.round(currentXp),
+            level: currentLevel,
+            xpToNextLevel: xpForNext,
+            evolutionStage: currentEvolutionStage,
+        };
     });
 
-  }, [distance, pet, toast]);
+  }, [distance, toast]);
 
   React.useEffect(() => {
     const DISCOVERY_RADIUS = 10;
