@@ -1,11 +1,13 @@
 'use client';
 
 import * as React from 'react';
-import { Settings, Bell, Palette } from 'lucide-react';
+import { Settings, Bell, Palette, LogIn, LogOut, Cloud } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 import type { Settings as AppSettings } from '@/lib/types';
 
 
@@ -15,6 +17,8 @@ export default function SettingsPage() {
     areaNotifications: true,
   });
   const [isClient, setIsClient] = React.useState(false);
+  const { isSignedIn, signIn, signOut } = useAuth();
+  const signInButtonRef = React.useRef(null);
 
   React.useEffect(() => {
     setIsClient(true);
@@ -23,6 +27,16 @@ export default function SettingsPage() {
       setSettings(JSON.parse(savedSettings));
     }
   }, []);
+  
+  React.useEffect(() => {
+    if (isClient && !isSignedIn && signInButtonRef.current && window.google) {
+      window.google.accounts.id.renderButton(
+        signInButtonRef.current,
+        { theme: "outline", size: "large", type: 'standard' } 
+      );
+    }
+  }, [isClient, isSignedIn]);
+
 
   const handleSettingsChange = (key: keyof AppSettings, value: any) => {
     const newSettings = { ...settings, [key]: value };
@@ -41,6 +55,26 @@ export default function SettingsPage() {
         <h2>設定</h2>
       </header>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>雲端同步</CardTitle>
+          <CardDescription>登入您的 Google 帳戶以同步您的遊戲進度。</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isSignedIn ? (
+            <div className="space-y-4">
+              <p>已登入 Google 帳戶。</p>
+              <Button onClick={signOut} variant="outline">
+                <LogOut className="mr-2 h-4 w-4" />
+                登出
+              </Button>
+            </div>
+          ) : (
+             <div ref={signInButtonRef} />
+          )}
+        </CardContent>
+      </Card>
+      
       <Card>
         <CardHeader>
           <CardTitle>地圖</CardTitle>

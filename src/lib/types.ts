@@ -52,3 +52,13 @@ export type Settings = {
 export type CityPoints = {
   [cityName: string]: number;
 };
+
+// Data structure for cloud sync
+export type GameSaveData = {
+    pet: Pet;
+    pois: PointOfInterest[];
+    trips: Trip[];
+    cityPoints: CityPoints;
+    settings: Settings;
+    lastUpdated: string;
+}
