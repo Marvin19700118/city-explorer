@@ -22,7 +22,7 @@ export const PetDisplay = ({ pet }: PetDisplayProps) => {
         </div>
         <Progress value={progressPercentage} className="h-2 bg-primary/20" />
         <p className="text-right text-xs text-muted-foreground mt-1">
-          {Math.floor(pet.xp)} / {Math.floor(pet.xpToNextLevel)} XP
+          {Math.floor(pet.xp)} / {pet.xpToNextLevel} XP
         </p>
       </div>
     </div>

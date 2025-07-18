@@ -48,6 +48,7 @@ const mockTrip: Trip = {
 
 
 const XP_PER_KM = 100;
+const XP_PER_LEVEL = 100;
 const PET_EVOLUTION_LEVELS = [5, 10, 15];
 
 export default function MapPage() {
@@ -63,7 +64,7 @@ export default function MapPage() {
     name: 'Sparky',
     level: 1,
     xp: 0,
-    xpToNextLevel: 100,
+    xpToNextLevel: XP_PER_LEVEL,
     evolutionStage: 1,
   });
 
@@ -160,36 +161,32 @@ export default function MapPage() {
     // This effect handles level ups based on XP changes.
     // It calculates the new level and evolution state.
     const currentPet = pet;
-    let currentXp = currentPet.xp;
-    let currentLevel = 1;
-    let xpForNext = 100;
-    let currentEvolutionStage = 1;
+    const totalXp = currentPet.xp;
+    
+    const newLevel = 1 + Math.floor(totalXp / XP_PER_LEVEL);
+    const xpIntoLevel = totalXp % XP_PER_LEVEL;
 
-    // Recalculate level from base XP
-    while (currentXp >= xpForNext) {
-        currentXp -= xpForNext;
-        currentLevel++;
-        xpForNext = Math.floor(xpForNext * 1.5);
-        
-        const newEvolutionStage = PET_EVOLUTION_LEVELS.filter(l => currentLevel >= l).length + 1;
-        if (newEvolutionStage > currentEvolutionStage) {
-            currentEvolutionStage = newEvolutionStage;
-        }
-    }
+    const newEvolutionStage = PET_EVOLUTION_LEVELS.filter(l => newLevel >= l).length + 1;
 
     const finalPetState: Pet = {
         ...currentPet,
-        xp: Math.round(currentXp),
-        level: currentLevel,
-        xpToNextLevel: xpForNext,
-        evolutionStage: currentEvolutionStage,
+        xp: totalXp,
+        level: newLevel,
+        xpToNextLevel: XP_PER_LEVEL,
+        evolutionStage: newEvolutionStage,
     };
 
-    // Only update state if something has actually changed to avoid infinite loops
-    if (finalPetState.level !== currentPet.level || finalPetState.evolutionStage !== currentPet.evolutionStage || finalPetState.xp !== currentPet.xp) {
-        setPet(finalPetState);
-        localStorage.setItem('pet', JSON.stringify(finalPetState));
-    }
+    // We only need to update the pet's display values, not the base XP
+    setPet(p => ({
+        ...p, 
+        level: newLevel, 
+        xp: xpIntoLevel, // Display XP for current level
+        xpToNextLevel: XP_PER_LEVEL,
+        evolutionStage: newEvolutionStage,
+    }));
+    
+    // We save the full pet state including total XP
+    localStorage.setItem('pet', JSON.stringify(finalPetState));
 
   }, [pet.xp]);
 
