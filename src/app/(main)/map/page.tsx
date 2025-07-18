@@ -19,10 +19,10 @@ import { createGuide } from '@/app/actions';
 const TAIPEI_CENTER = { lat: 25.0330, lng: 121.5654 };
 
 const initialPois: PointOfInterest[] = [
-  { id: 'poi1', name: 'Taipei 101', position: { lat: 25.0339, lng: 121.5645 }, areaDescription: 'A supertall skyscraper in Xinyi District, Taipei, Taiwan. It was officially the world\'s tallest from its opening in 2004 until 2010.', discovered: false },
-  { id: 'poi2', name: 'National Palace Museum', position: { lat: 25.1026, lng: 121.5485 }, areaDescription: 'Located in Shilin, Taipei, it has a permanent collection of nearly 700,000 pieces of ancient Chinese imperial artifacts and artworks, making it one of the largest of its type in the world.', discovered: false },
-  { id: 'poi3', name: 'Chiang Kai-shek Memorial Hall', position: { lat: 25.0345, lng: 121.5218 }, areaDescription: 'A national monument, landmark and tourist attraction erected in memory of Chiang Kai-shek, former President of the Republic of China.', discovered: false },
-  { id: 'poi4', name: 'Ximending', position: { lat: 25.0479, lng: 121.5074 }, areaDescription: 'A neighborhood and shopping district in the Wanhua District of Taipei, Taiwan. It was the first pedestrian zone in Taiwan.', discovered: false },
+  { id: 'poi1', name: 'Taipei 101', position: { lat: 25.0339, lng: 121.5645 }, areaDescription: 'A supertall skyscraper in Xinyi District, Taipei, Taiwan. It was officially the world\'s tallest from its opening in 2004 until 2010.', discovered: false, county: '台北市' },
+  { id: 'poi2', name: 'National Palace Museum', position: { lat: 25.1026, lng: 121.5485 }, areaDescription: 'Located in Shilin, Taipei, it has a permanent collection of nearly 700,000 pieces of ancient Chinese imperial artifacts and artworks, making it one of the largest of its type in the world.', discovered: false, county: '台北市' },
+  { id: 'poi3', name: 'Chiang Kai-shek Memorial Hall', position: { lat: 25.0345, lng: 121.5218 }, areaDescription: 'A national monument, landmark and tourist attraction erected in memory of Chiang Kai-shek, former President of the Republic of China.', discovered: false, county: '台北市' },
+  { id: 'poi4', name: 'Ximending', position: { lat: 25.0479, lng: 121.5074 }, areaDescription: 'A neighborhood and shopping district in the Wanhua District of Taipei, Taiwan. It was the first pedestrian zone in Taiwan.', discovered: false, county: '台北市' },
 ];
 
 const mockTrip: Trip = {
@@ -284,7 +284,8 @@ export default function MapPage() {
             name: 'Current Location',
             position: position,
             areaDescription: `The user is currently near ${areaName}.`,
-            discovered: true
+            discovered: true,
+            county: 'Current Location',
         };
         setActiveQuizPoi(localPoi);
     } else {

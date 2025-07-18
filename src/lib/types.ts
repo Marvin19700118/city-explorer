@@ -22,6 +22,7 @@ export type PointOfInterest = {
   position: { lat: number; lng: number };
   areaDescription: string;
   discovered: boolean;
+  county: string; // e.g., '台北市'
 };
 
 export type LatLng = {
