@@ -19,6 +19,7 @@ import type { PointOfInterest, QuizData, QuizQuestion, CityPoints } from '@/lib/
 import { CheckCircle, XCircle, BrainCircuit, RotateCw, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import type { GenerateAreaQuizInput } from '@/ai/flows/generate-area-quiz';
 
 type QuizModalProps = {
   poi: PointOfInterest | null;
@@ -46,11 +47,17 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
     setIsLoading(true);
     setQuizData(null);
     try {
-      const data = await createQuiz(poi.areaDescription);
+      const input: GenerateAreaQuizInput = {
+        areaDescription: poi.areaDescription,
+      };
+      if (poi.name === '目前位置') {
+        input.lat = poi.position.lat;
+        input.lng = poi.position.lng;
+      }
+
+      const data = await createQuiz(input);
       if (data && data.questions.length > 0) {
-        // We only want 3 questions for a local challenge
-        const questions = poi.name === "目前位置" ? data.questions.slice(0, 3) : data.questions;
-        setQuizData({ questions });
+        setQuizData({ questions: data.questions });
       } else {
         toast({ title: "問答生成失敗", description: "無法為此區域生成問答。", variant: "destructive"});
         onClose();

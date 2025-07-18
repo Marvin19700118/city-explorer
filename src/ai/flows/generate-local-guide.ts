@@ -17,6 +17,8 @@ const GenerateLocalGuideInputSchema = z.object({
   locationDescription: z
     .string()
     .describe('A description of the user location, e.g., an address or area name.'),
+  lat: z.number().optional().describe('The latitude of the location.'),
+  lng: z.number().optional().describe('The longitude of the location.'),
 });
 export type GenerateLocalGuideInput = z.infer<typeof GenerateLocalGuideInputSchema>;
 
@@ -34,10 +36,14 @@ const textGenerationPrompt = ai.definePrompt({
     name: 'generateLocalGuideTextPrompt',
     input: {schema: GenerateLocalGuideInputSchema},
     output: {schema: z.object({ guideText: z.string() })},
-    prompt: `您是一位知識淵博的在地導遊。請根據使用者目前所在的位置，產生一段約 150-200 字的人文歷史或附近有趣景點的導覽解說。請用繁體中文回答。
+    prompt: `您是一位知識淵博的在地導遊。請根據使用者目前所在的位置，產生一段約 150-200 字的人文歷史或附近有趣景點的導覽解說。
+{{#if lat}}
+請特別專注於以經緯度 ({{lat}}, {{lng}}) 為中心，方圓 2 公里內的人文歷史、景點或特殊事件。
+{{/if}}
+請用繁體中文回答。
 
-    使用者位置: {{{locationDescription}}}
-    `,
+使用者位置描述: {{{locationDescription}}}
+`,
 });
 
 async function textToSpeech(text: string): Promise<string> {

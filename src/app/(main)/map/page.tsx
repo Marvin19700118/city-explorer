@@ -14,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { createGuide } from '@/app/actions';
+import { createGuide, createQuiz } from '@/app/actions';
 
 const TAIPEI_CENTER = { lat: 25.0330, lng: 121.5654 };
 
@@ -48,7 +48,6 @@ const mockTrip: Trip = {
 
 
 const XP_PER_LEVEL = 100;
-const PET_EVOLUTION_LEVELS = [5, 10, 15];
 
 export default function MapPage() {
   const { position, distance, path, error, loading, isTracking, startTracking, stopTracking: trackerStop } = useLocationTracker();
@@ -111,7 +110,24 @@ export default function MapPage() {
   };
   
   const addXp = React.useCallback((amount: number) => {
-    setPet(p => ({ ...p, totalXp: (p.totalXp || 0) + amount }));
+    setPet(p => {
+      const newTotalXp = (p.totalXp || 0) + amount;
+      const newLevel = 1 + Math.floor(newTotalXp / XP_PER_LEVEL);
+      const xpIntoLevel = newTotalXp % XP_PER_LEVEL;
+      const newEvolutionStage = [5, 10, 15].filter(l => newLevel >= l).length + 1;
+
+      const finalPetState = {
+        ...p,
+        totalXp: newTotalXp,
+        level: newLevel,
+        xp: xpIntoLevel,
+        xpToNextLevel: XP_PER_LEVEL,
+        evolutionStage: newEvolutionStage,
+      };
+
+      localStorage.setItem('pet', JSON.stringify(finalPetState));
+      return finalPetState;
+    });
   }, []);
 
 
@@ -145,35 +161,8 @@ export default function MapPage() {
     }
   }, []);
 
-
-  React.useEffect(() => {
-    // This effect handles level ups based on total XP changes.
-    const currentPet = pet;
-    const totalXp = currentPet.totalXp || 0;
-    
-    const newLevel = 1 + Math.floor(totalXp / XP_PER_LEVEL);
-    const xpIntoLevel = totalXp % XP_PER_LEVEL;
-
-    const newEvolutionStage = PET_EVOLUTION_LEVELS.filter(l => newLevel >= l).length + 1;
-
-    const finalPetState: Pet = {
-        ...currentPet,
-        totalXp,
-        level: newLevel,
-        xp: xpIntoLevel,
-        xpToNextLevel: XP_PER_LEVEL,
-        evolutionStage: newEvolutionStage,
-    };
-    
-    // We only need to update the pet's display values, not the base XP
-    setPet(finalPetState);
-    localStorage.setItem('pet', JSON.stringify(finalPetState));
-
-  }, [pet.totalXp]);
-
   // Separate effect for showing toast notifications on level/evolution change
   React.useEffect(() => {
-    // use a ref to track the previous state to compare against
     if (prevPetRef.current) {
         const prevPet = prevPetRef.current;
         if (pet.level > prevPet.level) {
@@ -194,6 +183,7 @@ export default function MapPage() {
     // update the ref with the current pet state for the next render
     prevPetRef.current = pet;
   }, [pet.level, pet.evolutionStage, pet.name, toast]);
+
 
   React.useEffect(() => {
     if (!position || !isTracking || pois.length === 0) return;
@@ -269,7 +259,7 @@ export default function MapPage() {
             id: `local-${Date.now()}`,
             name: '目前位置',
             position: position,
-            areaDescription: `使用者目前位於 ${areaName} 附近。`,
+            areaDescription: `使用者目前位於 ${areaName} 附近。經緯度為 ${position.lat}, ${position.lng}。`,
             discovered: true,
             county: '目前位置',
         };
@@ -291,7 +281,11 @@ export default function MapPage() {
          return;
     }
     
-    const result = await createGuide(areaName);
+    const result = await createGuide({ 
+        locationDescription: areaName,
+        lat: position.lat,
+        lng: position.lng
+    });
     setIsGuideLoading(false);
 
     if (result) {
