@@ -40,7 +40,7 @@ export const useLocationTracker = () => {
       watchIdRef.current = null;
     }
     setIsTracking(false);
-    previousPositionRef.current = null;
+    // Do not reset previous position ref here to maintain last known location
   }, []);
 
   const startTracking = useCallback(() => {
@@ -52,32 +52,10 @@ export const useLocationTracker = () => {
     }
     if (isTracking) return;
 
-    setLoading(true);
     setIsTracking(true);
-    setPath([]); // Clear previous path
+    setDistance(0);
+    setPath(p => position ? [position] : []); // Start path from current position if available
 
-    // Get initial position
-     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        const newPos = { lat: latitude, lng: longitude };
-        setPosition(newPos);
-        setPath(p => [...p, newPos]);
-        previousPositionRef.current = { latitude, longitude };
-        setLoading(false);
-      },
-      (err) => {
-        if (err.code === err.PERMISSION_DENIED) {
-            setError('Location access denied. Please enable location permissions in your browser settings.');
-        } else {
-            setError(`Error getting location: ${err.message}`);
-        }
-        setLoading(false);
-        setIsTracking(false);
-      },
-      { enableHighAccuracy: true }
-    );
-    
     // Watch for position changes
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
@@ -111,16 +89,47 @@ export const useLocationTracker = () => {
         distanceFilter: 10, // Update every 10 meters
       }
     );
-  }, [isTracking, stopTracking, loading]);
+  }, [isTracking, stopTracking, loading, position]);
+  
+  const getInitialPosition = useCallback(() => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser.');
+      setLoading(false);
+      return;
+    }
+    
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          const newPos = { lat: latitude, lng: longitude };
+          setPosition(newPos);
+          previousPositionRef.current = { latitude, longitude };
+          setError(null);
+          setLoading(false);
+        },
+        (err) => {
+          if (err.code === err.PERMISSION_DENIED) {
+              setError('Location access denied. Please enable permissions to use location features.');
+          } else {
+              setError(`Error getting location: ${err.message}`);
+          }
+          setLoading(false);
+        },
+        { enableHighAccuracy: true }
+      );
+  }, []);
+
 
   useEffect(() => {
-    // On mount, just set loading to false. Tracking will be manually started.
-    setLoading(false);
+    // On mount, just get the initial position. Tracking will be manually started.
+    getInitialPosition();
+    
     // Stop tracking when component unmounts
     return () => {
       stopTracking();
     };
-  }, [stopTracking]);
+  }, [getInitialPosition, stopTracking]);
 
   return { position, distance, error, loading, isTracking, path, startTracking, stopTracking };
 };

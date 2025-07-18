@@ -301,7 +301,7 @@ export default function MapPage() {
       );
     }
     
-    if (error && !isTracking) {
+    if (error) {
        return (
         <div className="p-4">
           <Alert variant="destructive">
@@ -313,7 +313,7 @@ export default function MapPage() {
       );
     }
 
-    if (loading && !position) {
+    if (loading) {
        return <Skeleton className="h-full w-full" />
     }
     
