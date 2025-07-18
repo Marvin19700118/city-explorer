@@ -375,25 +375,26 @@ export default function MapPage() {
              <Button
                 onClick={handleLocalGuide}
                 disabled={!position || isGuideLoading}
-                size="sm"
+                size="icon"
+                variant="outline"
              >
-                <Mic /> AI在地解說
+                <Mic />
              </Button>
              <Button 
                 onClick={handleStartLocalChallenge} 
                 disabled={!position} 
-                size="sm"
+                size="icon"
                 className="bg-accent hover:bg-accent/90"
              >
-              <Trophy /> 在地挑戰
+              <Trophy />
             </Button>
             {!isTracking ? (
-              <Button onClick={handleStartTracking} disabled={loading} size="sm">
-                <Play /> Start
+              <Button onClick={handleStartTracking} disabled={loading} size="icon">
+                <Play />
               </Button>
             ) : (
-              <Button onClick={stopTracking} variant="destructive" size="sm">
-                <Square /> Stop
+              <Button onClick={stopTracking} variant="destructive" size="icon">
+                <Square />
               </Button>
             )}
           </div>
@@ -421,5 +422,3 @@ export default function MapPage() {
     </div>
   );
 }
-
-    
