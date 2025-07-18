@@ -20,11 +20,11 @@ import { signOut } from '@/lib/firebase/auth';
 import { firebaseConfigured } from '@/lib/firebase/client';
 
 const navItems = [
-  { href: '/map', label: 'Map', icon: Map },
-  { href: '/stats', label: 'Stats', icon: BarChart2 },
-  { href: '/history', label: 'History', icon: History },
-  { href: '/achievements', label: 'Achievements', icon: Gem },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/map', label: '地圖', icon: Map },
+  { href: '/stats', label: '統計', icon: BarChart2 },
+  { href: '/history', label: '歷史', icon: History },
+  { href: '/achievements', label: '成就', icon: Gem },
+  { href: '/settings', label: '設定', icon: Settings },
 ];
 
 export default function MainAppLayout({
