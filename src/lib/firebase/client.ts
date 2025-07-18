@@ -12,13 +12,10 @@ const firebaseConfig = {
   appId: "1:1003377700516:web:8adbafbd3b53e4c33ac031"
 };
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-const firebaseConfigured = firebaseConfig.apiKey && firebaseConfig.projectId;
+// Always treat Firebase as configured since the config is hardcoded.
+const firebaseConfigured = true;
 
-if (firebaseConfigured) {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-}
+const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const auth: Auth = getAuth(app);
 
 export { app, auth, firebaseConfigured };
