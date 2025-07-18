@@ -4,12 +4,12 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyDXJf1XrYYWX_z-zyWeZEz5STRebTC7jNQ",
+  authDomain: "city-unveiler.firebaseapp.com",
+  projectId: "city-unveiler",
+  storageBucket: "city-unveiler.firebasestorage.app",
+  messagingSenderId: "1003377700516",
+  appId: "1:1003377700516:web:8adbafbd3b53e4c33ac031"
 };
 
 let app: FirebaseApp | null = null;
