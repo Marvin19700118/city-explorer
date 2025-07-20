@@ -1,7 +1,7 @@
 'use server';
 
 import { generateAreaQuiz, type GenerateAreaQuizInput } from '@/ai/flows/generate-area-quiz';
-import { generateLocalGuide, type GenerateLocalGuideInput } from '@/ai/flows/generate-local-guide';
+import { generateChatbotResponse, type GenerateChatbotResponseInput } from '@/ai/flows/generate-chatbot-response';
 import type { QuizData } from '@/lib/types';
 
 export async function createQuiz(input: GenerateAreaQuizInput): Promise<QuizData | null> {
@@ -18,12 +18,12 @@ export async function createQuiz(input: GenerateAreaQuizInput): Promise<QuizData
   }
 }
 
-export async function createGuide(input: GenerateLocalGuideInput) {
+export async function getChatbotResponse(input: GenerateChatbotResponseInput) {
     try {
-        const result = await generateLocalGuide(input);
+        const result = await generateChatbotResponse(input);
         return result;
     } catch (error) {
-        console.error("Error generating guide:", error);
-        return null;
+        console.error("Error generating chatbot response:", error);
+        return { response: '抱歉，我現在無法回答。請稍後再試。' };
     }
 }

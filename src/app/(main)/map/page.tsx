@@ -2,19 +2,18 @@
 'use client';
 
 import * as React from 'react';
-import { MapPin, Play, Square, Trophy, Mic } from 'lucide-react';
+import { MapPin, Play, Square, Trophy, MessageSquare } from 'lucide-react';
 import { StatusBar } from '@/components/StatusBar';
 import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
-import { GuideModal } from '@/components/GuideModal';
+import { Chatbot } from '@/components/Chatbot';
 import { useLocationTracker } from '@/hooks/use-location-tracker';
-import type { Pet, PointOfInterest, Trip, GuideData, Settings } from '@/lib/types';
+import type { Pet, PointOfInterest, Trip, Settings } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { createGuide, createQuiz } from '@/app/actions';
 
 const TAIPEI_CENTER = { lat: 25.0330, lng: 121.5654 };
 
@@ -68,9 +67,9 @@ export default function MapPage() {
   const [pois, setPois] = React.useState<PointOfInterest[]>([]);
   const [activeQuizPoi, setActiveQuizPoi] = React.useState<PointOfInterest | null>(null);
   
-  const [guideData, setGuideData] = React.useState<GuideData | null>(null);
-  const [isGuideLoading, setIsGuideLoading] = React.useState(false);
-  
+  const [isChatbotOpen, setIsChatbotOpen] = React.useState(false);
+  const [chatbotAreaName, setChatbotAreaName] = React.useState<string | null>(null);
+
   const [settings, setSettings] = React.useState<Settings>({
     fogOpacity: 70,
     areaNotifications: true,
@@ -136,7 +135,6 @@ export default function MapPage() {
       return finalPetState;
     });
   }, []);
-
 
   React.useEffect(() => {
     // Load saved data from localStorage on mount
@@ -216,7 +214,7 @@ export default function MapPage() {
     setActiveQuizPoi(poi);
   };
 
-  const getAreaNameFromPosition = async (pos: {lat: number, lng: number}): Promise<string | null> => {
+  const getAreaNameFromPosition = React.useCallback(async (pos: {lat: number, lng: number}): Promise<string | null> => {
      if (!googleMapsApiKey || !window.google) return null;
      try {
         const geocoder = new window.google.maps.Geocoder();
@@ -226,17 +224,21 @@ export default function MapPage() {
             // Find the administrative area (county/city)
             const areaComponent = response.results.find(r => r.types.includes('administrative_area_level_1'));
             if (areaComponent) {
-                return areaComponent.formatted_address;
+                const cityComponent = response.results.find(r => r.types.includes('locality'));
+                if (cityComponent) {
+                    return `${areaComponent.long_name}${cityComponent.long_name}`
+                }
+                return areaComponent.long_name;
             }
-            // Fallback to the most specific result
-            return response.results[0].formatted_address;
+             const fallback = response.results[0].formatted_address.split(',').slice(-3, -1).join(' ');
+            return fallback;
         }
         return null;
      } catch (err) {
         console.error("Reverse geocoding failed", err);
         return null;
      }
-  }
+  }, [googleMapsApiKey]);
   
   const handleStartLocalChallenge = async () => {
     if (!position) return;
@@ -257,29 +259,25 @@ export default function MapPage() {
     }
   };
 
-  const handleLocalGuide = async () => {
-    if (!position) return;
+  const handleToggleChatbot = async () => {
+    if (isChatbotOpen) {
+      setIsChatbotOpen(false);
+      return;
+    }
 
-    setIsGuideLoading(true);
-    setGuideData(null);
-    const areaName = await getAreaNameFromPosition(position);
-    if (!areaName) {
-         toast({ title: "無法識別位置", description: "無法獲取您目前位置的詳細地址。", variant: "destructive" });
-         setIsGuideLoading(false);
-         return;
+    if (!position) {
+      toast({ title: "無法開啟智能問答", description: "需要先取得您的位置。", variant: "destructive" });
+      return;
     }
     
-    const result = await createGuide({ 
-        locationDescription: areaName,
-    });
-    setIsGuideLoading(false);
-
-    if (result) {
-        setGuideData(result);
+    const areaName = await getAreaNameFromPosition(position);
+    if (areaName) {
+      setChatbotAreaName(areaName);
+      setIsChatbotOpen(true);
     } else {
-        toast({ title: "導覽生成失敗", description: "無法為此區域生成導覽。", variant: "destructive" });
+      toast({ title: "無法識別位置", description: "無法獲取您目前位置的詳細地址。", variant: "destructive" });
     }
-  }
+  };
 
   const handleCloseQuiz = () => {
     setActiveQuizPoi(null);
@@ -333,58 +331,62 @@ export default function MapPage() {
 
   return (
     <div className="flex h-full flex-col">
-        <header className="flex items-center justify-between gap-1 p-4 font-headline text-2xl font-bold text-primary">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-6 w-6" />
-            <h1>城市探險家</h1>
-          </div>
-          <div className="flex items-center gap-2">
-             <Button
-                onClick={handleLocalGuide}
-                disabled={!position || isGuideLoading}
-                size="icon"
-                className="bg-sky-500 hover:bg-sky-600 text-white"
-             >
-                <Mic />
-             </Button>
-             <Button 
-                onClick={handleStartLocalChallenge} 
-                disabled={!position} 
-                size="icon"
-                className="bg-accent hover:bg-accent/90"
-             >
-              <Trophy />
-            </Button>
-            {!isTracking ? (
-              <Button onClick={handleStartTracking} disabled={loading} size="icon">
-                <Play />
+      {isChatbotOpen ? (
+        <Chatbot 
+          isOpen={isChatbotOpen}
+          onClose={() => setIsChatbotOpen(false)}
+          locationName={chatbotAreaName}
+        />
+      ) : (
+        <>
+          <header className="flex items-center justify-between gap-1 p-4 font-headline text-2xl font-bold text-primary">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-6 w-6" />
+              <h1>城市探險家</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                  onClick={handleToggleChatbot}
+                  disabled={!position}
+                  size="icon"
+                  className="bg-sky-500 hover:bg-sky-600 text-white"
+              >
+                  <MessageSquare />
               </Button>
-            ) : (
-              <Button onClick={stopTracking} variant="destructive" size="icon">
-                <Square />
+              <Button 
+                  onClick={handleStartLocalChallenge} 
+                  disabled={!position} 
+                  size="icon"
+                  className="bg-accent hover:bg-accent/90"
+              >
+                <Trophy />
               </Button>
-            )}
+              {!isTracking ? (
+                <Button onClick={handleStartTracking} disabled={loading} size="icon">
+                  <Play />
+                </Button>
+              ) : (
+                <Button onClick={stopTracking} variant="destructive" size="icon">
+                  <Square />
+                </Button>
+              )}
+            </div>
+          </header>
+
+          <div className="relative flex-1 bg-muted">
+            {renderMapComponent()}
           </div>
-        </header>
 
-        <div className="relative flex-1 bg-muted">
-          {renderMapComponent()}
-        </div>
-
-        <div className="border-t-2 border-primary/20 p-2">
-          <StatusBar distance={distance} pet={pet} />
-        </div>
+          <div className="border-t-2 border-primary/20 p-2">
+            <StatusBar distance={distance} pet={pet} />
+          </div>
+        </>
+      )}
       <QuizModal
         poi={activeQuizPoi}
         isOpen={!!activeQuizPoi}
         onClose={handleCloseQuiz}
         onQuizComplete={addXp}
-      />
-      <GuideModal
-        data={guideData}
-        isOpen={!!guideData}
-        isLoading={isGuideLoading}
-        onClose={() => setGuideData(null)}
       />
     </div>
   );

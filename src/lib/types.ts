@@ -40,11 +40,6 @@ export type Trip = {
   endTime: string | null;
 };
 
-export type GuideData = {
-  guideText: string;
-  audioDataUri: string;
-};
-
 export type Settings = {
   fogOpacity: number;
   areaNotifications: boolean;
@@ -53,6 +48,12 @@ export type Settings = {
 export type CityPoints = {
   [cityName: string]: number;
 };
+
+export type ChatMessage = {
+    role: 'user' | 'bot';
+    content: string;
+    timestamp: string;
+}
 
 // Data structure for cloud sync
 export type GameSaveData = {
