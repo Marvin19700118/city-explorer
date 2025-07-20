@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 // IMPORTANT: Replace with your actual Google Client ID
-const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "103148999584-4e4s7645his87n8eis652dl741ge1c8c.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 
 interface AuthContextType {
@@ -84,7 +84,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   
   // Initialize One Tap sign-in
   useEffect(() => {
-    if (gsiLoaded) {
+    if (gsiLoaded && !isSignedIn) {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: (response: any) => {
@@ -94,6 +94,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
              signIn();
            }
         },
+      });
+      window.google.accounts.id.prompt((notification: any) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            // console.log('One Tap prompt not shown or skipped');
+        }
       });
     }
   }, [gsiLoaded, isSignedIn]);
@@ -128,10 +133,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (Date.now() > expiresAt - 5 * 60 * 1000) {
         return new Promise((resolve) => {
             if (window.tokenClient) {
-                window.tokenClient.requestAccessToken({ prompt: '' }); // Attempt to refresh without new consent
-                // The callback in initTokenClient will handle the response.
-                // We'll have to wait for the new token to be set.
-                // A better implementation would listen for the callback, but for now we poll.
+                // The callback in initTokenClient will handle the new token.
+                // We just need to trigger the request.
+                window.tokenClient.requestAccessToken({ prompt: '' });
+
+                // Poll for the new token.
                 const interval = setInterval(() => {
                     const newTokenItem = localStorage.getItem('gdrive_token');
                     if(newTokenItem) {
