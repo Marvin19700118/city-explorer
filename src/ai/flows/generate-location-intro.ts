@@ -1,14 +1,12 @@
+
 'use server';
 
 /**
  * @fileOverview An AI flow to generate a local guide introduction (text and audio) for a specific area.
  * - generateLocationIntro - A function that handles the guide generation.
- * - GenerateLocationIntroInput - The input type for the function.
- * - GenerateLocationIntroOutput - The return type for the function.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
 import wav from 'wav';
 import { googleAI } from '@genkit-ai/googleai';
 import { GenerateLocationIntroInput, GenerateLocationIntroInputSchema, GenerateLocationIntroOutput, GenerateLocationIntroOutputSchema } from '@/lib/types';

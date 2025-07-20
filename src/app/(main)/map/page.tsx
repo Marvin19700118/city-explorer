@@ -6,6 +6,7 @@ import { MapPin, Play, Square, Trophy, Mic } from 'lucide-react';
 import { StatusBar } from '@/components/StatusBar';
 import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
+import { GuideModal } from '@/components/GuideModal';
 import { useLocationTracker } from '@/hooks/use-location-tracker';
 import type { Pet, PointOfInterest, Trip, Settings, GenerateLocationIntroOutput } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +15,7 @@ import { Terminal } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Chatbot } from '@/components/Chatbot';
+import { generateLocationIntro } from '@/app/actions';
 
 const TAIPEI_CENTER = { lat: 25.0330, lng: 121.5654 };
 
@@ -66,6 +68,10 @@ export default function MapPage() {
 
   const [pois, setPois] = React.useState<PointOfInterest[]>([]);
   const [activeQuizPoi, setActiveQuizPoi] = React.useState<PointOfInterest | null>(null);
+  
+  const [isGuideModalOpen, setIsGuideModalOpen] = React.useState(false);
+  const [guideData, setGuideData] = React.useState<GenerateLocationIntroOutput | null>(null);
+  const [isGuideLoading, setIsGuideLoading] = React.useState(false);
   
   const [isChatbotOpen, setIsChatbotOpen] = React.useState(false);
   const [chatbotLocationName, setChatbotLocationName] = React.useState<string | null>(null);
@@ -274,11 +280,36 @@ export default function MapPage() {
     setIsChatbotLoading(false);
   };
 
+  const handleOpenGuide = async () => {
+    if (!position) return;
+    setIsGuideLoading(true);
+    setIsGuideModalOpen(true);
+    setGuideData(null);
+
+    const areaName = await getAreaNameFromPosition(position);
+    if (areaName) {
+        try {
+            const data = await generateLocationIntro({ locationName: areaName });
+            if (data) {
+                setGuideData(data);
+            } else {
+                toast({ title: "介紹生成失敗", description: "無法為此區域生成 AI 介紹。", variant: "destructive"});
+                setIsGuideModalOpen(false);
+            }
+        } catch (err) {
+            toast({ title: "錯誤", description: "生成 AI 介紹時發生預期外的錯誤。", variant: "destructive"});
+            setIsGuideModalOpen(false);
+        }
+    } else {
+        toast({ title: '無法識別位置', description: '無法獲取您目前位置的詳細地址。', variant: 'destructive' });
+        setIsGuideModalOpen(false);
+    }
+    setIsGuideLoading(false);
+  };
 
   const handleCloseQuiz = () => {
     setActiveQuizPoi(null);
   };
-
 
   const renderMapComponent = () => {
     if (loading && !position) {
@@ -333,13 +364,13 @@ export default function MapPage() {
           <h1>城市探險家</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-              onClick={handleToggleChatbot}
-              disabled={!position || isChatbotLoading}
+           <Button
+              onClick={handleOpenGuide}
+              disabled={!position || isGuideLoading}
               size="icon"
-              className="bg-sky-500 hover:bg-sky-600 text-white"
-              aria-label="AI 智能問答"
-          >
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+              aria-label="AI Podcast"
+            >
               <Mic />
           </Button>
           <Button 
@@ -374,6 +405,13 @@ export default function MapPage() {
       <div className="border-t-2 border-primary/20 p-2">
         <StatusBar distance={distance} pet={pet} />
       </div>
+      
+      <GuideModal 
+        isOpen={isGuideModalOpen}
+        onClose={() => setIsGuideModalOpen(false)}
+        guideData={guideData}
+        isLoading={isGuideLoading}
+      />
 
       <QuizModal
         poi={activeQuizPoi}
