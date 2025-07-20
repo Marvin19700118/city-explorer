@@ -73,12 +73,9 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
             content: m.content
         }));
 
-        // We only want the history for the AI, not the latest user query.
-        historyForAI.pop(); 
-
       const result = await getChatbotResponse({
         locationName,
-        history: historyForAI,
+        history: historyForAI.slice(0, -1), // Pass all messages except the last one as history
         query: userQuery,
       });
 
