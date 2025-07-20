@@ -27,7 +27,9 @@ declare global {
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [gsiLoaded, setGsiLoaded] = useState(false);
+  const [gapiLoaded, setGapiLoaded] = useState(false);
 
+  // Initialize the GSI client
   const initializeGsi = useCallback(() => {
     if (window.google) {
       window.tokenClient = window.google.accounts.oauth2.initTokenClient({
@@ -35,6 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         scope: DRIVE_SCOPE,
         callback: (tokenResponse: any) => {
           if (tokenResponse && tokenResponse.access_token) {
+            tokenResponse.created_at = Date.now();
             localStorage.setItem('gdrive_token', JSON.stringify(tokenResponse));
             setIsSignedIn(true);
           }
@@ -44,87 +47,108 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
+  // Load GAPI client
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://apis.google.com/js/api.js';
     script.async = true;
     script.defer = true;
-    script.onload = () => window.gapi.load('client', initializeGsi);
+    script.onload = () => window.gapi.load('client', () => setGapiLoaded(true));
     document.body.appendChild(script);
+    
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
-    // Check for existing token on load
+  // Initialize GSI when GAPI is loaded
+  useEffect(() => {
+    if (gapiLoaded) {
+      initializeGsi();
+    }
+  }, [gapiLoaded, initializeGsi]);
+
+  // Check for existing token on load
+  useEffect(() => {
     const token = localStorage.getItem('gdrive_token');
     if (token) {
         const tokenData = JSON.parse(token);
-        if (new Date().getTime() < tokenData.expires_in * 1000 + (tokenData.created_at || Date.now())) {
+        const expiresAt = (tokenData.created_at || 0) + (tokenData.expires_in || 0) * 1000;
+        if (Date.now() < expiresAt) {
             setIsSignedIn(true);
         } else {
             localStorage.removeItem('gdrive_token');
         }
     }
-    
-    return () => {
-      document.body.removeChild(script);
-    };
-
-  }, [initializeGsi]);
+  }, []);
   
+  // Initialize One Tap sign-in
   useEffect(() => {
-    // This handles the One Tap sign-in response
-    if (window.google) {
+    if (gsiLoaded) {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: (response: any) => {
-           // This callback is for the ID token, but we need the access token for Drive.
-           // We'll trigger the access token flow instead.
-           signIn();
+           // This callback gives an ID token. We need an access token.
+           // We will prompt for the access token scope if not already signed in.
+           if (!isSignedIn) {
+             signIn();
+           }
         },
       });
     }
-  }, [gsiLoaded]);
+  }, [gsiLoaded, isSignedIn]);
 
   const signIn = () => {
     if (window.tokenClient) {
-      window.tokenClient.requestAccessToken();
+      window.tokenClient.requestAccessToken({ prompt: 'consent' });
     }
   };
 
   const signOut = () => {
-    const token = localStorage.getItem('gdrive_token');
-    if (token) {
-      window.google.accounts.oauth2.revoke(JSON.parse(token).access_token, () => {
-        localStorage.removeItem('gdrive_token');
-        setIsSignedIn(false);
-      });
+    const tokenItem = localStorage.getItem('gdrive_token');
+    if (tokenItem) {
+      const token = JSON.parse(tokenItem).access_token;
+      if (token) {
+        window.google.accounts.oauth2.revoke(token, () => {
+          localStorage.removeItem('gdrive_token');
+          setIsSignedIn(false);
+        });
+      }
     }
   };
   
   const getAccessToken = async (): Promise<string | null> => {
-    let tokenData = JSON.parse(localStorage.getItem('gdrive_token') || '{}');
+    const tokenItem = localStorage.getItem('gdrive_token');
+    if (!tokenItem) return null;
+
+    let tokenData = JSON.parse(tokenItem);
     
-    // Check if token is expired
-    // The expiry time is usually 3600 seconds (1 hour). We'll check if it's close to expiring.
-    const now = Date.now();
-    const createdAt = tokenData.created_at || 0;
-    const expiresIn = (tokenData.expires_in || 0) * 1000;
-    
-    if (now > createdAt + expiresIn - 5 * 60 * 1000) { // Refresh if less than 5 mins left
+    // Refresh if token expires in less than 5 minutes
+    const expiresAt = (tokenData.created_at || 0) + (tokenData.expires_in || 0) * 1000;
+    if (Date.now() > expiresAt - 5 * 60 * 1000) {
         return new Promise((resolve) => {
-            window.tokenClient = window.google.accounts.oauth2.initTokenClient({
-                client_id: GOOGLE_CLIENT_ID,
-                scope: DRIVE_SCOPE,
-                callback: (tokenResponse: any) => {
-                  if (tokenResponse && tokenResponse.access_token) {
-                    tokenResponse.created_at = Date.now();
-                    localStorage.setItem('gdrive_token', JSON.stringify(tokenResponse));
-                    setIsSignedIn(true);
-                    resolve(tokenResponse.access_token);
-                  } else {
+            if (window.tokenClient) {
+                window.tokenClient.requestAccessToken({ prompt: '' }); // Attempt to refresh without new consent
+                // The callback in initTokenClient will handle the response.
+                // We'll have to wait for the new token to be set.
+                // A better implementation would listen for the callback, but for now we poll.
+                const interval = setInterval(() => {
+                    const newTokenItem = localStorage.getItem('gdrive_token');
+                    if(newTokenItem) {
+                        const newTokenData = JSON.parse(newTokenItem);
+                        if (newTokenData.created_at > tokenData.created_at) {
+                           clearInterval(interval);
+                           resolve(newTokenData.access_token);
+                        }
+                    }
+                }, 500);
+                setTimeout(() => { // Timeout to prevent infinite loop
+                    clearInterval(interval);
                     resolve(null);
-                  }
-                },
-              });
-            window.tokenClient.requestAccessToken();
+                }, 10000);
+            } else {
+                resolve(null);
+            }
         });
     }
     
