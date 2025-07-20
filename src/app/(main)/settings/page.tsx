@@ -18,7 +18,7 @@ export default function SettingsPage() {
     areaNotifications: true,
   });
   const [isClient, setIsClient] = React.useState(false);
-  const { isSignedIn, signIn, signOut } = useAuth();
+  const { isSignedIn, signOut, gsiLoaded } = useAuth();
   const signInButtonRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -30,13 +30,13 @@ export default function SettingsPage() {
   }, []);
   
   React.useEffect(() => {
-    if (isClient && !isSignedIn && signInButtonRef.current && window.google) {
+    if (gsiLoaded && isClient && !isSignedIn && signInButtonRef.current && window.google) {
       window.google.accounts.id.renderButton(
         signInButtonRef.current,
         { theme: "outline", size: "large", type: 'standard' } 
       );
     }
-  }, [isClient, isSignedIn]);
+  }, [isClient, isSignedIn, gsiLoaded]);
 
 
   const handleSettingsChange = (key: keyof AppSettings, value: any) => {

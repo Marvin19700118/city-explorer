@@ -8,9 +8,9 @@ const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 
 interface AuthContextType {
   isSignedIn: boolean;
-  signIn: () => void;
   signOut: () => void;
   getAccessToken: () => Promise<string | null>;
+  gsiLoaded: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -74,15 +74,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }
   }, []);
-  
-  const signIn = () => {
-    if (window.tokenClient) {
-      // Prompt the user to grant access.
-      window.tokenClient.requestAccessToken({ prompt: 'consent' });
-    } else {
-        console.error("Token client not initialized");
-    }
-  };
 
   const signOut = () => {
     const tokenItem = localStorage.getItem('gdrive_token');
@@ -143,7 +134,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ isSignedIn, signIn, signOut, getAccessToken, gsiLoaded }}>
+    <AuthContext.Provider value={{ isSignedIn, signOut, getAccessToken, gsiLoaded }}>
       {children}
     </AuthContext.Provider>
   );
