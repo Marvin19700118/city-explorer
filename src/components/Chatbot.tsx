@@ -69,7 +69,6 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
 
     try {
         const historyForAI = currentMessages
-          .slice(0, -1) // Exclude the latest user message from history, as it's passed as the 'query'
           .map(m => ({
             role: m.role,
             content: m.content
@@ -77,7 +76,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
 
       const result = await getChatbotResponse({
         locationName,
-        history: historyForAI,
+        history: historyForAI.slice(0, -1), // Send all messages except the last one (the new query)
         query: userQuery,
       });
 

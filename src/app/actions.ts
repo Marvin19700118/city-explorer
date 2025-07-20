@@ -1,7 +1,7 @@
 'use server';
 
 import { generateAreaQuiz, type GenerateAreaQuizInput } from '@/ai/flows/generate-area-quiz';
-import { generateChatbotResponse, type GenerateChatbotResponseInput } from '@/ai/flows/generate-chatbot-response';
+import { generateChatbotResponse, type GenerateChatbotResponseInput, type GenerateChatbotResponseOutput } from '@/ai/flows/generate-chatbot-response';
 import type { QuizData } from '@/lib/types';
 
 export async function createQuiz(input: GenerateAreaQuizInput): Promise<QuizData | null> {
@@ -18,7 +18,7 @@ export async function createQuiz(input: GenerateAreaQuizInput): Promise<QuizData
   }
 }
 
-export async function getChatbotResponse(input: GenerateChatbotResponseInput) {
+export async function getChatbotResponse(input: GenerateChatbotResponseInput): Promise<GenerateChatbotResponseOutput> {
     try {
         const result = await generateChatbotResponse(input);
         return result;
