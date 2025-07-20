@@ -221,17 +221,22 @@ export default function MapPage() {
         const response = await geocoder.geocode({ location: pos });
         
         if (response.results && response.results[0]) {
-            // Find the administrative area (county/city)
-            const areaComponent = response.results.find(r => r.types.includes('administrative_area_level_1'));
-            if (areaComponent) {
-                const cityComponent = response.results.find(r => r.types.includes('locality'));
-                if (cityComponent) {
-                    return `${areaComponent.long_name}${cityComponent.long_name}`
-                }
-                return areaComponent.long_name;
+            // Find the administrative area (e.g., '信義區') and city ('台北市')
+            const cityComponent = response.results[0].address_components.find(c => c.types.includes('administrative_area_level_1'));
+            const districtComponent = response.results[0].address_components.find(c => c.types.includes('administrative_area_level_3'));
+
+            if (cityComponent && districtComponent) {
+                return `${cityComponent.long_name}${districtComponent.long_name}`;
             }
-             const fallback = response.results[0].formatted_address.split(',').slice(-3, -1).join(' ');
-            return fallback;
+             // Fallback for different address structures
+            const locality = response.results[0].address_components.find(c => c.types.includes('locality'));
+            if(cityComponent && locality) {
+                return `${cityComponent.long_name}${locality.long_name}`;
+            }
+            if (cityComponent) return cityComponent.long_name;
+            
+            const fallback = response.results[0].formatted_address.split(',').slice(-3, -1).join(' ').trim();
+            return fallback || response.results[0].formatted_address;
         }
         return null;
      } catch (err) {

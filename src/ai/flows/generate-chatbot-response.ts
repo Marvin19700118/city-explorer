@@ -19,7 +19,7 @@ const ChatMessageSchema = z.object({
 const GenerateChatbotResponseInputSchema = z.object({
   locationName: z
     .string()
-    .describe('The name of the current area or district the user is in. e.g., "台北市中正區"'),
+    .describe('The name of the current area or district the user is in. e.g., "台北市信義區"'),
   history: z.array(ChatMessageSchema).describe('The previous conversation history.'),
   query: z.string().describe("The user's latest question or message."),
 });
