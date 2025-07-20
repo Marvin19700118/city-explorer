@@ -15,11 +15,10 @@ import { Label } from './ui/label';
 import { Skeleton } from './ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { createQuiz } from '@/app/actions';
-import type { PointOfInterest, QuizData, QuizQuestion, CityPoints } from '@/lib/types';
+import type { PointOfInterest, QuizData, QuizQuestion, CityPoints, GenerateAreaQuizInput } from '@/lib/types';
 import { CheckCircle, XCircle, BrainCircuit, RotateCw, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { GenerateAreaQuizInput } from '@/ai/flows/generate-area-quiz';
 
 type QuizModalProps = {
   poi: PointOfInterest | null;

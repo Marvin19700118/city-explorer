@@ -2,18 +2,18 @@
 'use client';
 
 import * as React from 'react';
-import { MapPin, Play, Square, Trophy, MessageSquare } from 'lucide-react';
+import { MapPin, Play, Square, Trophy, Mic } from 'lucide-react';
 import { StatusBar } from '@/components/StatusBar';
 import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
-import { Chatbot } from '@/components/Chatbot';
 import { useLocationTracker } from '@/hooks/use-location-tracker';
-import type { Pet, PointOfInterest, Trip, Settings } from '@/lib/types';
+import type { Pet, PointOfInterest, Trip, Settings, GenerateLocationIntroOutput } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { Chatbot } from '@/components/Chatbot';
 
 const TAIPEI_CENTER = { lat: 25.0330, lng: 121.5654 };
 
@@ -68,7 +68,8 @@ export default function MapPage() {
   const [activeQuizPoi, setActiveQuizPoi] = React.useState<PointOfInterest | null>(null);
   
   const [isChatbotOpen, setIsChatbotOpen] = React.useState(false);
-  const [chatbotAreaName, setChatbotAreaName] = React.useState<string | null>(null);
+  const [chatbotLocationName, setChatbotLocationName] = React.useState<string | null>(null);
+  const [isChatbotLoading, setIsChatbotLoading] = React.useState(false);
 
   const [settings, setSettings] = React.useState<Settings>({
     fogOpacity: 70,
@@ -109,19 +110,15 @@ export default function MapPage() {
   
   const addXp = React.useCallback((amount: number) => {
     setPet(p => {
-      const newTotalXp = (p.totalXp || 0) + amount;
+      const newTotalXp = p.totalXp + amount;
       const newLevel = Math.floor(newTotalXp / XP_PER_LEVEL) + 1;
       const xpIntoLevel = newTotalXp % XP_PER_LEVEL;
-      
-      let newEvolutionStage = 1;
-      if (newLevel >= 15) {
-        newEvolutionStage = 4;
-      } else if (newLevel >= 10) {
-        newEvolutionStage = 3;
-      } else if (newLevel >= 5) {
-        newEvolutionStage = 2;
-      }
 
+      let newEvolutionStage = p.evolutionStage;
+      if (newLevel >= 15) newEvolutionStage = 4;
+      else if (newLevel >= 10) newEvolutionStage = 3;
+      else if (newLevel >= 5) newEvolutionStage = 2;
+      
       const finalPetState = {
         ...p,
         totalXp: newTotalXp,
@@ -223,15 +220,10 @@ export default function MapPage() {
         if (response.results && response.results[0]) {
             // Find the administrative area (e.g., '信義區') and city ('台北市')
             const cityComponent = response.results[0].address_components.find(c => c.types.includes('administrative_area_level_1'));
-            const districtComponent = response.results[0].address_components.find(c => c.types.includes('administrative_area_level_3'));
+            const districtComponent = response.results[0].address_components.find(c => c.types.includes('administrative_area_level_3') || c.types.includes('locality'));
 
             if (cityComponent && districtComponent) {
                 return `${cityComponent.long_name}${districtComponent.long_name}`;
-            }
-             // Fallback for different address structures
-            const locality = response.results[0].address_components.find(c => c.types.includes('locality'));
-            if(cityComponent && locality) {
-                return `${cityComponent.long_name}${locality.long_name}`;
             }
             if (cityComponent) return cityComponent.long_name;
             
@@ -254,7 +246,7 @@ export default function MapPage() {
             id: `local-${Date.now()}`,
             name: '目前位置',
             position: position,
-            areaDescription: `使用者目前位於 ${areaName} 附近。`,
+            areaDescription: `關於台灣${areaName}的介紹`,
             discovered: true,
             county: '目前位置',
         };
@@ -263,26 +255,25 @@ export default function MapPage() {
         toast({ title: "無法識別位置", description: "無法獲取您目前位置的詳細地址。", variant: "destructive" });
     }
   };
-
+  
   const handleToggleChatbot = async () => {
     if (isChatbotOpen) {
       setIsChatbotOpen(false);
       return;
     }
 
-    if (!position) {
-      toast({ title: "無法開啟智能問答", description: "需要先取得您的位置。", variant: "destructive" });
-      return;
-    }
-    
+    if (!position) return;
+    setIsChatbotLoading(true);
     const areaName = await getAreaNameFromPosition(position);
     if (areaName) {
-      setChatbotAreaName(areaName);
+      setChatbotLocationName(areaName);
       setIsChatbotOpen(true);
     } else {
-      toast({ title: "無法識別位置", description: "無法獲取您目前位置的詳細地址。", variant: "destructive" });
+      toast({ title: '無法識別位置', description: '無法獲取您目前位置的詳細地址。', variant: 'destructive' });
     }
+    setIsChatbotLoading(false);
   };
+
 
   const handleCloseQuiz = () => {
     setActiveQuizPoi(null);
@@ -336,57 +327,54 @@ export default function MapPage() {
 
   return (
     <div className="flex h-full flex-col">
-      {isChatbotOpen ? (
-        <Chatbot 
+      <header className="flex items-center justify-between gap-1 p-4 font-headline text-2xl font-bold text-primary">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-6 w-6" />
+          <h1>城市探險家</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+              onClick={handleToggleChatbot}
+              disabled={!position || isChatbotLoading}
+              size="icon"
+              className="bg-sky-500 hover:bg-sky-600 text-white"
+              aria-label="AI 智能問答"
+          >
+              <Mic />
+          </Button>
+          <Button 
+              onClick={handleStartLocalChallenge} 
+              disabled={!position} 
+              size="icon"
+              className="bg-accent hover:bg-accent/90"
+          >
+            <Trophy />
+          </Button>
+          {!isTracking ? (
+            <Button onClick={handleStartTracking} disabled={loading} size="icon">
+              <Play />
+            </Button>
+          ) : (
+            <Button onClick={stopTracking} variant="destructive" size="icon">
+              <Square />
+            </Button>
+          )}
+        </div>
+      </header>
+
+      <div className="relative flex-1 bg-muted">
+        {renderMapComponent()}
+        <Chatbot
           isOpen={isChatbotOpen}
           onClose={() => setIsChatbotOpen(false)}
-          locationName={chatbotAreaName}
+          locationName={chatbotLocationName}
         />
-      ) : (
-        <>
-          <header className="flex items-center justify-between gap-1 p-4 font-headline text-2xl font-bold text-primary">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-6 w-6" />
-              <h1>城市探險家</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                  onClick={handleToggleChatbot}
-                  disabled={!position}
-                  size="icon"
-                  className="bg-sky-500 hover:bg-sky-600 text-white"
-              >
-                  <MessageSquare />
-              </Button>
-              <Button 
-                  onClick={handleStartLocalChallenge} 
-                  disabled={!position} 
-                  size="icon"
-                  className="bg-accent hover:bg-accent/90"
-              >
-                <Trophy />
-              </Button>
-              {!isTracking ? (
-                <Button onClick={handleStartTracking} disabled={loading} size="icon">
-                  <Play />
-                </Button>
-              ) : (
-                <Button onClick={stopTracking} variant="destructive" size="icon">
-                  <Square />
-                </Button>
-              )}
-            </div>
-          </header>
+      </div>
 
-          <div className="relative flex-1 bg-muted">
-            {renderMapComponent()}
-          </div>
+      <div className="border-t-2 border-primary/20 p-2">
+        <StatusBar distance={distance} pet={pet} />
+      </div>
 
-          <div className="border-t-2 border-primary/20 p-2">
-            <StatusBar distance={distance} pet={pet} />
-          </div>
-        </>
-      )}
       <QuizModal
         poi={activeQuizPoi}
         isOpen={!!activeQuizPoi}

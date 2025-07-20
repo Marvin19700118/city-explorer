@@ -5,34 +5,10 @@
  *
  * The flow takes an area description and optional coordinates as input and returns a quiz consisting of questions and answers.
  * It uses a Genkit prompt to generate the quiz content.
- *
- * @interface GenerateAreaQuizInput - Input type for the generateAreaQuiz function.
- * @interface GenerateAreaQuizOutput - Output type for the generateAreaquiz function.
- * @function generateAreaQuiz - Main function to generate the area quiz.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-
-const GenerateAreaQuizInputSchema = z.object({
-  areaDescription: z
-    .string()
-    .describe('A detailed description of the area for which the quiz is to be generated.'),
-});
-export type GenerateAreaQuizInput = z.infer<typeof GenerateAreaQuizInputSchema>;
-
-const GenerateAreaQuizOutputSchema = z.object({
-  quiz: z.array(
-    z.object({
-      question: z.string().describe('The quiz question.'),
-      answers: z.array(z.string()).describe('An array of 4 possible answers to the question.'),
-      correctAnswerIndex: z
-        .number()
-        .describe('The index of the correct answer in the answers array.'),
-    })
-  ).describe('An array of quiz questions, their answers, and correct answer indices.'),
-});
-export type GenerateAreaQuizOutput = z.infer<typeof GenerateAreaQuizOutputSchema>;
+import { GenerateAreaQuizInput, GenerateAreaQuizOutput, GenerateAreaQuizInputSchema, GenerateAreaQuizOutputSchema } from '@/lib/types';
 
 export async function generateAreaQuiz(input: GenerateAreaQuizInput): Promise<GenerateAreaQuizOutput> {
   const result = await generateAreaQuizFlow(input);
