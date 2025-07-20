@@ -3,9 +3,15 @@
 
 import { generateAreaQuiz } from '@/ai/flows/generate-area-quiz';
 import { generateLocationIntro as generateLocationIntroFlow } from '@/ai/flows/generate-location-intro';
-import type { QuizData, GenerateAreaQuizInput, GenerateLocationIntroInput, GenerateLocationIntroOutput } from '@/lib/types';
 import { getChatbotResponse as getChatbotResponseFlow } from '@/ai/flows/generate-chatbot-response';
-import type { Message } from '@/lib/types';
+import type { 
+    QuizData, 
+    GenerateAreaQuizInput, 
+    GenerateLocationIntroInput, 
+    GenerateLocationIntroOutput, 
+    Message,
+    ChatbotInput
+} from '@/lib/types';
 
 
 export async function createQuiz(input: GenerateAreaQuizInput): Promise<QuizData | null> {
@@ -34,7 +40,8 @@ export async function generateLocationIntro(input: GenerateLocationIntroInput): 
 
 export async function getChatbotResponse(locationName: string, query: string, history: Message[]): Promise<string> {
     try {
-        const result = await getChatbotResponseFlow({ locationName, query, history });
+        const input: ChatbotInput = { locationName, query, history };
+        const result = await getChatbotResponseFlow(input);
         return result.response;
     } catch (error) {
         console.error("Error getting chatbot response:", error);

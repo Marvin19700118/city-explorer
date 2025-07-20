@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export type Pet = {
   name: string;
   level: number;
@@ -60,7 +62,6 @@ export type GameSaveData = {
 }
 
 // AI Related types
-import { z } from 'zod';
 
 // For generate-location-intro.ts
 export const GenerateLocationIntroInputSchema = z.object({
@@ -101,6 +102,13 @@ export const MessageSchema = z.object({
   content: z.string(),
 });
 export type Message = z.infer<typeof MessageSchema>;
+
+export const ChatbotInputSchema = z.object({
+  locationName: z.string().describe('The name of the location, e.g., a district or city.'),
+  query: z.string().describe("The user's latest query."),
+  history: z.array(MessageSchema).describe('The conversation history.'),
+});
+export type ChatbotInput = z.infer<typeof ChatbotInputSchema>;
 
 export const ChatbotResponseSchema = z.object({
   response: z.string(),
