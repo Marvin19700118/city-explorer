@@ -105,7 +105,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="bottom" className="h-[70vh] flex flex-col p-0">
+      <SheetContent side="bottom" className="h-[75vh] max-h-[75vh] flex flex-col p-0">
         <SheetHeader className="p-4 border-b">
           <SheetTitle className="flex items-center gap-2 font-headline text-primary">
             <Sparkles />
@@ -169,7 +169,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
           </div>
         </ScrollArea>
         
-        <div className="p-2 border-t space-y-2">
+        <div className="p-2 border-t space-y-2 bg-background">
             <div className="flex flex-wrap gap-2 justify-center">
                 {suggestedPrompts.map(prompt => (
                     <Button key={prompt} size="sm" variant="outline" onClick={() => handleSendMessage(prompt)} disabled={isLoading}>
