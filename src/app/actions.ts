@@ -3,11 +3,14 @@
 
 import { generateAreaQuiz } from '@/ai/flows/generate-area-quiz';
 import { getChatbotResponse as getChatbotResponseFlow } from '@/ai/flows/generate-chatbot-response';
+import { generateLocationIntro as generateLocationIntroFlow } from '@/ai/flows/generate-location-intro';
 import type { 
     QuizData, 
     GenerateAreaQuizInput,
     Message,
-    ChatbotInput
+    ChatbotInput,
+    GenerateLocationIntroInput,
+    GenerateLocationIntroOutput
 } from '@/lib/types';
 
 
@@ -35,3 +38,13 @@ export async function getChatbotResponse(locationName: string, query: string, hi
         return "抱歉，我現在無法回答。請稍後再試。";
     }
 }
+
+export async function generateLocationIntro(input: GenerateLocationIntroInput): Promise<GenerateLocationIntroOutput | null> {
+    try {
+      const result = await generateLocationIntroFlow(input);
+      return result;
+    } catch (error) {
+      console.error('Error generating location intro:', error);
+      return null;
+    }
+  }

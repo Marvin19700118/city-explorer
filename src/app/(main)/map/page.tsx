@@ -2,18 +2,20 @@
 'use client';
 
 import * as React from 'react';
-import { MapPin, Play, Square, Trophy } from 'lucide-react';
+import { MapPin, Play, Square, Trophy, Mic } from 'lucide-react';
 import { StatusBar } from '@/components/StatusBar';
 import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
+import { GuideModal } from '@/components/GuideModal';
 import { useLocationTracker } from '@/hooks/use-location-tracker';
-import type { Pet, PointOfInterest, Trip, Settings } from '@/lib/types';
+import type { Pet, PointOfInterest, Trip, Settings, GenerateLocationIntroOutput } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Chatbot } from '@/components/Chatbot';
+import { generateLocationIntro as generateLocationIntroAction } from '@/app/actions';
 
 const TAIPEI_CENTER = { lat: 25.0330, lng: 121.5654 };
 
@@ -75,6 +77,10 @@ export default function MapPage() {
     fogOpacity: 70,
     areaNotifications: true,
   });
+
+  const [isGuideModalOpen, setIsGuideModalOpen] = React.useState(false);
+  const [guideData, setGuideData] = React.useState<GenerateLocationIntroOutput | null>(null);
+  const [isGuideLoading, setIsGuideLoading] = React.useState(false);
   
   const googleMapsApiKey = "AIzaSyBqo8q0xhqqh3TZVYm7GKFijtbJz2lE-RM";
 
@@ -274,6 +280,36 @@ export default function MapPage() {
     setIsChatbotLoading(false);
   };
 
+  const handleOpenGuide = async () => {
+    if (!position) return;
+    setIsGuideLoading(true);
+    setGuideData(null);
+    setIsGuideModalOpen(true);
+
+    try {
+        const areaName = await getAreaNameFromPosition(position);
+        if (!areaName) {
+            toast({ title: "無法識別位置", description: "無法獲取您目前位置的詳細地址。", variant: "destructive" });
+            setIsGuideModalOpen(false);
+            return;
+        }
+
+        const result = await generateLocationIntroAction({ locationName: areaName });
+        if (result) {
+            setGuideData(result);
+        } else {
+            toast({ title: "AI 指南生成失敗", description: "抱歉，無法為您目前的位置生成語音導覽。", variant: "destructive" });
+            setIsGuideModalOpen(false);
+        }
+    } catch (error) {
+        console.error("Error generating location intro:", error);
+        toast({ title: "發生錯誤", description: "生成語音導覽時發生問題。", variant: "destructive" });
+        setIsGuideModalOpen(false);
+    } finally {
+        setIsGuideLoading(false);
+    }
+  };
+
   const handleCloseQuiz = () => {
     setActiveQuizPoi(null);
   };
@@ -331,6 +367,14 @@ export default function MapPage() {
           <h1>城市探險家</h1>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            onClick={handleOpenGuide}
+            disabled={!position || isGuideLoading}
+            size="icon"
+            className="bg-sky-500 hover:bg-sky-600"
+          >
+            <Mic />
+          </Button>
           <Button 
               onClick={handleStartLocalChallenge} 
               disabled={!position} 
@@ -370,6 +414,13 @@ export default function MapPage() {
         onClose={handleCloseQuiz}
         onQuizComplete={addXp}
       />
+
+      <GuideModal
+        isOpen={isGuideModalOpen}
+        onClose={() => setIsGuideModalOpen(false)}
+        guideData={guideData}
+        isLoading={isGuideLoading}
+       />
     </div>
   );
 }
