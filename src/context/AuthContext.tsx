@@ -3,7 +3,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-// IMPORTANT: Replace with your actual Google Client ID
 const GOOGLE_CLIENT_ID = "103148999584-4e4s7645his87n8eis652dl741ge1c8c.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 
@@ -27,11 +26,10 @@ declare global {
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [gsiLoaded, setGsiLoaded] = useState(false);
-  const [gapiLoaded, setGapiLoaded] = useState(false);
 
   // Initialize the GSI client
   const initializeGsi = useCallback(() => {
-    if (window.google) {
+    if (window.google && window.google.accounts) {
       window.tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
         scope: DRIVE_SCOPE,
@@ -46,27 +44,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setGsiLoaded(true);
     }
   }, []);
-
-  // Load GAPI client
+  
+  // Load GSI script
   useEffect(() => {
     const script = document.createElement('script');
-    script.src = 'https://apis.google.com/js/api.js';
+    script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
-    script.onload = () => window.gapi.load('client', () => setGapiLoaded(true));
+    script.onload = initializeGsi;
     document.body.appendChild(script);
     
     return () => {
       document.body.removeChild(script);
     };
-  }, []);
+  }, [initializeGsi]);
 
-  // Initialize GSI when GAPI is loaded
-  useEffect(() => {
-    if (gapiLoaded) {
-      initializeGsi();
-    }
-  }, [gapiLoaded, initializeGsi]);
 
   // Check for existing token on load
   useEffect(() => {
@@ -78,34 +70,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setIsSignedIn(true);
         } else {
             localStorage.removeItem('gdrive_token');
+            setIsSignedIn(false);
         }
     }
   }, []);
   
-  // Initialize One Tap sign-in
-  useEffect(() => {
-    if (gsiLoaded && !isSignedIn) {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: (response: any) => {
-           // This callback gives an ID token. We need an access token.
-           // We will prompt for the access token scope if not already signed in.
-           if (!isSignedIn) {
-             signIn();
-           }
-        },
-      });
-      window.google.accounts.id.prompt((notification: any) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // console.log('One Tap prompt not shown or skipped');
-        }
-      });
-    }
-  }, [gsiLoaded, isSignedIn]);
-
   const signIn = () => {
     if (window.tokenClient) {
+      // Prompt the user to grant access.
       window.tokenClient.requestAccessToken({ prompt: 'consent' });
+    } else {
+        console.error("Token client not initialized");
     }
   };
 
@@ -113,11 +88,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const tokenItem = localStorage.getItem('gdrive_token');
     if (tokenItem) {
       const token = JSON.parse(tokenItem).access_token;
-      if (token) {
+      if (token && window.google && window.google.accounts) {
         window.google.accounts.oauth2.revoke(token, () => {
           localStorage.removeItem('gdrive_token');
           setIsSignedIn(false);
         });
+      } else {
+        // Fallback if token or google api is not available
+        localStorage.removeItem('gdrive_token');
+        setIsSignedIn(false);
       }
     }
   };
@@ -131,29 +110,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Refresh if token expires in less than 5 minutes
     const expiresAt = (tokenData.created_at || 0) + (tokenData.expires_in || 0) * 1000;
     if (Date.now() > expiresAt - 5 * 60 * 1000) {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (window.tokenClient) {
-                // The callback in initTokenClient will handle the new token.
-                // We just need to trigger the request.
+                // The callback in initTokenClient will handle saving the new token.
                 window.tokenClient.requestAccessToken({ prompt: '' });
 
-                // Poll for the new token.
+                // Poll for the new token, as the callback is asynchronous.
                 const interval = setInterval(() => {
                     const newTokenItem = localStorage.getItem('gdrive_token');
                     if(newTokenItem) {
                         const newTokenData = JSON.parse(newTokenItem);
-                        if (newTokenData.created_at > tokenData.created_at) {
+                        // Check if the new token is different from the old one
+                        if (newTokenData.access_token !== tokenData.access_token) {
                            clearInterval(interval);
                            resolve(newTokenData.access_token);
                         }
                     }
                 }, 500);
-                setTimeout(() => { // Timeout to prevent infinite loop
+
+                // Timeout to prevent an infinite loop in case of an issue
+                setTimeout(() => { 
                     clearInterval(interval);
-                    resolve(null);
+                    reject(new Error("Token refresh timeout"));
                 }, 10000);
             } else {
-                resolve(null);
+                reject(new Error("Token client not initialized for refresh"));
             }
         });
     }
@@ -162,7 +143,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ isSignedIn, signIn, signOut, getAccessToken }}>
+    <AuthContext.Provider value={{ isSignedIn, signIn, signOut, getAccessToken, gsiLoaded }}>
       {children}
     </AuthContext.Provider>
   );
