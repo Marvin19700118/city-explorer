@@ -69,7 +69,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
 
     try {
         const historyForAI = currentMessages
-          .slice(0, -1) // Exclude the latest user message from history
+          .slice(0, -1) // Exclude the latest user message from history, as it's passed as the 'query'
           .map(m => ({
             role: m.role,
             content: m.content
