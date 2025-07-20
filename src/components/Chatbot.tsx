@@ -34,7 +34,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
     if (isOpen && locationName) {
       setMessages([
         {
-          role: 'bot',
+          role: 'model',
           content: `歡迎來到智能向導！我在這裡為您介紹「${locationName}」的歷史、文化和隱藏景點。有什麼想了解的嗎？`,
           timestamp: new Date().toISOString(),
         }
@@ -68,20 +68,22 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
     setIsLoading(true);
 
     try {
-        const historyForAI = currentMessages.map(m => ({
-            role: m.role === 'bot' ? 'model' as const : 'user' as const,
+        const historyForAI = currentMessages
+          .slice(0, -1) // Exclude the latest user message from history
+          .map(m => ({
+            role: m.role,
             content: m.content
         }));
 
       const result = await getChatbotResponse({
         locationName,
-        history: historyForAI.slice(0, -1), // Pass all messages except the last one as history
+        history: historyForAI,
         query: userQuery,
       });
 
       if (result && result.response) {
         const botMessage: ChatMessage = {
-          role: 'bot',
+          role: 'model',
           content: result.response,
           timestamp: new Date().toISOString(),
         };
@@ -92,7 +94,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
     } catch (error) {
       console.error(error);
       const errorMessage: ChatMessage = {
-        role: 'bot',
+        role: 'model',
         content: '抱歉，我好像遇到了一點問題。請稍後再試一次。',
         timestamp: new Date().toISOString(),
       };
@@ -133,7 +135,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
         <div className="px-4 space-y-6">
           {messages.map((msg, index) => (
             <div key={index} className={cn("flex items-end gap-2", msg.role === 'user' ? "justify-end" : "justify-start")}>
-               {msg.role === 'bot' && <div className="w-8 h-8 rounded-full bg-primary/20 flex-shrink-0" />}
+               {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-primary/20 flex-shrink-0" />}
                 <div className={cn(
                     "max-w-[80%] rounded-2xl p-3 text-sm",
                     msg.role === 'user' ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted rounded-bl-none"

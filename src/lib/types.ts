@@ -50,7 +50,7 @@ export type CityPoints = {
 };
 
 export type ChatMessage = {
-    role: 'user' | 'bot';
+    role: 'user' | 'model';
     content: string;
     timestamp: string;
 }
