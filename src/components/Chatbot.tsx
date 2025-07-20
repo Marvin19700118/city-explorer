@@ -61,15 +61,20 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
       content: userQuery,
       timestamp: new Date().toISOString(),
     };
-    setMessages((prev) => [...prev, userMessage]);
+
+    const currentMessages = [...messages, userMessage];
+    setMessages(currentMessages);
     setInput('');
     setIsLoading(true);
 
     try {
-        const historyForAI = messages.map(m => ({
+        const historyForAI = currentMessages.map(m => ({
             role: m.role === 'bot' ? 'model' as const : 'user' as const,
             content: m.content
         }));
+
+        // We only want the history for the AI, not the latest user query.
+        historyForAI.pop(); 
 
       const result = await getChatbotResponse({
         locationName,
