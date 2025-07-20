@@ -2,13 +2,10 @@
 'use server';
 
 import { generateAreaQuiz } from '@/ai/flows/generate-area-quiz';
-import { generateLocationIntro as generateLocationIntroFlow } from '@/ai/flows/generate-location-intro';
 import { getChatbotResponse as getChatbotResponseFlow } from '@/ai/flows/generate-chatbot-response';
 import type { 
     QuizData, 
-    GenerateAreaQuizInput, 
-    GenerateLocationIntroInput, 
-    GenerateLocationIntroOutput, 
+    GenerateAreaQuizInput,
     Message,
     ChatbotInput
 } from '@/lib/types';
@@ -26,16 +23,6 @@ export async function createQuiz(input: GenerateAreaQuizInput): Promise<QuizData
     console.error('Error generating quiz:', error);
     return null;
   }
-}
-
-export async function generateLocationIntro(input: GenerateLocationIntroInput): Promise<GenerateLocationIntroOutput | null> {
-    try {
-        const result = await generateLocationIntroFlow(input);
-        return result;
-    } catch (error) {
-        console.error("Error generating location intro:", error);
-        return null;
-    }
 }
 
 export async function getChatbotResponse(locationName: string, query: string, history: Message[]): Promise<string> {
