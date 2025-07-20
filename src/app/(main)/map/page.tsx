@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { MapPin, Play, Square, Trophy, Mic } from 'lucide-react';
+import { MapPin, Play, Square, Trophy, Mic, Sparkles } from 'lucide-react';
 import { StatusBar } from '@/components/StatusBar';
 import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
@@ -368,6 +368,14 @@ export default function MapPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button
+            onClick={handleToggleChatbot}
+            disabled={!position || isChatbotLoading}
+            size="icon"
+            className="bg-primary hover:bg-primary/90"
+          >
+            <Sparkles />
+          </Button>
+          <Button
             onClick={handleOpenGuide}
             disabled={!position || isGuideLoading}
             size="icon"
@@ -423,4 +431,5 @@ export default function MapPage() {
        />
     </div>
   );
-}
+
+    
