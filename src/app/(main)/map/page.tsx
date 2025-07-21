@@ -82,7 +82,7 @@ export default function MapPage() {
   const [guideData, setGuideData] = React.useState<GenerateLocationIntroOutput | null>(null);
   const [isGuideLoading, setIsGuideLoading] = React.useState(false);
   
-  const googleMapsApiKey = "AIzaSyBqo8q0xhqqh3TZVYm7GKFijtbJz2lE-RM";
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
   const handleStartTracking = () => {
     tripStartTimeRef.current = new Date().toISOString();
