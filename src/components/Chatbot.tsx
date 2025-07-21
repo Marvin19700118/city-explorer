@@ -105,7 +105,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="bottom" className="h-[75vh] max-h-[75vh] flex flex-col p-0">
+      <SheetContent side="top" className="h-[75vh] max-h-[75vh] flex flex-col p-0">
         <SheetHeader className="p-4 border-b">
           <SheetTitle className="flex items-center gap-2 font-headline text-primary">
             <Sparkles />
