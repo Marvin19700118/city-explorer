@@ -11,7 +11,7 @@ export const TitleIcon = ({ title, ...props }: { title: TitleType['name'] } & Lu
             return <Footprints {...props} />;
         case '區域專家':
             return <Landmark {...props} />;
-        case '博學大師':
+        case '專業導遊':
             return <Flame {...props} />;
         case '金牌專業導覽員':
             return <Crown {...props} />;
