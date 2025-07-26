@@ -42,24 +42,47 @@ export default function AchievementsPage() {
 
   React.useEffect(() => {
     setIsClient(true);
-    const savedCityPoints = localStorage.getItem('cityPoints');
-    
-    const cityPoints: CityPoints = savedCityPoints ? JSON.parse(savedCityPoints) : {};
-    
-    const stats: ProgressStats = taiwanCounties.reduce((acc, county) => {
-      const points = cityPoints[county] || 0;
-      const level = Math.floor(points / POINTS_PER_LEVEL);
-      const title = getTitleForLevel(level);
+    // Function to load points, can be reused.
+    const loadPoints = () => {
+        const savedCityPoints = localStorage.getItem('cityPoints');
+        const cityPoints: CityPoints = savedCityPoints ? JSON.parse(savedCityPoints) : {};
+        
+        const stats: ProgressStats = taiwanCounties.reduce((acc, county) => {
+          const points = cityPoints[county] || 0;
+          const level = Math.floor(points / POINTS_PER_LEVEL);
+          const title = getTitleForLevel(level);
 
-      acc[county] = {
-        points,
-        level: level + 1, // Display level as 1-based
-        title,
-      };
-      return acc;
-    }, {} as ProgressStats);
+          acc[county] = {
+            points,
+            level: level + 1, // Display level as 1-based
+            title,
+          };
+          return acc;
+        }, {} as ProgressStats);
 
-    setProgress(stats);
+        setProgress(stats);
+    };
+    
+    loadPoints();
+
+    // Listen for storage changes from other tabs, though less critical for this app.
+    const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'cityPoints') {
+            loadPoints();
+        }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // An interval to refresh from localStorage to catch updates from the same tab,
+    // as 'storage' event doesn't fire for same-tab changes.
+    const intervalId = setInterval(loadPoints, 1000); // Refresh every second
+
+    return () => {
+        window.removeEventListener('storage', handleStorageChange);
+        clearInterval(intervalId);
+    };
+
   }, []);
 
   if (!isClient) {

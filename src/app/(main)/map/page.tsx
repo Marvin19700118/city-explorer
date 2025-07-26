@@ -125,18 +125,30 @@ export default function MapPage() {
      }
   }, [googleMapsApiKey]);
 
+  // This function now directly manipulates localStorage to ensure synchronous updates.
   const addXp = React.useCallback((xpGained: number, forCounty?: string) => {
     if (!forCounty || xpGained <= 0) return;
 
     // Find a consistent name, as geocoding can sometimes return slight variations
     const normalizedCounty = taiwanCounties.find(c => forCounty.includes(c.replace(/[市縣]/, ''))) || forCounty;
 
-    const savedPoints = localStorage.getItem('cityPoints');
-    const cityPoints: CityPoints = savedPoints ? JSON.parse(savedPoints) : {};
-    
-    cityPoints[normalizedCounty] = (cityPoints[normalizedCounty] || 0) + xpGained;
-    localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
-  }, []);
+    try {
+        const savedPointsJSON = localStorage.getItem('cityPoints');
+        const cityPoints: CityPoints = savedPointsJSON ? JSON.parse(savedPointsJSON) : {};
+        
+        cityPoints[normalizedCounty] = (cityPoints[normalizedCounty] || 0) + xpGained;
+        
+        localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
+
+    } catch (error) {
+        console.error("Failed to update cityPoints in localStorage:", error);
+        toast({
+            title: "分數儲存失敗",
+            description: "無法更新您的成就分數。",
+            variant: "destructive",
+        });
+    }
+  }, [toast]);
 
 
   React.useEffect(() => {
@@ -429,8 +441,4 @@ export default function MapPage() {
        />
     </div>
   );
-
-    
-
-
-
+}
