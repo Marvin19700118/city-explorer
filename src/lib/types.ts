@@ -1,5 +1,6 @@
 
 import { z } from 'zod';
+import type { LucideIcon } from 'lucide-react';
 
 export type Pet = {
   name: string;
@@ -51,6 +52,12 @@ export type Settings = {
 export type CityPoints = {
   [cityName: string]: number;
 };
+
+export type Title = {
+    levelThreshold: number;
+    name: string;
+    icon: React.ElementType;
+}
 
 // Data structure for cloud sync
 export type GameSaveData = {

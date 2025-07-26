@@ -1,11 +1,13 @@
+
 'use client';
 
 import * as React from 'react';
-import { Gem, MapPin, Star } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Gem, MapPin } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import type { PointOfInterest, CityPoints } from '@/lib/types';
+import type { CityPoints, Title } from '@/lib/types';
+import { TitleIcon } from '@/components/icons';
 
 const taiwanCounties = [
   '台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市', '基隆市', '新竹市',
@@ -13,15 +15,29 @@ const taiwanCounties = [
   '宜蘭縣', '花蓮縣', '台東縣', '澎湖縣', '金門縣', '連江縣'
 ];
 
-type ProgressStats = {
-  [key: string]: {
-    discovered: number;
-    total: number;
-    points: number;
-  };
+const TITLES: Title[] = [
+    { levelThreshold: 0, name: '新手探險家', icon: 'Feather' },
+    { levelThreshold: 5, name: '城市漫遊者', icon: 'Footprints' },
+    { levelThreshold: 10, name: '區域專家', icon: 'Landmark' },
+    { levelThreshold: 15, name: '博學大師', icon: 'Flame' },
+    { levelThreshold: 20, name: '傳奇製圖師', icon: 'Crown' },
+];
+
+const POINTS_PER_LEVEL = 100;
+
+const getTitleForLevel = (level: number): Title => {
+  return TITLES.slice().reverse().find(t => level >= t.levelThreshold) || TITLES[0];
 };
 
-const EXPERT_THRESHOLD = 50;
+type ProgressStats = {
+  [key: string]: {
+    points: number;
+    level: number;
+    title: Title;
+    progressToNextLevel: number;
+    pointsForNextLevel: number;
+  };
+};
 
 export default function AchievementsPage() {
   const [progress, setProgress] = React.useState<ProgressStats>({});
@@ -29,26 +45,24 @@ export default function AchievementsPage() {
 
   React.useEffect(() => {
     setIsClient(true);
-    const savedPois = localStorage.getItem('pois');
     const savedCityPoints = localStorage.getItem('cityPoints');
     
-    const pois: PointOfInterest[] = savedPois ? JSON.parse(savedPois) : [];
-    
-    let cityPoints: CityPoints = savedCityPoints ? JSON.parse(savedCityPoints) : {};
-    if (!savedCityPoints) {
-      // Default Taipei to 53 points for demo/testing purposes
-      cityPoints = { '台北市': 53 };
-      localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
-    }
+    const cityPoints: CityPoints = savedCityPoints ? JSON.parse(savedCityPoints) : {};
     
     const stats: ProgressStats = taiwanCounties.reduce((acc, county) => {
-      const countyPois = pois.filter(p => p.county === county);
-      const discoveredPois = countyPois.filter(p => p.discovered);
-      
+      const points = cityPoints[county] || 0;
+      const level = Math.floor(points / POINTS_PER_LEVEL);
+      const title = getTitleForLevel(level);
+      const pointsInCurrentLevel = points % POINTS_PER_LEVEL;
+      const progressToNextLevel = (pointsInCurrentLevel / POINTS_PER_LEVEL) * 100;
+      const pointsForNextLevel = POINTS_PER_LEVEL - pointsInCurrentLevel;
+
       acc[county] = {
-        discovered: discoveredPois.length,
-        total: countyPois.length,
-        points: cityPoints[county] || 0,
+        points,
+        level: level + 1, // Display level as 1-based
+        title,
+        progressToNextLevel,
+        pointsForNextLevel,
       };
       return acc;
     }, {} as ProgressStats);
@@ -69,32 +83,35 @@ export default function AchievementsPage() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {taiwanCounties.map(county => {
-          const countyProgress = progress[county] || { discovered: 0, total: 0, points: 0 };
-          const percentage = countyProgress.total > 0 ? (countyProgress.discovered / countyProgress.total) * 100 : 0;
-          const isExpert = countyProgress.points >= EXPERT_THRESHOLD;
+          const countyProgress = progress[county] || { 
+              points: 0, 
+              level: 1, 
+              title: TITLES[0],
+              progressToNextLevel: 0,
+              pointsForNextLevel: POINTS_PER_LEVEL,
+          };
           
           return (
             <Card key={county}>
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-4">
                 <CardTitle className="text-lg flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-accent" />
+                    <MapPin className="w-5 h-5 text-muted-foreground" />
                     <span>{county}</span>
-                    {isExpert && (
-                      <Badge variant="default" className="bg-amber-500 text-white gap-1">
-                        <Star className="w-3 h-3"/>
-                        專家
-                      </Badge>
-                    )}
                   </div>
-                   <span className="text-sm font-normal text-muted-foreground">
-                    {countyProgress.points} / {EXPERT_THRESHOLD}
-                  </span>
+                   <Badge variant="outline" className="gap-2 border-accent text-accent">
+                      <TitleIcon title={countyProgress.title.name} className="w-4 h-4"/>
+                      {countyProgress.title.name}
+                   </Badge>
                 </CardTitle>
+                <CardDescription className="flex items-center justify-between pt-1">
+                    <span className="font-bold text-lg text-primary">Lvl {countyProgress.level}</span>
+                    <span className="text-xs text-muted-foreground">{countyProgress.points} / {(countyProgress.level) * POINTS_PER_LEVEL} PTS</span>
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <Progress value={(countyProgress.points / EXPERT_THRESHOLD) * 100} className="h-2" />
-                <p className="text-right text-xs text-muted-foreground mt-1">{Math.round((countyProgress.points / EXPERT_THRESHOLD) * 100)}%</p>
+                <Progress value={countyProgress.progressToNextLevel} className="h-2" />
+                <p className="text-right text-xs text-muted-foreground mt-1">下一級還需 {countyProgress.pointsForNextLevel} 分</p>
               </CardContent>
             </Card>
           )
