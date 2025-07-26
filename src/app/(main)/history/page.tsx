@@ -2,11 +2,21 @@
 'use client';
 
 import * as React from 'react';
-import { History, MapPin, Footprints, Calendar, Clock, Timer, Download, Map as MapIcon } from 'lucide-react';
+import { History, MapPin, Footprints, Calendar, Clock, Timer, Download, Map as MapIcon, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { Trip } from '@/lib/types';
 import { formatDistance } from 'date-fns';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export default function HistoryPage() {
   const [trips, setTrips] = React.useState<Trip[]>([]);
@@ -70,6 +80,13 @@ export default function HistoryPage() {
     window.open(url, '_blank');
   };
 
+  const handleDeleteTrip = (tripId: string) => {
+    const updatedTrips = trips.filter(trip => trip.id !== tripId);
+    setTrips(updatedTrips);
+    localStorage.setItem('trips', JSON.stringify(updatedTrips));
+  };
+
+
   if (!isClient) {
     return null; // or a loading skeleton
   }
@@ -120,7 +137,7 @@ export default function HistoryPage() {
                   一段包含 {trip.path.length} 個紀錄點的旅程。
                 </CardDescription>
               </CardContent>
-              <CardFooter className="p-2 border-t bg-muted/30 grid grid-cols-2 gap-2">
+              <CardFooter className="p-2 border-t bg-muted/30 grid grid-cols-3 gap-2">
                 <Button variant="ghost" size="sm" onClick={() => handleDownloadGpx(trip)}>
                     <Download />
                     下載 GPX
@@ -129,6 +146,28 @@ export default function HistoryPage() {
                     <MapIcon />
                     在地圖上開啟
                 </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                        <Trash2 />
+                        刪除紀錄
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>確定要刪除嗎？</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        這個操作無法復原。這將會永久刪除您這次的旅程紀錄。
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>取消</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDeleteTrip(trip.id)} className="bg-destructive hover:bg-destructive/90">
+                        確認刪除
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardFooter>
             </Card>
           ))}
