@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -29,7 +30,7 @@ export default function WelcomePage() {
             歡迎來到城市探險家
           </h1>
           <p className="text-muted-foreground">
-            一個結合真實世界探索與在地知識問答的尋寶遊戲。
+            一個有AI 嚮導帶你深度探索一個城市的人文，歷史等各種知識，讓你更了解這個城市…
           </p>
         </div>
 
