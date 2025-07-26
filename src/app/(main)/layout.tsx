@@ -6,6 +6,7 @@ import { Map, Gem, History, Utensils } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { LocationTrackingProvider } from '@/context/LocationTrackingContext';
 
 const navItems = [
   { href: '/map', label: '地圖', icon: Map },
@@ -22,30 +23,32 @@ export default function MainAppLayout({
   const pathname = usePathname();
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-black font-body text-foreground">
-      <div className="relative mx-auto flex h-[800px] max-h-[90vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl border-4 border-primary/50 bg-background shadow-2xl shadow-primary/20">
-        <main className="flex-1 overflow-auto">{children}</main>
+    <LocationTrackingProvider>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-black font-body text-foreground">
+        <div className="relative mx-auto flex h-[800px] max-h-[90vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl border-4 border-primary/50 bg-background shadow-2xl shadow-primary/20">
+            <main className="flex-1 overflow-auto">{children}</main>
 
-        <nav className="border-t-2 border-primary/20 bg-background">
-          <div className="mx-auto grid h-16 max-w-md grid-cols-4 items-center justify-items-center px-4">
-            {navItems.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={cn(
-                  'flex flex-col items-center justify-center gap-1 rounded-md p-2 text-sm font-medium transition-colors',
-                  pathname === item.href
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:bg-muted/50'
-                )}
-              >
-                <item.icon className="h-6 w-6" />
-                <span>{item.label}</span>
-              </Link>
-            ))}
-          </div>
-        </nav>
-      </div>
-    </div>
+            <nav className="border-t-2 border-primary/20 bg-background">
+            <div className="mx-auto grid h-16 max-w-md grid-cols-4 items-center justify-items-center px-4">
+                {navItems.map((item) => (
+                <Link
+                    key={item.label}
+                    href={item.href}
+                    className={cn(
+                    'flex flex-col items-center justify-center gap-1 rounded-md p-2 text-sm font-medium transition-colors',
+                    pathname === item.href
+                        ? 'text-primary'
+                        : 'text-muted-foreground hover:bg-muted/50'
+                    )}
+                >
+                    <item.icon className="h-6 w-6" />
+                    <span>{item.label}</span>
+                </Link>
+                ))}
+            </div>
+            </nav>
+        </div>
+        </div>
+    </LocationTrackingProvider>
   );
 }

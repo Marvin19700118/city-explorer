@@ -1,12 +1,9 @@
 import { Footprints, MapPin } from 'lucide-react';
 import type { CurrentArea } from '@/lib/types';
+import { useLocation } from '@/context/LocationTrackingContext';
 
-type StatusBarProps = {
-  distance: number;
-  currentArea: CurrentArea | null;
-};
-
-export const StatusBar = ({ distance, currentArea }: StatusBarProps) => {
+export const StatusBar = () => {
+  const { distance, currentArea } = useLocation();
   return (
     <div className="flex items-center justify-center gap-4 p-2 h-[88px]">
       <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-4 w-48 text-center">

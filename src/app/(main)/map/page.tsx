@@ -7,7 +7,7 @@ import { StatusBar } from '@/components/StatusBar';
 import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
 import { GuideModal } from '@/components/GuideModal';
-import { useLocationTracker } from '@/hooks/use-location-tracker';
+import { useLocation } from '@/context/LocationTrackingContext';
 import type { PointOfInterest, Trip, Settings, GenerateLocationIntroOutput, CityPoints, CurrentArea } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -47,17 +47,20 @@ const mockTrip: Trip = {
   endTime: new Date(Date.now() - 86400000).toISOString(),
 };
 
-const taiwanCounties = [
-  '台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市', '基隆市', '新竹市',
-  '嘉義市', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣',
-  '宜蘭縣', '花蓮縣', '台東縣', '澎湖縣', '金門縣', '連江縣'
-];
-
-// XP per 100 meters
-const XP_PER_100_METERS = 10;
-
 export default function MapPage() {
-  const { position, distance, path, error, loading, isTracking, startTracking, stopTracking: trackerStop } = useLocationTracker();
+  const { 
+    position, 
+    distance, 
+    path, 
+    error, 
+    loading, 
+    isTracking, 
+    startTracking, 
+    stopTracking,
+    addXp,
+    getAreaNameFromPosition,
+    currentArea,
+  } = useLocation();
   const { toast } = useToast();
   
   const [trips, setTrips] = React.useState<Trip[]>([]);
@@ -79,19 +82,14 @@ export default function MapPage() {
   const [guideData, setGuideData] = React.useState<GenerateLocationIntroOutput | null>(null);
   const [isGuideLoading, setIsGuideLoading] = React.useState(false);
   
-  const [currentArea, setCurrentArea] = React.useState<CurrentArea | null>(null);
-
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
   
-  const lastDistanceRef = React.useRef(0);
-
-
   const handleStartTracking = () => {
     tripStartTimeRef.current = new Date().toISOString();
     startTracking();
   }
 
-  const stopTracking = () => {
+  const handleStopTracking = () => {
     if (path.length > 1 && distance > 0.01) { // only save meaningful trips
       const newTrip: Trip = {
         id: Date.now().toString(),
@@ -112,77 +110,9 @@ export default function MapPage() {
         description: `您 ${distance.toFixed(2)} 公里的旅程已被儲存到紀錄中。`,
       });
     }
-    trackerStop();
+    stopTracking();
     tripStartTimeRef.current = null;
   };
-
-  const getAreaNameFromPosition = React.useCallback(async (pos: {lat: number, lng: number}): Promise<CurrentArea | null> => {
-     if (!googleMapsApiKey || !window.google || !window.google.maps || !window.google.maps.Geocoder) return null;
-     try {
-        const geocoder = new window.google.maps.Geocoder();
-        const response = await geocoder.geocode({ location: pos, language: 'zh-TW' });
-        
-        if (response.results && response.results[0]) {
-            const components = response.results[0].address_components;
-            const get = (type: string) => components.find(c => c.types.includes(type))?.long_name || '';
-
-            const city = get('administrative_area_level_1').replace('臺', '台');
-            const district = get('administrative_area_level_2') || get('locality');
-            
-            // More precise way to get the village/neighborhood in Taiwan
-            const village = get('administrative_area_level_4') || get('administrative_area_level_3') || get('sublocality_level_1') || get('sublocality');
-            
-            let fullAddress = city + district + village;
-            if (!fullAddress) {
-                fullAddress = response.results[0].formatted_address.split(',').slice(-3, -1).join(' ').trim();
-            }
-
-            return { city, district, village, fullAddress, county: city };
-        }
-        return null;
-     } catch (err) {
-        console.error("Reverse geocoding failed", err);
-        return null;
-     }
-  }, [googleMapsApiKey]);
-
-  // This function now directly manipulates localStorage to ensure synchronous updates.
-  const addXp = React.useCallback(async (xpGained: number, forCounty?: string) => {
-    if (xpGained <= 0) return;
-
-    let targetCounty = forCounty;
-
-    // If no county is provided (e.g., from exploration), determine it from current position.
-    if (!targetCounty && position) {
-      const area = await getAreaNameFromPosition(position);
-      if (area) {
-        targetCounty = area.county;
-      }
-    }
-
-    if (!targetCounty) return; // Cannot award XP if we don't know the county.
-
-    // Find a consistent name, as geocoding can sometimes return slight variations
-    const normalizedCounty = taiwanCounties.find(c => targetCounty!.includes(c.replace(/[市縣]/, ''))) || targetCounty;
-
-    try {
-        const savedPointsJSON = localStorage.getItem('cityPoints');
-        const cityPoints: CityPoints = savedPointsJSON ? JSON.parse(savedPointsJSON) : {};
-        
-        cityPoints[normalizedCounty] = (cityPoints[normalizedCounty] || 0) + xpGained;
-        
-        localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
-
-    } catch (error) {
-        console.error("Failed to update cityPoints in localStorage:", error);
-        toast({
-            title: "分數儲存失敗",
-            description: "無法更新您的成就分數。",
-            variant: "destructive",
-        });
-    }
-  }, [position, getAreaNameFromPosition, toast]);
-
 
   React.useEffect(() => {
     // Load saved data from localStorage on mount
@@ -210,30 +140,6 @@ export default function MapPage() {
     
   }, []);
 
-  // Effect for exploration XP
-  React.useEffect(() => {
-    if (isTracking && distance > lastDistanceRef.current) {
-        const distanceGained = distance - lastDistanceRef.current; // in km
-        const xpGained = Math.floor((distanceGained * 1000) / 100) * XP_PER_100_METERS;
-        
-        if (xpGained > 0) {
-            addXp(xpGained); // Don't pass county, let addXp figure it out
-        }
-        
-        lastDistanceRef.current = distance;
-    }
-  }, [distance, isTracking, addXp]);
-
-  // Effect to update the current area name when position changes
-  React.useEffect(() => {
-    if (position) {
-      getAreaNameFromPosition(position).then(area => {
-        if (area) {
-          setCurrentArea(area);
-        }
-      });
-    }
-  }, [position, getAreaNameFromPosition]);
 
   React.useEffect(() => {
     if (!position || !isTracking || pois.length === 0) return;
@@ -435,7 +341,7 @@ export default function MapPage() {
               <Play />
             </Button>
           ) : (
-            <Button onClick={stopTracking} variant="destructive" size="icon">
+            <Button onClick={handleStopTracking} variant="destructive" size="icon">
               <Square />
             </Button>
           )}
@@ -452,7 +358,7 @@ export default function MapPage() {
       </div>
 
       <div className="border-t-2 border-primary/20 p-2">
-        <StatusBar distance={distance} currentArea={currentArea} />
+        <StatusBar />
       </div>
 
       <QuizModal
