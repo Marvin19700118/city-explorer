@@ -111,7 +111,7 @@ export default function MapPage() {
   };
 
   const getAreaNameFromPosition = React.useCallback(async (pos: {lat: number, lng: number}): Promise<CurrentArea | null> => {
-     if (!googleMapsApiKey || !window.google) return null;
+     if (!googleMapsApiKey || !window.google || !window.google.maps || !window.google.maps.Geocoder) return null;
      try {
         const geocoder = new window.google.maps.Geocoder();
         const response = await geocoder.geocode({ location: pos, language: 'zh-TW' });
@@ -121,7 +121,7 @@ export default function MapPage() {
             const get = (type: string) => components.find(c => c.types.includes(type))?.long_name || '';
 
             const city = get('administrative_area_level_1').replace('臺', '台');
-            const district = get('administrative_area_level_3') || get('locality');
+            const district = get('administrative_area_level_3') || get('administrative_area_level_2') || get('locality');
             const village = get('sublocality_level_1') || get('sublocality');
             
             let fullAddress = city + district + village;
@@ -439,3 +439,5 @@ export default function MapPage() {
     </div>
   );
 }
+
+    
