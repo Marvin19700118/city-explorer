@@ -32,8 +32,8 @@ export const PoiCard: React.FC<PoiCardProps> = ({ place }) => {
           <Image
             src={photoUrl}
             alt={place.name || 'Point of Interest'}
-            layout="fill"
-            objectFit="cover"
+            fill={true}
+            style={{objectFit: "cover"}}
             className="rounded-l-lg"
           />
         </div>
@@ -60,7 +60,7 @@ export const PoiCard: React.FC<PoiCardProps> = ({ place }) => {
                 {place.types && place.types[0] && (
                     <Badge variant="secondary">
                         {place.types[0].replace(/_/g, ' ')}
-                    </badge>
+                    </Badge>
                 )}
             </div>
         </div>
