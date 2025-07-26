@@ -166,7 +166,9 @@ export default function MapPage() {
     if (county && amount > 0) {
         const savedPoints = localStorage.getItem('cityPoints');
         const cityPoints: CityPoints = savedPoints ? JSON.parse(savedPoints) : {};
-        const normalizedCounty = county.replace('市', '縣'); // Normalize for consistency
+        // Find a consistent name, some counties end with '縣' and some with '市'
+        const normalizedCounty = taiwanCounties.find(c => county!.includes(c.replace(/[市縣]/, ''))) || county;
+        
         cityPoints[normalizedCounty] = (cityPoints[normalizedCounty] || 0) + amount;
         localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
     }
@@ -196,11 +198,30 @@ export default function MapPage() {
         setTrips(initialTrips);
     }
     
+    // This will clear the pet and city points data on every load for testing purposes.
+    localStorage.removeItem('pet');
+    localStorage.removeItem('cityPoints');
+
+    // After removing, we might want to re-initialize with default state if needed,
+    // but the default state is already handled by useState.
+    
     const savedPet = localStorage.getItem('pet');
     if (savedPet) {
         const parsedPet = JSON.parse(savedPet);
         setPet(parsedPet);
+    } else {
+        // Explicitly set to initial state if nothing is saved
+        setPet({
+            name: 'Sparky',
+            level: 1,
+            xp: 0,
+            totalXp: 0,
+            xpToNextLevel: XP_PER_LEVEL,
+            evolutionStage: 1,
+        });
     }
+
+
   }, []);
 
   React.useEffect(() => {
@@ -391,6 +412,12 @@ export default function MapPage() {
       />
     )
   }
+  
+  const taiwanCounties = [
+    '台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市', '基隆市', '新竹市',
+    '嘉義市', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣',
+    '宜蘭縣', '花蓮縣', '台東縣', '澎湖縣', '金門縣', '連江縣'
+  ];
 
   return (
     <div className="flex h-full flex-col">
