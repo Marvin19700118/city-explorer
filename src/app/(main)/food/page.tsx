@@ -1,15 +1,16 @@
+
 'use client';
 
 import * as React from 'react';
 import { Utensils, MapPin, Search } from 'lucide-react';
-import { useLocationTracker } from '@/hooks/use-location-tracker';
+import { useLocation } from '@/context/LocationTrackingContext';
 import { PoiList } from '@/components/PoiList';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Terminal, WifiOff } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function FoodPage() {
-  const { position, loading, error } = useLocationTracker();
+  const { position, loading, error } = useLocation();
   const [isClient, setIsClient] = React.useState(false);
 
   React.useEffect(() => {
