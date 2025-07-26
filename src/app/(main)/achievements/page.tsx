@@ -4,7 +4,6 @@
 import * as React from 'react';
 import { Gem, MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import type { CityPoints, Title } from '@/lib/types';
 import { TitleIcon } from '@/components/icons';
@@ -34,8 +33,6 @@ type ProgressStats = {
     points: number;
     level: number;
     title: Title;
-    progressToNextLevel: number;
-    pointsForNextLevel: number;
   };
 };
 
@@ -53,16 +50,11 @@ export default function AchievementsPage() {
       const points = cityPoints[county] || 0;
       const level = Math.floor(points / POINTS_PER_LEVEL);
       const title = getTitleForLevel(level);
-      const pointsInCurrentLevel = points % POINTS_PER_LEVEL;
-      const progressToNextLevel = (pointsInCurrentLevel / POINTS_PER_LEVEL) * 100;
-      const pointsForNextLevel = POINTS_PER_LEVEL - pointsInCurrentLevel;
 
       acc[county] = {
         points,
         level: level + 1, // Display level as 1-based
         title,
-        progressToNextLevel,
-        pointsForNextLevel,
       };
       return acc;
     }, {} as ProgressStats);
@@ -87,8 +79,6 @@ export default function AchievementsPage() {
               points: 0, 
               level: 1, 
               title: TITLES[0],
-              progressToNextLevel: 0,
-              pointsForNextLevel: POINTS_PER_LEVEL,
           };
           
           return (
@@ -104,15 +94,11 @@ export default function AchievementsPage() {
                       {countyProgress.title.name}
                    </Badge>
                 </CardTitle>
-                <CardDescription className="flex items-center justify-between pt-1">
+                <CardDescription className="flex items-baseline gap-4 pt-2">
                     <span className="font-bold text-lg text-primary">Lvl {countyProgress.level}</span>
-                    <span className="text-xs text-muted-foreground">{countyProgress.points} / {(countyProgress.level) * POINTS_PER_LEVEL} PTS</span>
+                    <span className="text-sm font-bold text-foreground/80">{countyProgress.points} XP</span>
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Progress value={countyProgress.progressToNextLevel} className="h-2" />
-                <p className="text-right text-xs text-muted-foreground mt-1">下一級還需 {countyProgress.pointsForNextLevel} 分</p>
-              </CardContent>
             </Card>
           )
         })}
