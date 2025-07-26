@@ -53,6 +53,9 @@ const taiwanCounties = [
   '宜蘭縣', '花蓮縣', '台東縣', '澎湖縣', '金門縣', '連江縣'
 ];
 
+// XP per 100 meters
+const XP_PER_100_METERS = 10;
+
 export default function MapPage() {
   const { position, distance, path, error, loading, isTracking, startTracking, stopTracking: trackerStop } = useLocationTracker();
   const { toast } = useToast();
@@ -79,6 +82,9 @@ export default function MapPage() {
   const [currentArea, setCurrentArea] = React.useState<CurrentArea | null>(null);
 
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+  
+  const lastDistanceRef = React.useRef(0);
+
 
   const handleStartTracking = () => {
     tripStartTimeRef.current = new Date().toISOString();
@@ -139,11 +145,23 @@ export default function MapPage() {
   }, [googleMapsApiKey]);
 
   // This function now directly manipulates localStorage to ensure synchronous updates.
-  const addXp = React.useCallback((xpGained: number, forCounty?: string) => {
-    if (!forCounty || xpGained <= 0) return;
+  const addXp = React.useCallback(async (xpGained: number, forCounty?: string) => {
+    if (xpGained <= 0) return;
+
+    let targetCounty = forCounty;
+
+    // If no county is provided (e.g., from exploration), determine it from current position.
+    if (!targetCounty && position) {
+      const area = await getAreaNameFromPosition(position);
+      if (area) {
+        targetCounty = area.county;
+      }
+    }
+
+    if (!targetCounty) return; // Cannot award XP if we don't know the county.
 
     // Find a consistent name, as geocoding can sometimes return slight variations
-    const normalizedCounty = taiwanCounties.find(c => forCounty.includes(c.replace(/[市縣]/, ''))) || forCounty;
+    const normalizedCounty = taiwanCounties.find(c => targetCounty!.includes(c.replace(/[市縣]/, ''))) || targetCounty;
 
     try {
         const savedPointsJSON = localStorage.getItem('cityPoints');
@@ -161,7 +179,7 @@ export default function MapPage() {
             variant: "destructive",
         });
     }
-  }, [toast]);
+  }, [position, getAreaNameFromPosition, toast]);
 
 
   React.useEffect(() => {
@@ -191,6 +209,20 @@ export default function MapPage() {
     localStorage.removeItem('cityPoints');
 
   }, []);
+
+  // Effect for exploration XP
+  React.useEffect(() => {
+    if (isTracking && distance > lastDistanceRef.current) {
+        const distanceGained = distance - lastDistanceRef.current; // in km
+        const xpGained = Math.floor((distanceGained * 1000) / 100) * XP_PER_100_METERS;
+        
+        if (xpGained > 0) {
+            addXp(xpGained); // Don't pass county, let addXp figure it out
+        }
+        
+        lastDistanceRef.current = distance;
+    }
+  }, [distance, isTracking, addXp]);
 
   // Effect to update the current area name when position changes
   React.useEffect(() => {
