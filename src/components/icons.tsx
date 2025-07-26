@@ -1,23 +1,7 @@
 
 import type { LucideProps } from 'lucide-react';
-import { PawPrint, Cat, Dog, Shield, Feather, Footprints, Landmark, Flame, Crown } from 'lucide-react';
+import { Feather, Footprints, Landmark, Flame, Crown } from 'lucide-react';
 import type { Title as TitleType } from '@/lib/types';
-
-
-export const PetIcon = ({ evolutionStage, ...props }: { evolutionStage: number } & LucideProps) => {
-  switch (evolutionStage) {
-    case 1:
-      return <PawPrint {...props} />;
-    case 2:
-      return <Cat {...props} />;
-    case 3:
-      return <Dog {...props} />;
-    case 4:
-      return <Shield {...props} />;
-    default:
-      return <PawPrint {...props} />;
-  }
-};
 
 export const TitleIcon = ({ title, ...props }: { title: TitleType['name'] } & LucideProps) => {
     switch (title) {

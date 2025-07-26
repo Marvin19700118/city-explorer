@@ -2,15 +2,6 @@
 import { z } from 'zod';
 import type { LucideIcon } from 'lucide-react';
 
-export type Pet = {
-  name: string;
-  level: number;
-  xp: number; // XP for the current level
-  totalXp: number; // Total accumulated XP across all levels
-  xpToNextLevel: number;
-  evolutionStage: number;
-};
-
 export type QuizQuestion = {
   question: string;
   answers: string[];
@@ -61,7 +52,6 @@ export type Title = {
 
 // Data structure for cloud sync
 export type GameSaveData = {
-    pet: Pet;
     pois: PointOfInterest[];
     trips: Trip[];
     cityPoints: CityPoints;

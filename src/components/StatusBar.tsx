@@ -1,26 +1,18 @@
-import type { Pet } from '@/lib/types';
-import { PetDisplay } from './PetDisplay';
-import { Separator } from './ui/separator';
 import { Footprints } from 'lucide-react';
 
 type StatusBarProps = {
   distance: number;
-  pet: Pet;
 };
 
-export const StatusBar = ({ distance, pet }: StatusBarProps) => {
+export const StatusBar = ({ distance }: StatusBarProps) => {
   return (
-    <div className="grid grid-cols-5 items-center gap-2 p-2">
-      <div className="col-span-2">
-        <PetDisplay pet={pet} />
-      </div>
-      <Separator orientation="vertical" className="mx-auto h-16" />
-      <div className="col-span-2 flex flex-col items-center justify-center rounded-lg bg-muted/50 p-2">
-        <Footprints className="h-6 w-6 text-accent" />
-        <p className="font-headline text-lg font-bold text-foreground">
+    <div className="flex items-center justify-center p-2 h-[88px]">
+      <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-4 w-48">
+        <Footprints className="h-8 w-8 text-accent" />
+        <p className="font-headline text-2xl font-bold text-foreground mt-1">
           {distance.toFixed(2)} km
         </p>
-        <p className="text-xs text-muted-foreground">已探索</p>
+        <p className="text-sm text-muted-foreground">已探索</p>
       </div>
     </div>
   );

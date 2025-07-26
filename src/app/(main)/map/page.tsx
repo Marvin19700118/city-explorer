@@ -8,7 +8,7 @@ import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
 import { GuideModal } from '@/components/GuideModal';
 import { useLocationTracker } from '@/hooks/use-location-tracker';
-import type { Pet, PointOfInterest, Trip, Settings, GenerateLocationIntroOutput, CityPoints } from '@/lib/types';
+import type { PointOfInterest, Trip, Settings, GenerateLocationIntroOutput, CityPoints } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
@@ -53,23 +53,12 @@ const taiwanCounties = [
   '宜蘭縣', '花蓮縣', '台東縣', '澎湖縣', '金門縣', '連江縣'
 ];
 
-const XP_PER_LEVEL = 100;
-
 export default function MapPage() {
   const { position, distance, path, error, loading, isTracking, startTracking, stopTracking: trackerStop } = useLocationTracker();
   const { toast } = useToast();
   
   const [trips, setTrips] = React.useState<Trip[]>([]);
   const tripStartTimeRef = React.useRef<string | null>(null);
-
-  const [pet, setPet] = React.useState<Pet>({
-    name: 'Sparky',
-    level: 1,
-    xp: 0,
-    totalXp: 0,
-    xpToNextLevel: XP_PER_LEVEL,
-    evolutionStage: 1,
-  });
 
   const [pois, setPois] = React.useState<PointOfInterest[]>([]);
   const [activeQuizPoi, setActiveQuizPoi] = React.useState<PointOfInterest | null>(null);
@@ -137,37 +126,11 @@ export default function MapPage() {
   }, [googleMapsApiKey]);
 
   const addXp = React.useCallback(async (amount: number, forCounty?: string) => {
-    // Determine the county. Prioritize the county passed from the quiz modal.
     let county = forCounty;
     if (!county && position) {
-      // If no county is provided (e.g., from exploration), get it from the current position.
       county = await getCountyFromPosition(position);
     }
-
-    // Update Pet XP
-    setPet(p => {
-      const newTotalXp = p.totalXp + amount;
-      const newLevel = Math.floor(newTotalXp / XP_PER_LEVEL) + 1;
-      const xpIntoLevel = newTotalXp % XP_PER_LEVEL;
-
-      let newEvolutionStage = p.evolutionStage;
-      if (newLevel >= 15) newEvolutionStage = 4;
-      else if (newLevel >= 10) newEvolutionStage = 3;
-      else if (newLevel >= 5) newEvolutionStage = 2;
-      
-      const finalPetState = {
-        ...p,
-        totalXp: newTotalXp,
-        level: newLevel,
-        xp: xpIntoLevel,
-        xpToNextLevel: XP_PER_LEVEL,
-        evolutionStage: newEvolutionStage,
-      };
-
-      localStorage.setItem('pet', JSON.stringify(finalPetState));
-      return finalPetState;
-    });
-
+    
     // Update City/County Points
     if (county && amount > 0) {
         const savedPoints = localStorage.getItem('cityPoints');
@@ -206,29 +169,8 @@ export default function MapPage() {
         setTrips(initialTrips);
     }
     
-    // This will clear the pet and city points data on every load for testing purposes.
-    localStorage.removeItem('pet');
+    // This will clear the city points data on every load for testing purposes.
     localStorage.removeItem('cityPoints');
-
-    // After removing, we might want to re-initialize with default state if needed,
-    // but the default state is already handled by useState.
-    
-    const savedPet = localStorage.getItem('pet');
-    if (savedPet) {
-        const parsedPet = JSON.parse(savedPet);
-        setPet(parsedPet);
-    } else {
-        // Explicitly set to initial state if nothing is saved
-        setPet({
-            name: 'Sparky',
-            level: 1,
-            xp: 0,
-            totalXp: 0,
-            xpToNextLevel: XP_PER_LEVEL,
-            evolutionStage: 1,
-        });
-    }
-
 
   }, []);
 
@@ -475,7 +417,7 @@ export default function MapPage() {
       </div>
 
       <div className="border-t-2 border-primary/20 p-2">
-        <StatusBar distance={distance} pet={pet} />
+        <StatusBar distance={distance} />
       </div>
 
       <QuizModal
@@ -496,3 +438,4 @@ export default function MapPage() {
   );
 
     
+
