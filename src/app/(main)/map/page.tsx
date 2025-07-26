@@ -108,47 +108,70 @@ export default function MapPage() {
     tripStartTimeRef.current = null;
   };
 
-  const getCountyFromPosition = React.useCallback(async (pos: {lat: number, lng: number}): Promise<string | null> => {
+  const getAreaNameFromPosition = React.useCallback(async (pos: {lat: number, lng: number}): Promise<{county: string, fullAddress: string} | null> => {
      if (!googleMapsApiKey || !window.google) return null;
      try {
         const geocoder = new window.google.maps.Geocoder();
         const response = await geocoder.geocode({ location: pos });
+        
         if (response.results && response.results[0]) {
-            // administrative_area_level_1 is typically the county/city in Taiwan
+            // Find the administrative area (e.g., '信義區') and city ('台北市')
             const countyComponent = response.results[0].address_components.find(c => c.types.includes('administrative_area_level_1'));
-            return countyComponent ? countyComponent.long_name : null;
+            const cityComponent = response.results[0].address_components.find(c => c.types.includes('administrative_area_level_1'));
+            const districtComponent = response.results[0].address_components.find(c => c.types.includes('administrative_area_level_3') || c.types.includes('locality'));
+
+            let fullAddress = "";
+            let county = "";
+
+            if (cityComponent) {
+              county = cityComponent.long_name.replace('臺', '台');
+              fullAddress += county;
+            }
+            if (districtComponent) {
+              fullAddress += districtComponent.long_name;
+            }
+            
+            // If we have both, we're good. If not, use a fallback.
+            if (fullAddress && county) {
+              return { county, fullAddress };
+            }
+
+            const fallbackAddress = response.results[0].formatted_address.split(',').slice(-3, -1).join(' ').trim();
+            const fallbackCounty = countyComponent ? countyComponent.long_name.replace('臺', '台') : taiwanCounties.find(c => fallbackAddress.includes(c)) || '未知地區';
+            
+            return { county: fallbackCounty, fullAddress: fallbackAddress || response.results[0].formatted_address };
         }
         return null;
      } catch (err) {
-        console.error("Reverse geocoding for county failed", err);
+        console.error("Reverse geocoding failed", err);
         return null;
      }
   }, [googleMapsApiKey]);
 
   // This function now directly manipulates localStorage to ensure synchronous updates.
   const addXp = React.useCallback((xpGained: number, forCounty?: string) => {
-    if (!forCounty || xpGained <= 0) return;
+      if (!forCounty || xpGained <= 0) return;
 
-    // Find a consistent name, as geocoding can sometimes return slight variations
-    const normalizedCounty = taiwanCounties.find(c => forCounty.includes(c.replace(/[市縣]/, ''))) || forCounty;
+      // Find a consistent name, as geocoding can sometimes return slight variations
+      const normalizedCounty = taiwanCounties.find(c => forCounty.includes(c.replace(/[市縣]/, ''))) || forCounty;
 
-    try {
-        const savedPointsJSON = localStorage.getItem('cityPoints');
-        const cityPoints: CityPoints = savedPointsJSON ? JSON.parse(savedPointsJSON) : {};
-        
-        cityPoints[normalizedCounty] = (cityPoints[normalizedCounty] || 0) + xpGained;
-        
-        localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
+      try {
+          const savedPointsJSON = localStorage.getItem('cityPoints');
+          const cityPoints: CityPoints = savedPointsJSON ? JSON.parse(savedPointsJSON) : {};
+          
+          cityPoints[normalizedCounty] = (cityPoints[normalizedCounty] || 0) + xpGained;
+          
+          localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
 
-    } catch (error) {
-        console.error("Failed to update cityPoints in localStorage:", error);
-        toast({
-            title: "分數儲存失敗",
-            description: "無法更新您的成就分數。",
-            variant: "destructive",
-        });
-    }
-  }, [toast]);
+      } catch (error) {
+          console.error("Failed to update cityPoints in localStorage:", error);
+          toast({
+              title: "分數儲存失敗",
+              description: "無法更新您的成就分數。",
+              variant: "destructive",
+          });
+      }
+    }, [toast]);
 
 
   React.useEffect(() => {
@@ -226,45 +249,19 @@ export default function MapPage() {
   const handleStartQuiz = (poi: PointOfInterest) => {
     setActiveQuizPoi(poi);
   };
-
-  const getAreaNameFromPosition = React.useCallback(async (pos: {lat: number, lng: number}): Promise<string | null> => {
-     if (!googleMapsApiKey || !window.google) return null;
-     try {
-        const geocoder = new window.google.maps.Geocoder();
-        const response = await geocoder.geocode({ location: pos });
-        
-        if (response.results && response.results[0]) {
-            // Find the administrative area (e.g., '信義區') and city ('台北市')
-            const cityComponent = response.results[0].address_components.find(c => c.types.includes('administrative_area_level_1'));
-            const districtComponent = response.results[0].address_components.find(c => c.types.includes('administrative_area_level_3') || c.types.includes('locality'));
-
-            if (cityComponent && districtComponent) {
-                return `${cityComponent.long_name}${districtComponent.long_name}`;
-            }
-            if (cityComponent) return cityComponent.long_name;
-            
-            const fallback = response.results[0].formatted_address.split(',').slice(-3, -1).join(' ').trim();
-            return fallback || response.results[0].formatted_address;
-        }
-        return null;
-     } catch (err) {
-        console.error("Reverse geocoding failed", err);
-        return null;
-     }
-  }, [googleMapsApiKey]);
   
   const handleStartLocalChallenge = async () => {
     if (!position) return;
-    const county = await getCountyFromPosition(position);
+    const areaInfo = await getAreaNameFromPosition(position);
     
-    if (county) {
+    if (areaInfo) {
         const localPoi: PointOfInterest = {
             id: `local-${Date.now()}`,
             name: '目前位置',
             position: position,
-            areaDescription: `關於台灣${county}的介紹`,
+            areaDescription: `關於台灣${areaInfo.fullAddress}的介紹`,
             discovered: true,
-            county: county, // Assign the dynamically found county
+            county: areaInfo.county, // Assign the dynamically found county
         };
         setActiveQuizPoi(localPoi);
     } else {
@@ -280,9 +277,9 @@ export default function MapPage() {
 
     if (!position) return;
     setIsChatbotLoading(true);
-    const areaName = await getAreaNameFromPosition(position);
-    if (areaName) {
-      setChatbotLocationName(areaName);
+    const areaInfo = await getAreaNameFromPosition(position);
+    if (areaInfo) {
+      setChatbotLocationName(areaInfo.fullAddress);
       setIsChatbotOpen(true);
     } else {
       toast({ title: '無法識別位置', description: '無法獲取您目前位置的詳細地址。', variant: 'destructive' });
@@ -297,14 +294,14 @@ export default function MapPage() {
     setIsGuideModalOpen(true);
 
     try {
-        const areaName = await getAreaNameFromPosition(position);
-        if (!areaName) {
+        const areaInfo = await getAreaNameFromPosition(position);
+        if (!areaInfo) {
             toast({ title: "無法識別位置", description: "無法獲取您目前位置的詳細地址。", variant: "destructive" });
             setIsGuideModalOpen(false);
             return;
         }
 
-        const result = await generateLocationIntroAction({ locationName: areaName });
+        const result = await generateLocationIntroAction({ locationName: areaInfo.fullAddress });
         if (result) {
             setGuideData(result);
         } else {
@@ -442,3 +439,5 @@ export default function MapPage() {
     </div>
   );
 }
+
+    
