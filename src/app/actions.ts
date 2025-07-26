@@ -4,13 +4,17 @@
 import { generateAreaQuiz } from '@/ai/flows/generate-area-quiz';
 import { getChatbotResponse as getChatbotResponseFlow } from '@/ai/flows/generate-chatbot-response';
 import { generateLocationIntro as generateLocationIntroFlow } from '@/ai/flows/generate-location-intro';
+import { generateRestaurantDescription as generateRestaurantDescriptionFlow } from '@/ai/flows/generate-restaurant-description';
+
 import type { 
     QuizData, 
     GenerateAreaQuizInput,
     Message,
     ChatbotInput,
     GenerateLocationIntroInput,
-    GenerateLocationIntroOutput
+    GenerateLocationIntroOutput,
+    GenerateRestaurantDescriptionInput,
+    GenerateRestaurantDescriptionOutput
 } from '@/lib/types';
 
 
@@ -47,4 +51,14 @@ export async function generateLocationIntro(input: GenerateLocationIntroInput): 
       console.error('Error generating location intro:', error);
       return null;
     }
-  }
+}
+
+export async function generateRestaurantDescription(input: GenerateRestaurantDescriptionInput): Promise<GenerateRestaurantDescriptionOutput | null> {
+    try {
+        const result = await generateRestaurantDescriptionFlow(input);
+        return result;
+    } catch (error) {
+        console.error("Error generating restaurant description:", error);
+        return null;
+    }
+}

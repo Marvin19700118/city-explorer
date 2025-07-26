@@ -115,3 +115,16 @@ export const ChatbotResponseSchema = z.object({
   response: z.string(),
 });
 export type ChatbotResponse = z.infer<typeof ChatbotResponseSchema>;
+
+
+// For generate-restaurant-description.ts
+export const GenerateRestaurantDescriptionInputSchema = z.object({
+    restaurantName: z.string().describe("The name of the restaurant."),
+    restaurantAddress: z.string().describe("The address of the restaurant."),
+});
+export type GenerateRestaurantDescriptionInput = z.infer<typeof GenerateRestaurantDescriptionInputSchema>;
+
+export const GenerateRestaurantDescriptionOutputSchema = z.object({
+    description: z.string().describe("A short, engaging description of the restaurant (50-70 words).")
+});
+export type GenerateRestaurantDescriptionOutput = z.infer<typeof GenerateRestaurantDescriptionOutputSchema>;
