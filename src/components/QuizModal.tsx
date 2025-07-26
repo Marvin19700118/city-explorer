@@ -29,7 +29,6 @@ type QuizModalProps = {
 
 const XP_PER_CORRECT_ANSWER = 10;
 const PERFECT_SCORE_BONUS_XP = 50;
-const POINTS_PER_CORRECT_ANSWER = 10;
 
 
 export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalProps) => {
@@ -107,11 +106,10 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
         }
 
         // Save city points
-        if (poi && poi.county !== '目前位置') {
-            const pointsGained = score * POINTS_PER_CORRECT_ANSWER;
+        if (poi && poi.county !== '目前位置' && finalXp > 0) {
             const savedPoints = localStorage.getItem('cityPoints');
             const cityPoints: CityPoints = savedPoints ? JSON.parse(savedPoints) : {};
-            cityPoints[poi.county] = (cityPoints[poi.county] || 0) + pointsGained;
+            cityPoints[poi.county] = (cityPoints[poi.county] || 0) + finalXp;
             localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
         }
         
