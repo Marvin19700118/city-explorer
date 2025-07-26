@@ -19,7 +19,7 @@ const TITLES: Title[] = [
     { levelThreshold: 5, name: '城市漫遊者', icon: 'Footprints' },
     { levelThreshold: 10, name: '區域專家', icon: 'Landmark' },
     { levelThreshold: 15, name: '博學大師', icon: 'Flame' },
-    { levelThreshold: 20, name: '傳奇製圖師', icon: 'Crown' },
+    { levelThreshold: 20, name: '金牌專業導覽員', icon: 'Crown' },
 ];
 
 const POINTS_PER_LEVEL = 100;

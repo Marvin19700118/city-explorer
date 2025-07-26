@@ -13,7 +13,7 @@ export const TitleIcon = ({ title, ...props }: { title: TitleType['name'] } & Lu
             return <Landmark {...props} />;
         case '博學大師':
             return <Flame {...props} />;
-        case '傳奇製圖師':
+        case '金牌專業導覽員':
             return <Crown {...props} />;
         default:
             return <Feather {...props} />;
