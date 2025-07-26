@@ -8,7 +8,7 @@ import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
 import { GuideModal } from '@/components/GuideModal';
 import { useLocationTracker } from '@/hooks/use-location-tracker';
-import type { PointOfInterest, Trip, Settings, GenerateLocationIntroOutput, CityPoints } from '@/lib/types';
+import type { PointOfInterest, Trip, Settings, GenerateLocationIntroOutput, CityPoints, CurrentArea } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
@@ -76,6 +76,8 @@ export default function MapPage() {
   const [guideData, setGuideData] = React.useState<GenerateLocationIntroOutput | null>(null);
   const [isGuideLoading, setIsGuideLoading] = React.useState(false);
   
+  const [currentArea, setCurrentArea] = React.useState<CurrentArea | null>(null);
+
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
   const handleStartTracking = () => {
@@ -108,38 +110,26 @@ export default function MapPage() {
     tripStartTimeRef.current = null;
   };
 
-  const getAreaNameFromPosition = React.useCallback(async (pos: {lat: number, lng: number}): Promise<{county: string, fullAddress: string} | null> => {
+  const getAreaNameFromPosition = React.useCallback(async (pos: {lat: number, lng: number}): Promise<CurrentArea | null> => {
      if (!googleMapsApiKey || !window.google) return null;
      try {
         const geocoder = new window.google.maps.Geocoder();
-        const response = await geocoder.geocode({ location: pos });
+        const response = await geocoder.geocode({ location: pos, language: 'zh-TW' });
         
         if (response.results && response.results[0]) {
-            // Find the administrative area (e.g., '信義區') and city ('台北市')
-            const countyComponent = response.results[0].address_components.find(c => c.types.includes('administrative_area_level_1'));
-            const cityComponent = response.results[0].address_components.find(c => c.types.includes('administrative_area_level_1'));
-            const districtComponent = response.results[0].address_components.find(c => c.types.includes('administrative_area_level_3') || c.types.includes('locality'));
+            const components = response.results[0].address_components;
+            const get = (type: string) => components.find(c => c.types.includes(type))?.long_name || '';
 
-            let fullAddress = "";
-            let county = "";
-
-            if (cityComponent) {
-              county = cityComponent.long_name.replace('臺', '台');
-              fullAddress += county;
-            }
-            if (districtComponent) {
-              fullAddress += districtComponent.long_name;
-            }
+            const city = get('administrative_area_level_1').replace('臺', '台');
+            const district = get('administrative_area_level_3') || get('locality');
+            const village = get('sublocality_level_1') || get('sublocality');
             
-            // If we have both, we're good. If not, use a fallback.
-            if (fullAddress && county) {
-              return { county, fullAddress };
+            let fullAddress = city + district + village;
+            if (!fullAddress) {
+                fullAddress = response.results[0].formatted_address.split(',').slice(-3, -1).join(' ').trim();
             }
 
-            const fallbackAddress = response.results[0].formatted_address.split(',').slice(-3, -1).join(' ').trim();
-            const fallbackCounty = countyComponent ? countyComponent.long_name.replace('臺', '台') : taiwanCounties.find(c => fallbackAddress.includes(c)) || '未知地區';
-            
-            return { county: fallbackCounty, fullAddress: fallbackAddress || response.results[0].formatted_address };
+            return { city, district, village, fullAddress, county: city };
         }
         return null;
      } catch (err) {
@@ -150,28 +140,28 @@ export default function MapPage() {
 
   // This function now directly manipulates localStorage to ensure synchronous updates.
   const addXp = React.useCallback((xpGained: number, forCounty?: string) => {
-      if (!forCounty || xpGained <= 0) return;
+    if (!forCounty || xpGained <= 0) return;
 
-      // Find a consistent name, as geocoding can sometimes return slight variations
-      const normalizedCounty = taiwanCounties.find(c => forCounty.includes(c.replace(/[市縣]/, ''))) || forCounty;
+    // Find a consistent name, as geocoding can sometimes return slight variations
+    const normalizedCounty = taiwanCounties.find(c => forCounty.includes(c.replace(/[市縣]/, ''))) || forCounty;
 
-      try {
-          const savedPointsJSON = localStorage.getItem('cityPoints');
-          const cityPoints: CityPoints = savedPointsJSON ? JSON.parse(savedPointsJSON) : {};
-          
-          cityPoints[normalizedCounty] = (cityPoints[normalizedCounty] || 0) + xpGained;
-          
-          localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
+    try {
+        const savedPointsJSON = localStorage.getItem('cityPoints');
+        const cityPoints: CityPoints = savedPointsJSON ? JSON.parse(savedPointsJSON) : {};
+        
+        cityPoints[normalizedCounty] = (cityPoints[normalizedCounty] || 0) + xpGained;
+        
+        localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
 
-      } catch (error) {
-          console.error("Failed to update cityPoints in localStorage:", error);
-          toast({
-              title: "分數儲存失敗",
-              description: "無法更新您的成就分數。",
-              variant: "destructive",
-          });
-      }
-    }, [toast]);
+    } catch (error) {
+        console.error("Failed to update cityPoints in localStorage:", error);
+        toast({
+            title: "分數儲存失敗",
+            description: "無法更新您的成就分數。",
+            variant: "destructive",
+        });
+    }
+  }, [toast]);
 
 
   React.useEffect(() => {
@@ -198,10 +188,20 @@ export default function MapPage() {
         setTrips(initialTrips);
     }
     
-    // This will clear the city points data on every load for testing purposes.
     localStorage.removeItem('cityPoints');
 
   }, []);
+
+  // Effect to update the current area name when position changes
+  React.useEffect(() => {
+    if (position) {
+      getAreaNameFromPosition(position).then(area => {
+        if (area) {
+          setCurrentArea(area);
+        }
+      });
+    }
+  }, [position, getAreaNameFromPosition]);
 
   React.useEffect(() => {
     if (!position || !isTracking || pois.length === 0) return;
@@ -254,7 +254,7 @@ export default function MapPage() {
     if (!position) return;
     const areaInfo = await getAreaNameFromPosition(position);
     
-    if (areaInfo) {
+    if (areaInfo && areaInfo.fullAddress) {
         const localPoi: PointOfInterest = {
             id: `local-${Date.now()}`,
             name: '目前位置',
@@ -278,7 +278,7 @@ export default function MapPage() {
     if (!position) return;
     setIsChatbotLoading(true);
     const areaInfo = await getAreaNameFromPosition(position);
-    if (areaInfo) {
+    if (areaInfo && areaInfo.fullAddress) {
       setChatbotLocationName(areaInfo.fullAddress);
       setIsChatbotOpen(true);
     } else {
@@ -295,7 +295,7 @@ export default function MapPage() {
 
     try {
         const areaInfo = await getAreaNameFromPosition(position);
-        if (!areaInfo) {
+        if (!areaInfo || !areaInfo.fullAddress) {
             toast({ title: "無法識別位置", description: "無法獲取您目前位置的詳細地址。", variant: "destructive" });
             setIsGuideModalOpen(false);
             return;
@@ -420,7 +420,7 @@ export default function MapPage() {
       </div>
 
       <div className="border-t-2 border-primary/20 p-2">
-        <StatusBar distance={distance} />
+        <StatusBar distance={distance} currentArea={currentArea} />
       </div>
 
       <QuizModal
@@ -439,5 +439,3 @@ export default function MapPage() {
     </div>
   );
 }
-
-    

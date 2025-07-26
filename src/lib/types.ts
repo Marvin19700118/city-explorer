@@ -50,6 +50,14 @@ export type Title = {
     icon: React.ElementType;
 }
 
+export type CurrentArea = {
+    city: string;
+    district: string;
+    village: string;
+    fullAddress: string;
+    county: string;
+};
+
 // Data structure for cloud sync
 export type GameSaveData = {
     pois: PointOfInterest[];
