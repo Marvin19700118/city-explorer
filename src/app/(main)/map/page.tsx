@@ -122,7 +122,7 @@ export default function MapPage() {
         if (response.results && response.results[0]) {
             // administrative_area_level_1 is typically the county/city in Taiwan
             const countyComponent = response.results[0].address_components.find(c => c.types.includes('administrative_area_level_1'));
-            return countyComponent ? countyComponent.long_name.replace('市', '縣') : null; // Normalize 市 to 縣 for consistency if needed, or just return long_name
+            return countyComponent ? countyComponent.long_name : null;
         }
         return null;
      } catch (err) {
@@ -131,7 +131,13 @@ export default function MapPage() {
      }
   }, [googleMapsApiKey]);
 
-  const addXp = React.useCallback((amount: number, county?: string) => {
+  const addXp = React.useCallback(async (amount: number, forCounty?: string) => {
+    let county = forCounty;
+    // If no county is specified, try to determine it from the current position
+    if (!county && position) {
+      county = await getCountyFromPosition(position);
+    }
+
     // Update Pet XP
     setPet(p => {
       const newTotalXp = p.totalXp + amount;
@@ -160,10 +166,11 @@ export default function MapPage() {
     if (county && amount > 0) {
         const savedPoints = localStorage.getItem('cityPoints');
         const cityPoints: CityPoints = savedPoints ? JSON.parse(savedPoints) : {};
-        cityPoints[county] = (cityPoints[county] || 0) + amount;
+        const normalizedCounty = county.replace('市', '縣'); // Normalize for consistency
+        cityPoints[normalizedCounty] = (cityPoints[normalizedCounty] || 0) + amount;
         localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
     }
-  }, []);
+  }, [position, getCountyFromPosition]);
 
   React.useEffect(() => {
     // Load saved data from localStorage on mount
@@ -458,4 +465,5 @@ export default function MapPage() {
        />
     </div>
   );
-}
+
+    
