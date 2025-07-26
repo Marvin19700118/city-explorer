@@ -2,7 +2,6 @@
 'use client';
 
 import * as React from 'react';
-import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Star, MapPin, Search, Sparkles, FileText, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -63,12 +62,10 @@ export const PoiCard: React.FC<PoiCardProps> = ({ place }) => {
       <CardContent className="p-0">
         <div className="flex gap-3">
           <div className="relative w-28 h-full flex-shrink-0">
-            <Image
+             <img
               src={photoUrl}
               alt={place.name || 'Point of Interest'}
-              fill={true}
-              style={{objectFit: "cover"}}
-              className="rounded-l-lg"
+              className="w-full h-full object-cover rounded-l-lg"
             />
           </div>
           <div className="py-3 pr-3 flex-1 flex flex-col justify-between">
