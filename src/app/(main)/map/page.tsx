@@ -127,8 +127,10 @@ export default function MapPage() {
             const get = (type: string) => components.find(c => c.types.includes(type))?.long_name || '';
 
             const city = get('administrative_area_level_1').replace('臺', '台');
-            const district = get('administrative_area_level_3') || get('administrative_area_level_2') || get('locality');
-            const village = get('sublocality_level_1') || get('sublocality');
+            const district = get('administrative_area_level_2') || get('locality');
+            
+            // More precise way to get the village/neighborhood in Taiwan
+            const village = get('administrative_area_level_4') || get('administrative_area_level_3') || get('sublocality_level_1') || get('sublocality');
             
             let fullAddress = city + district + village;
             if (!fullAddress) {
@@ -206,8 +208,6 @@ export default function MapPage() {
         setTrips(initialTrips);
     }
     
-    localStorage.removeItem('cityPoints');
-
   }, []);
 
   // Effect for exploration XP
