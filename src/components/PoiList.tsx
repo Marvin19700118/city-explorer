@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -15,15 +16,10 @@ export const PoiList: React.FC<PoiListProps> = ({ position }) => {
   const [places, setPlaces] = React.useState<google.maps.places.PlaceResult[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
-
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey,
-    libraries: ['places'],
-  });
 
   React.useEffect(() => {
-    if (isLoaded && position) {
+    // Check if google maps is loaded (e.g. from the main Map component)
+    if (window.google && window.google.maps && window.google.maps.places) {
       const placesService = new google.maps.places.PlacesService(document.createElement('div'));
       const request: google.maps.places.PlaceSearchRequest = {
         location: new google.maps.LatLng(position.lat, position.lng),
@@ -34,36 +30,42 @@ export const PoiList: React.FC<PoiListProps> = ({ position }) => {
       placesService.nearbySearch(request, (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
           // Calculate distance for each place and sort
-          const placesWithDistance = results.map(place => {
-            const placeLocation = place.geometry?.location;
-            if (placeLocation) {
-              const distance = google.maps.geometry.spherical.computeDistanceBetween(
-                new google.maps.LatLng(position.lat, position.lng),
-                placeLocation
-              );
-              return { ...place, distance };
-            }
-            return { ...place, distance: Infinity };
-          });
-
-          placesWithDistance.sort((a, b) => a.distance - b.distance);
-
-          setPlaces(placesWithDistance);
+          if (google.maps.geometry && google.maps.geometry.spherical) {
+            const placesWithDistance = results.map(place => {
+              const placeLocation = place.geometry?.location;
+              if (placeLocation) {
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(
+                  new google.maps.LatLng(position.lat, position.lng),
+                  placeLocation
+                );
+                return { ...place, distance };
+              }
+              return { ...place, distance: Infinity };
+            });
+            placesWithDistance.sort((a, b) => a.distance - b.distance);
+            setPlaces(placesWithDistance);
+          } else {
+            // Fallback if geometry library not loaded, just use results as is
+            setPlaces(results);
+          }
         } else {
             setError(`搜尋景點失敗: ${status}`);
         }
         setLoading(false);
       });
+    } else {
+       // If google maps is not loaded yet, wait a bit and check again.
+       // This is a fallback in case this component renders before the map has loaded the script.
+       const timeout = setTimeout(() => {
+           if (!window.google || !window.google.maps || !window.google.maps.places) {
+               setError("無法載入 Google Maps 服務。請確保您已連線至網路。");
+               setLoading(false);
+           }
+       }, 2000);
+       return () => clearTimeout(timeout);
     }
-  }, [isLoaded, position]);
+  }, [position]);
   
-  React.useEffect(() => {
-    if (loadError) {
-      setError("無法載入 Google Maps 服務。請檢查您的 API 金鑰設定。");
-      setLoading(false);
-    }
-  }, [loadError]);
-
 
   if (loading) {
     return (

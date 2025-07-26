@@ -151,10 +151,13 @@ const createFogPaths = (pois: PointOfInterest[]) => {
     return [WORLD_CORNERS, ...discoveredPoiHoles];
 }
 
+const libraries: ('maps' | 'places')[] = ['maps', 'places'];
+
 export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips, onStartQuiz, fogOpacity }: GameMapProps) => {
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
     preventGoogleFontsLoading: true, 
+    libraries,
   });
   
   const mapRef = React.useRef<google.maps.Map | null>(null);
