@@ -12,28 +12,24 @@ interface PoiListProps {
 }
 
 export const PoiList: React.FC<PoiListProps> = ({ position }) => {
-  const [places, setPlaces] = React.useState<google.maps.places.PlaceResult[]>([]);
+  const [places, setPlaces] = React.useState<(google.maps.places.PlaceResult & { distance?: number })[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    // Check if google maps is loaded (e.g. from the main Map component)
     if (window.google && window.google.maps && window.google.maps.places) {
       const placesService = new google.maps.places.PlacesService(document.createElement('div'));
       const request: google.maps.places.PlaceSearchRequest = {
         location: new google.maps.LatLng(position.lat, position.lng),
-        radius: 2000, // Search within 2km radius
+        radius: 2000, 
         type: 'tourist_attraction',
-        // By specifying fields, we avoid getting deprecated ones like 'permanently_closed'.
         fields: ['name', 'geometry', 'photos', 'place_id', 'rating', 'types', 'business_status'],
       };
 
       placesService.nearbySearch(request, (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          // Filter out permanently closed locations
           const openPlaces = results.filter(place => place.business_status !== 'CLOSED_PERMANENTLY');
 
-          // Calculate distance for each place and sort
           if (google.maps.geometry && google.maps.geometry.spherical) {
             const placesWithDistance = openPlaces.map(place => {
               const placeLocation = place.geometry?.location;
@@ -46,10 +42,9 @@ export const PoiList: React.FC<PoiListProps> = ({ position }) => {
               }
               return { ...place, distance: Infinity };
             });
-            placesWithDistance.sort((a, b) => a.distance - b.distance);
+            placesWithDistance.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
             setPlaces(placesWithDistance);
           } else {
-            // Fallback if geometry library not loaded, just use results as is
             setPlaces(openPlaces);
           }
         } else {
@@ -58,8 +53,6 @@ export const PoiList: React.FC<PoiListProps> = ({ position }) => {
         setLoading(false);
       });
     } else {
-       // If google maps is not loaded yet, wait a bit and check again.
-       // This is a fallback in case this component renders before the map has loaded the script.
        const timeout = setTimeout(() => {
            if (!window.google || !window.google.maps || !window.google.maps.places) {
                setError("無法載入 Google Maps 服務。請確保您已連線至網路。");
