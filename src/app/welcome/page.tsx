@@ -11,11 +11,7 @@ export default function WelcomePage() {
   const router = useRouter();
 
   const handleStart = () => {
-    try {
-        localStorage.setItem('hasVisited', 'true');
-    } catch (e) {
-        console.error("Could not set hasVisited in localStorage", e);
-    }
+    // No longer need to set hasVisited, just navigate.
     router.push('/map');
   };
 

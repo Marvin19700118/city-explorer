@@ -8,15 +8,8 @@ export default function Home() {
   const router = useRouter();
 
   React.useEffect(() => {
-    // This check needs to be client-side.
-    if (typeof window !== 'undefined') {
-      const hasVisited = localStorage.getItem('hasVisited');
-      if (hasVisited) {
-        router.replace('/map');
-      } else {
-        router.replace('/welcome');
-      }
-    }
+    // Always redirect to the welcome page on start.
+    router.replace('/welcome');
   }, [router]);
 
   // Render a loading state while the redirect is happening.
