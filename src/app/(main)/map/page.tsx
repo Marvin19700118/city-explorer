@@ -47,6 +47,11 @@ const mockTrip: Trip = {
   endTime: new Date(Date.now() - 86400000).toISOString(),
 };
 
+const taiwanCounties = [
+  '台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市', '基隆市', '新竹市',
+  '嘉義市', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣',
+  '宜蘭縣', '花蓮縣', '台東縣', '澎湖縣', '金門縣', '連江縣'
+];
 
 const XP_PER_LEVEL = 100;
 
@@ -132,9 +137,10 @@ export default function MapPage() {
   }, [googleMapsApiKey]);
 
   const addXp = React.useCallback(async (amount: number, forCounty?: string) => {
+    // Determine the county. Prioritize the county passed from the quiz modal.
     let county = forCounty;
-    // If no county is specified, try to determine it from the current position
     if (!county && position) {
+      // If no county is provided (e.g., from exploration), get it from the current position.
       county = await getCountyFromPosition(position);
     }
 
@@ -169,8 +175,10 @@ export default function MapPage() {
         // Find a consistent name, some counties end with '縣' and some with '市'
         const normalizedCounty = taiwanCounties.find(c => county!.includes(c.replace(/[市縣]/, ''))) || county;
         
-        cityPoints[normalizedCounty] = (cityPoints[normalizedCounty] || 0) + amount;
-        localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
+        if (normalizedCounty) {
+            cityPoints[normalizedCounty] = (cityPoints[normalizedCounty] || 0) + amount;
+            localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
+        }
     }
   }, [position, getCountyFromPosition]);
 
@@ -412,12 +420,6 @@ export default function MapPage() {
       />
     )
   }
-  
-  const taiwanCounties = [
-    '台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市', '基隆市', '新竹市',
-    '嘉義市', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣',
-    '宜蘭縣', '花蓮縣', '台東縣', '澎湖縣', '金門縣', '連江縣'
-  ];
 
   return (
     <div className="flex h-full flex-col">
