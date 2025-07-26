@@ -26,14 +26,13 @@ type QuizModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onQuizComplete: (xpGained: number, county?: string) => void;
-  getCountyFromPosition?: (position: { lat: number; lng: number }) => Promise<string | null>;
 };
 
 const XP_PER_CORRECT_ANSWER = 10;
 const PERFECT_SCORE_BONUS_XP = 50;
 
 
-export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete, getCountyFromPosition }: QuizModalProps) => {
+export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalProps) => {
   const [quizData, setQuizData] = React.useState<QuizData | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(0);
@@ -94,7 +93,7 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete, getCountyFromP
     setShowResult(true);
   };
 
-  const handleNextQuestion = async () => {
+  const handleNextQuestion = () => {
     setShowResult(false);
     setSelectedAnswer(null);
     if (currentQuestionIndex >= (quizData?.questions.length ?? 0) - 1) {
@@ -103,15 +102,8 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete, getCountyFromP
         const isPerfect = score === quizData?.questions.length;
         const finalXp = totalXp + (isPerfect ? PERFECT_SCORE_BONUS_XP : 0);
         
-        let finalCounty = poi?.county;
-
-        // If it's a local challenge, we need to determine the county from the position
-        if (poi?.name === '目前位置' && poi.position && getCountyFromPosition) {
-           finalCounty = await getCountyFromPosition(poi.position) || undefined;
-        }
-        
         if (finalXp > 0) {
-           onQuizComplete(finalXp, finalCounty);
+           onQuizComplete(finalXp, poi?.county);
         }
         
         // Show final score card

@@ -425,7 +425,6 @@ export default function MapPage() {
         isOpen={!!activeQuizPoi}
         onClose={handleCloseQuiz}
         onQuizComplete={addXp}
-        getCountyFromPosition={getCountyFromPosition}
       />
 
       <GuideModal
@@ -438,4 +437,5 @@ export default function MapPage() {
   );
 
     
+
 
