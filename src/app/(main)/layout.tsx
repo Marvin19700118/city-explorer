@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Map, Gem, Settings, History, Utensils } from 'lucide-react';
+import { Map, Gem, History, Utensils } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -12,7 +12,6 @@ const navItems = [
   { href: '/food', label: '美食', icon: Utensils },
   { href: '/history', label: '紀錄', icon: History },
   { href: '/achievements', label: '成就', icon: Gem },
-  { href: '/settings', label: '設定', icon: Settings },
 ];
 
 export default function MainAppLayout({
@@ -28,7 +27,7 @@ export default function MainAppLayout({
         <main className="flex-1 overflow-auto">{children}</main>
 
         <nav className="border-t-2 border-primary/20 bg-background">
-          <div className="mx-auto grid h-16 max-w-md grid-cols-5 items-center justify-items-center px-4">
+          <div className="mx-auto grid h-16 max-w-md grid-cols-4 items-center justify-items-center px-4">
             {navItems.map((item) => (
               <Link
                 key={item.label}
