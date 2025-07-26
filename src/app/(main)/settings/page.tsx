@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Settings, Bell, Palette, LogIn, LogOut, Cloud } from 'lucide-react';
+import { Settings, Bell, Palette, LogIn, LogOut, Cloud, Share2, Copy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -10,6 +10,8 @@ import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import type { Settings as AppSettings } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
 
 
 export default function SettingsPage() {
@@ -20,6 +22,7 @@ export default function SettingsPage() {
   const [isClient, setIsClient] = React.useState(false);
   const { isSignedIn, signOut, gsiLoaded } = useAuth();
   const signInButtonRef = React.useRef(null);
+  const { toast } = useToast();
 
   React.useEffect(() => {
     setIsClient(true);
@@ -43,6 +46,23 @@ export default function SettingsPage() {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
     localStorage.setItem('settings', JSON.stringify(newSettings));
+  };
+  
+  const handleCopyLink = () => {
+    const url = 'https://studio--city-unveiler.us-central1.hosted.app/';
+    navigator.clipboard.writeText(url).then(() => {
+      toast({
+        title: '連結已複製！',
+        description: '快分享給您的朋友吧！',
+      });
+    }, (err) => {
+      toast({
+        title: '複製失敗',
+        description: '無法將連結複製到剪貼簿。',
+        variant: 'destructive',
+      });
+      console.error('Could not copy text: ', err);
+    });
   };
 
   if (!isClient) {
@@ -73,6 +93,27 @@ export default function SettingsPage() {
           ) : (
              <div ref={signInButtonRef} />
           )}
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Share2 className="h-5 w-5" />
+            分享給朋友
+          </CardTitle>
+          <CardDescription>分享應用程式連結，邀請朋友一起來探索城市！</CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center gap-2">
+           <Input
+            readOnly
+            value="https://studio--city-unveiler.us-central1.hosted.app/"
+            className="bg-muted/50"
+          />
+          <Button onClick={handleCopyLink} size="icon" variant="outline">
+            <Copy className="h-4 w-4" />
+            <span className="sr-only">複製連結</span>
+          </Button>
         </CardContent>
       </Card>
       
