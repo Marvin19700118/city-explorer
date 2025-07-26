@@ -1,51 +1,20 @@
 
 'use client';
 
+// This is a placeholder page and is not meant to be navigated to directly.
+// It exists to prevent routing errors from previous misconfigurations.
+import { Compass } from 'lucide-react';
 import * as React from 'react';
-import { Map, Gem, Settings, History, Utensils } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
 
-const navItems = [
-  { href: '/map', label: '地圖', icon: Map },
-  { href: '/food', label: '美食', icon: Utensils },
-  { href: '/history', label: '紀錄', icon: History },
-  { href: '/achievements', label: '成就', icon: Gem },
-  { href: '/settings', label: '設定', icon: Settings },
-];
-
-export default function MainAppLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const pathname = usePathname();
-
+export default function PoisPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-black font-body text-foreground">
-      <div className="relative mx-auto flex h-[800px] max-h-[90vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl border-4 border-primary/50 bg-background shadow-2xl shadow-primary/20">
-        <main className="flex-1 overflow-auto">{children}</main>
-
-        <nav className="border-t-2 border-primary/20 bg-background">
-          <div className="mx-auto grid h-16 max-w-md grid-cols-5 items-center justify-items-center px-4">
-            {navItems.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={cn(
-                  'flex flex-col items-center justify-center gap-1 rounded-md p-2 text-sm font-medium transition-colors',
-                  pathname === item.href
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:bg-muted/50'
-                )}
-              >
-                <item.icon className="h-6 w-6" />
-                <span>{item.label}</span>
-              </Link>
-            ))}
-          </div>
-        </nav>
+    <div className="p-4 space-y-4">
+      <div className="text-center p-8 bg-muted/50 rounded-lg">
+        <Compass className="w-16 h-16 mx-auto text-accent" />
+        <h3 className="text-2xl font-bold mt-4">頁面不存在</h3>
+        <p className="text-muted-foreground mt-2">
+          您似乎訪問了一個不存在的頁面。
+        </p>
       </div>
     </div>
   );
