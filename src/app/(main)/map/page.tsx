@@ -8,7 +8,7 @@ import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
 import { GuideModal } from '@/components/GuideModal';
 import { useLocationTracker } from '@/hooks/use-location-tracker';
-import type { Pet, PointOfInterest, Trip, Settings, GenerateLocationIntroOutput } from '@/lib/types';
+import type { Pet, PointOfInterest, Trip, Settings, GenerateLocationIntroOutput, CityPoints } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
@@ -113,8 +113,26 @@ export default function MapPage() {
     trackerStop();
     tripStartTimeRef.current = null;
   };
-  
-  const addXp = React.useCallback((amount: number) => {
+
+  const getCountyFromPosition = React.useCallback(async (pos: {lat: number, lng: number}): Promise<string | null> => {
+     if (!googleMapsApiKey || !window.google) return null;
+     try {
+        const geocoder = new window.google.maps.Geocoder();
+        const response = await geocoder.geocode({ location: pos });
+        if (response.results && response.results[0]) {
+            // administrative_area_level_1 is typically the county/city in Taiwan
+            const countyComponent = response.results[0].address_components.find(c => c.types.includes('administrative_area_level_1'));
+            return countyComponent ? countyComponent.long_name.replace('市', '縣') : null; // Normalize 市 to 縣 for consistency if needed, or just return long_name
+        }
+        return null;
+     } catch (err) {
+        console.error("Reverse geocoding for county failed", err);
+        return null;
+     }
+  }, [googleMapsApiKey]);
+
+  const addXp = React.useCallback((amount: number, county?: string) => {
+    // Update Pet XP
     setPet(p => {
       const newTotalXp = p.totalXp + amount;
       const newLevel = Math.floor(newTotalXp / XP_PER_LEVEL) + 1;
@@ -137,6 +155,14 @@ export default function MapPage() {
       localStorage.setItem('pet', JSON.stringify(finalPetState));
       return finalPetState;
     });
+
+    // Update City/County Points
+    if (county && amount > 0) {
+        const savedPoints = localStorage.getItem('cityPoints');
+        const cityPoints: CityPoints = savedPoints ? JSON.parse(savedPoints) : {};
+        cityPoints[county] = (cityPoints[county] || 0) + amount;
+        localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
+    }
   }, []);
 
   React.useEffect(() => {
@@ -245,16 +271,16 @@ export default function MapPage() {
   
   const handleStartLocalChallenge = async () => {
     if (!position) return;
-    const areaName = await getAreaNameFromPosition(position);
+    const county = await getCountyFromPosition(position);
     
-    if (areaName) {
+    if (county) {
         const localPoi: PointOfInterest = {
             id: `local-${Date.now()}`,
             name: '目前位置',
             position: position,
-            areaDescription: `關於台灣${areaName}的介紹`,
+            areaDescription: `關於台灣${county}的介紹`,
             discovered: true,
-            county: '目前位置',
+            county: county, // Assign the dynamically found county
         };
         setActiveQuizPoi(localPoi);
     } else {
@@ -421,6 +447,7 @@ export default function MapPage() {
         isOpen={!!activeQuizPoi}
         onClose={handleCloseQuiz}
         onQuizComplete={addXp}
+        getCountyFromPosition={getCountyFromPosition}
       />
 
       <GuideModal

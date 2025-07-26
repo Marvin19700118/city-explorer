@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -15,7 +16,7 @@ import { Label } from './ui/label';
 import { Skeleton } from './ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { createQuiz } from '@/app/actions';
-import type { PointOfInterest, QuizData, QuizQuestion, CityPoints, GenerateAreaQuizInput } from '@/lib/types';
+import type { PointOfInterest, QuizData, QuizQuestion, GenerateAreaQuizInput } from '@/lib/types';
 import { CheckCircle, XCircle, BrainCircuit, RotateCw, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -24,14 +25,15 @@ type QuizModalProps = {
   poi: PointOfInterest | null;
   isOpen: boolean;
   onClose: () => void;
-  onQuizComplete: (xpGained: number) => void;
+  onQuizComplete: (xpGained: number, county?: string) => void;
+  getCountyFromPosition?: (position: { lat: number; lng: number }) => Promise<string | null>;
 };
 
 const XP_PER_CORRECT_ANSWER = 10;
 const PERFECT_SCORE_BONUS_XP = 50;
 
 
-export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalProps) => {
+export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete, getCountyFromPosition }: QuizModalProps) => {
   const [quizData, setQuizData] = React.useState<QuizData | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(0);
@@ -48,7 +50,7 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
       const input: GenerateAreaQuizInput = {
         areaDescription: poi.areaDescription,
       };
-      if (poi.name === '目前位置') {
+      if (poi.name === '目前位置' && poi.position) {
         input.lat = poi.position.lat;
         input.lng = poi.position.lng;
       }
@@ -92,25 +94,24 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
     setShowResult(true);
   };
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = async () => {
     setShowResult(false);
     setSelectedAnswer(null);
-    if (isQuizFinished) {
+    if (currentQuestionIndex >= (quizData?.questions.length ?? 0) - 1) {
         // Handle quiz completion and award XP
         const totalXp = score * XP_PER_CORRECT_ANSWER;
         const isPerfect = score === quizData?.questions.length;
         const finalXp = totalXp + (isPerfect ? PERFECT_SCORE_BONUS_XP : 0);
         
-        if (finalXp > 0) {
-            onQuizComplete(finalXp);
-        }
+        let finalCounty = poi?.county;
 
-        // Save city points
-        if (poi && poi.county !== '目前位置' && finalXp > 0) {
-            const savedPoints = localStorage.getItem('cityPoints');
-            const cityPoints: CityPoints = savedPoints ? JSON.parse(savedPoints) : {};
-            cityPoints[poi.county] = (cityPoints[poi.county] || 0) + finalXp;
-            localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
+        // If it's a local challenge, we need to determine the county from the position
+        if (poi?.name === '目前位置' && poi.position && getCountyFromPosition) {
+           finalCounty = await getCountyFromPosition(poi.position) || undefined;
+        }
+        
+        if (finalXp > 0) {
+           onQuizComplete(finalXp, finalCounty);
         }
         
         // Show final score card
@@ -123,7 +124,7 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
   
   const currentQuestion = quizData?.questions[currentQuestionIndex];
   const isCorrect = selectedAnswer === currentQuestion?.correctAnswerIndex;
-  const isQuizFinished = quizData ? currentQuestionIndex === quizData.questions.length - 1 : false;
+  const isQuizFinished = quizData ? currentQuestionIndex === quizData.questions.length : false;
   const isPerfectScore = score === quizData?.questions.length;
 
   const renderContent = () => {
@@ -141,7 +142,7 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
       );
     }
 
-    if (!currentQuestion) {
+    if (isQuizFinished) {
       const xpGained = score * XP_PER_CORRECT_ANSWER + (isPerfectScore ? PERFECT_SCORE_BONUS_XP : 0);
       return (
         <div className="text-center space-y-2">
@@ -153,10 +154,12 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
                     <p>完美作答！ +{PERFECT_SCORE_BONUS_XP} XP 獎勵！</p>
                 </div>
             )}
-            <p className="text-muted-foreground">您總共獲得了 <span className="font-bold text-foreground">{xpGained}</span> 點額外經驗值！</p>
+            <p className="text-muted-foreground">您總共獲得了 <span className="font-bold text-foreground">{xpGained}</span> 點經驗值！</p>
         </div>
       );
     }
+
+    if (!currentQuestion) return null; // Should not happen if not finished, but for safety
 
     return (
       <div className="space-y-4">
@@ -203,15 +206,17 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
   const renderFooter = () => {
     if (isLoading) return null;
 
-    if (!currentQuestion) {
+    if (isQuizFinished) {
         return <Button onClick={onClose} className="w-full">關閉</Button>
     }
 
+    const isLastQuestion = currentQuestionIndex === (quizData?.questions.length ?? 0) - 1;
+
     if (showResult) {
-        return isQuizFinished ? (
+        return isLastQuestion ? (
             <Button onClick={handleNextQuestion} className="w-full bg-accent hover:bg-accent/90">完成問答</Button>
         ) : (
-            <Button onClick={handleNextQuestion} className="w-full">下一題</Button>
+            <Button onClick={() => handleNextQuestion()} className="w-full">下一題</Button>
         )
     }
 
