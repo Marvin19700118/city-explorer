@@ -2,7 +2,6 @@
 'use client';
 
 import * as React from 'react';
-import { useJsApiLoader } from '@react-google-maps/api';
 import { PoiCard } from './PoiCard';
 import { Skeleton } from './ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from './ui/alert';
@@ -25,13 +24,18 @@ export const PoiList: React.FC<PoiListProps> = ({ position }) => {
         location: new google.maps.LatLng(position.lat, position.lng),
         radius: 2000, // Search within 2km radius
         type: 'tourist_attraction',
+        // By specifying fields, we avoid getting deprecated ones like 'permanently_closed'.
+        fields: ['name', 'geometry', 'photos', 'place_id', 'rating', 'types', 'business_status'],
       };
 
       placesService.nearbySearch(request, (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          // Filter out permanently closed locations
+          const openPlaces = results.filter(place => place.business_status !== 'CLOSED_PERMANENTLY');
+
           // Calculate distance for each place and sort
           if (google.maps.geometry && google.maps.geometry.spherical) {
-            const placesWithDistance = results.map(place => {
+            const placesWithDistance = openPlaces.map(place => {
               const placeLocation = place.geometry?.location;
               if (placeLocation) {
                 const distance = google.maps.geometry.spherical.computeDistanceBetween(
@@ -46,7 +50,7 @@ export const PoiList: React.FC<PoiListProps> = ({ position }) => {
             setPlaces(placesWithDistance);
           } else {
             // Fallback if geometry library not loaded, just use results as is
-            setPlaces(results);
+            setPlaces(openPlaces);
           }
         } else {
             setError(`搜尋景點失敗: ${status}`);
