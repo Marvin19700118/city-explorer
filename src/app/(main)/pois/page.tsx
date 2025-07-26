@@ -1,88 +1,51 @@
 'use client';
 
 import * as React from 'react';
-import { Building, MapPin, Search } from 'lucide-react';
-import { useLocationTracker } from '@/hooks/use-location-tracker';
-import { PoiList } from '@/components/PoiList';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Terminal, WifiOff } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Map, Gem, Settings, History, Utensils } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
-export default function PoisPage() {
-  const { position, loading, error } = useLocationTracker();
-  const [isClient, setIsClient] = React.useState(false);
+const navItems = [
+  { href: '/map', label: '地圖', icon: Map },
+  { href: '/food', label: '美食', icon: Utensils },
+  { href: '/history', label: '紀錄', icon: History },
+  { href: '/achievements', label: '成就', icon: Gem },
+  { href: '/settings', label: '設定', icon: Settings },
+];
 
-  React.useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  if (!isClient) {
-    return (
-      <div className="p-4 space-y-4">
-        <header className="flex items-center gap-2 text-2xl font-bold font-headline text-primary">
-          <Building className="h-6 w-6" />
-          <h2>附近景點</h2>
-        </header>
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-24 w-full" />
-      </div>
-    );
-  }
-
-  const renderContent = () => {
-    if (loading) {
-      return (
-        <div className="p-4 space-y-4">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="p-4">
-          <Alert variant="destructive">
-            <Terminal className="h-4 w-4" />
-            <AlertTitle>定位錯誤</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        </div>
-      );
-    }
-    
-    if (typeof window !== 'undefined' && !navigator.onLine) {
-       return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-muted/50 rounded-lg">
-          <WifiOff className="w-16 h-16 mx-auto text-accent" />
-          <h3 className="text-2xl font-bold mt-4">網路未連線</h3>
-          <p className="text-muted-foreground mt-2">請檢查您的網路連線以搜尋附近的景點。</p>
-        </div>
-      );
-    }
-
-    if (position) {
-      return <PoiList position={position} />;
-    }
-
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-muted/50 rounded-lg">
-        <MapPin className="w-16 h-16 mx-auto text-accent" />
-        <h3 className="text-2xl font-bold mt-4">無法取得您的位置</h3>
-        <p className="text-muted-foreground mt-2">請允許位置存取權限以尋找附近的景點。</p>
-      </div>
-    );
-  };
+export default function MainAppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
 
   return (
-    <div className="p-4 space-y-4">
-      <header className="flex items-center gap-2 text-2xl font-bold font-headline text-primary">
-        <Building className="h-6 w-6" />
-        <h2>附近景點</h2>
-      </header>
-      {renderContent()}
+    <div className="flex min-h-screen flex-col items-center justify-center bg-black font-body text-foreground">
+      <div className="relative mx-auto flex h-[800px] max-h-[90vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl border-4 border-primary/50 bg-background shadow-2xl shadow-primary/20">
+        <main className="flex-1 overflow-auto">{children}</main>
+
+        <nav className="border-t-2 border-primary/20 bg-background">
+          <div className="mx-auto grid h-16 max-w-md grid-cols-5 items-center justify-items-center px-4">
+            {navItems.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={cn(
+                  'flex flex-col items-center justify-center gap-1 rounded-md p-2 text-sm font-medium transition-colors',
+                  pathname === item.href
+                    ? 'text-primary'
+                    : 'text-muted-foreground hover:bg-muted/50'
+                )}
+              >
+                <item.icon className="h-6 w-6" />
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </div>
+        </nav>
+      </div>
     </div>
   );
 }

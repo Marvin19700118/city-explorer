@@ -22,13 +22,15 @@ export const PoiList: React.FC<PoiListProps> = ({ position }) => {
       const request: google.maps.places.PlaceSearchRequest = {
         location: new google.maps.LatLng(position.lat, position.lng),
         radius: 2000, 
-        type: 'tourist_attraction',
+        type: 'restaurant',
         fields: ['name', 'geometry', 'photos', 'place_id', 'rating', 'types', 'business_status'],
       };
 
       placesService.nearbySearch(request, (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          const openPlaces = results.filter(place => place.business_status !== 'CLOSED_PERMANENTLY');
+          const openPlaces = results.filter(place => 
+            place.business_status === 'OPERATIONAL' && (place.rating || 0) > 4
+          );
 
           if (google.maps.geometry && google.maps.geometry.spherical) {
             const placesWithDistance = openPlaces.map(place => {
@@ -48,7 +50,7 @@ export const PoiList: React.FC<PoiListProps> = ({ position }) => {
             setPlaces(openPlaces);
           }
         } else {
-            setError(`搜尋景點失敗: ${status}`);
+            setError(`搜尋餐廳失敗: ${status}`);
         }
         setLoading(false);
       });
@@ -88,7 +90,7 @@ export const PoiList: React.FC<PoiListProps> = ({ position }) => {
     return (
       <div className="text-center p-8 bg-muted/50 rounded-lg">
           <Search className="w-16 h-16 mx-auto text-accent" />
-          <h3 className="text-2xl font-bold mt-4">找不到附近的景點</h3>
+          <h3 className="text-2xl font-bold mt-4">找不到附近的餐廳</h3>
           <p className="text-muted-foreground mt-2">試著移動到其他地方或稍後再試。</p>
         </div>
     );

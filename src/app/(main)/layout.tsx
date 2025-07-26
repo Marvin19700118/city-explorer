@@ -1,14 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { Map, Gem, Settings, History, Building } from 'lucide-react';
+import { Map, Gem, Settings, History, Utensils } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/map', label: '地圖', icon: Map },
-  { href: '/pois', label: '景點', icon: Building },
+  { href: '/food', label: '美食', icon: Utensils },
   { href: '/history', label: '紀錄', icon: History },
   { href: '/achievements', label: '成就', icon: Gem },
   { href: '/settings', label: '設定', icon: Settings },
