@@ -4,7 +4,7 @@ import * as React from 'react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Star, MapPin } from 'lucide-react';
-import { Badge } from './ui/badge';
+import { Badge } from '@/components/ui/badge';
 
 interface PoiCardProps {
   place: google.maps.places.PlaceResult & { distance?: number };
