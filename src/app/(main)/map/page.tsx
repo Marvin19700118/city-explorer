@@ -125,25 +125,19 @@ export default function MapPage() {
      }
   }, [googleMapsApiKey]);
 
-  const addXp = React.useCallback(async (amount: number, forCounty?: string) => {
-    let county = forCounty;
-    if (!county && position) {
-      county = await getCountyFromPosition(position);
-    }
+  const addXp = React.useCallback((xpGained: number, forCounty?: string) => {
+    if (!forCounty || xpGained <= 0) return;
+
+    // Find a consistent name, as geocoding can sometimes return slight variations
+    const normalizedCounty = taiwanCounties.find(c => forCounty.includes(c.replace(/[市縣]/, ''))) || forCounty;
+
+    const savedPoints = localStorage.getItem('cityPoints');
+    const cityPoints: CityPoints = savedPoints ? JSON.parse(savedPoints) : {};
     
-    // Update City/County Points
-    if (county && amount > 0) {
-        const savedPoints = localStorage.getItem('cityPoints');
-        const cityPoints: CityPoints = savedPoints ? JSON.parse(savedPoints) : {};
-        // Find a consistent name, some counties end with '縣' and some with '市'
-        const normalizedCounty = taiwanCounties.find(c => county!.includes(c.replace(/[市縣]/, ''))) || county;
-        
-        if (normalizedCounty) {
-            cityPoints[normalizedCounty] = (cityPoints[normalizedCounty] || 0) + amount;
-            localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
-        }
-    }
-  }, [position, getCountyFromPosition]);
+    cityPoints[normalizedCounty] = (cityPoints[normalizedCounty] || 0) + xpGained;
+    localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
+  }, []);
+
 
   React.useEffect(() => {
     // Load saved data from localStorage on mount
@@ -437,5 +431,6 @@ export default function MapPage() {
   );
 
     
+
 
 
