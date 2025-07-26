@@ -1,8 +1,10 @@
+
 'use client';
 
 import * as React from 'react';
-import { History, MapPin, Footprints, Calendar, Clock, Timer } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { History, MapPin, Footprints, Calendar, Clock, Timer, Download, Map as MapIcon } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import type { Trip } from '@/lib/types';
 import { formatDistance } from 'date-fns';
 
@@ -22,6 +24,51 @@ export default function HistoryPage() {
     if (!trip.startTime || !trip.endTime) return "N/A";
     return formatDistance(new Date(trip.endTime), new Date(trip.startTime), { includeSeconds: true });
   }
+
+  const generateGpxContent = (trip: Trip): string => {
+    const points = trip.path.map(p => 
+      `<trkpt lat="${p.lat}" lon="${p.lng}"></trkpt>`
+    ).join('\n    ');
+  
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="城市探險家" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>Trip on ${new Date(trip.date).toLocaleDateString()}</name>
+    <desc>A trip recorded by 城市探險家 app.</desc>
+  </metadata>
+  <trk>
+    <name>Trip on ${new Date(trip.date).toLocaleDateString()}</name>
+    <trkseg>
+    ${points}
+    </trkseg>
+  </trk>
+</gpx>`;
+  };
+
+  const handleDownloadGpx = (trip: Trip) => {
+    const gpxContent = generateGpxContent(trip);
+    const blob = new Blob([gpxContent], { type: 'application/gpx+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `trip_${new Date(trip.date).toISOString().split('T')[0]}.gpx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleOpenInGoogleMaps = (trip: Trip) => {
+    if (trip.path.length < 2) return;
+    const origin = `${trip.path[0].lat},${trip.path[0].lng}`;
+    const destination = `${trip.path[trip.path.length - 1].lat},${trip.path[trip.path.length - 1].lng}`;
+    const waypoints = trip.path.slice(1, -1).map(p => `${p.lat},${p.lng}`).join('|');
+    
+    // Google Maps URL has a length limit, for very long trips, we might need to simplify waypoints
+    // For now, let's assume it's okay.
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=walking`;
+    window.open(url, '_blank');
+  };
 
   if (!isClient) {
     return null; // or a loading skeleton
@@ -73,6 +120,16 @@ export default function HistoryPage() {
                   一段包含 {trip.path.length} 個紀錄點的旅程。
                 </CardDescription>
               </CardContent>
+              <CardFooter className="p-2 border-t bg-muted/30 grid grid-cols-2 gap-2">
+                <Button variant="ghost" size="sm" onClick={() => handleDownloadGpx(trip)}>
+                    <Download />
+                    下載 GPX
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => handleOpenInGoogleMaps(trip)} disabled={trip.path.length < 2}>
+                    <MapIcon />
+                    在地圖上開啟
+                </Button>
+              </CardFooter>
             </Card>
           ))}
         </div>
