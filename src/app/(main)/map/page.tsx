@@ -60,6 +60,7 @@ export default function MapPage() {
     addXp,
     getAreaNameFromPosition,
     currentArea,
+    setCurrentArea,
   } = useLocation();
   const { toast } = useToast();
   
@@ -193,6 +194,7 @@ export default function MapPage() {
     const areaInfo = await getAreaNameFromPosition(position);
     
     if (areaInfo && areaInfo.fullAddress) {
+        setCurrentArea(areaInfo);
         const localPoi: PointOfInterest = {
             id: `local-${Date.now()}`,
             name: '目前位置',

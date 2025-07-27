@@ -44,6 +44,7 @@ interface LocationContextType {
   loading: boolean;
   isTracking: boolean;
   currentArea: CurrentArea | null;
+  setCurrentArea: React.Dispatch<React.SetStateAction<CurrentArea | null>>;
   startTracking: () => void;
   stopTracking: () => void;
   addXp: (xpGained: number, forCounty?: string) => void;
@@ -68,6 +69,7 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
 
   const getAreaNameFromPosition = useCallback(async (pos: {lat: number, lng: number}): Promise<CurrentArea | null> => {
      if (!GOOGLE_MAPS_API_KEY || typeof window === 'undefined' || !window.google || !window.google.maps || !window.google.maps.Geocoder) return null;
+     
      try {
         const geocoder = new window.google.maps.Geocoder();
         const response = await geocoder.geocode({ location: pos, language: 'zh-TW' });
@@ -79,27 +81,20 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
 
             // --- Primary Strategy: Parse from formatted_address ---
             const formattedAddress = result.formatted_address;
-            const addressParts = formattedAddress.split(', ');
             
             let city = '', district = '', village = '';
             
             // This pattern is fragile but often works for Taiwan addresses
-            const match = formattedAddress.match(/(\d+)?(.+[縣市])(.+[區鄉鎮市])(.+[里鄰])?/);
+            const match = formattedAddress.match(/(\d+)?(.+[縣市])(.+[區鄉鎮市])(.+[里])?/);
 
             if (match) {
                 city = (match[2] || '').replace('臺', '台');
                 district = match[3] || '';
                 village = match[4] || '';
-            }
-            
-            // --- Fallback Strategy: Parse from address_components ---
-            if (!city) {
+            } else {
+                 // --- Fallback Strategy: Parse from address_components ---
                 city = get('administrative_area_level_1').replace('臺', '台');
-            }
-            if (!district) {
                 district = get('administrative_area_level_2') || get('locality');
-            }
-            if (!village) {
                 village = get('administrative_area_level_4') || get('administrative_area_level_3') || get('sublocality_level_1') || get('sublocality');
             }
             
@@ -114,7 +109,7 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
         }
         return null;
      } catch (err) {
-        console.error("Reverse geocoding failed", err);
+        console.error("Reverse geocoding failed. This might be due to API quota or network issues.", err);
         return null;
      }
   }, []);
@@ -265,6 +260,7 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
         loading,
         isTracking,
         currentArea,
+        setCurrentArea,
         startTracking,
         stopTracking,
         addXp,
