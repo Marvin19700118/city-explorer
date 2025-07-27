@@ -18,11 +18,12 @@ export const StatusBar = () => {
         <MapPin className="h-8 w-8 text-sky-500" />
         {currentArea ? (
           <>
-            <p className={cn("font-headline font-bold text-foreground mt-1 truncate w-full", currentArea.village ? 'text-base' : 'text-lg')} title={`${currentArea.city} ${currentArea.district}`}>
-              {currentArea.city} {currentArea.district}
+            <p className="font-headline text-base font-bold text-foreground -mb-1">
+              {currentArea.city}
             </p>
-            {currentArea.village && <p className="text-sm text-muted-foreground">{currentArea.village}</p>}
-            {!currentArea.village && <p className="text-sm text-muted-foreground">目前位置</p>}
+             <p className="font-headline text-lg font-bold text-foreground">
+              {currentArea.district}
+            </p>
           </>
         ) : (
            <>
