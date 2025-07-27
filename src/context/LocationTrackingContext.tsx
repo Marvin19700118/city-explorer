@@ -79,33 +79,12 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
             const components = result.address_components;
             const get = (type: string) => components.find(c => c.types.includes(type))?.long_name || '';
 
-            // --- Primary Strategy: Parse from formatted_address ---
-            const formattedAddress = result.formatted_address;
-            
-            let city = '', district = '', village = '';
-            
-            // This pattern is fragile but often works for Taiwan addresses
-            const match = formattedAddress.match(/(\d+)?(.+[縣市])(.+[區鄉鎮市])(.+[里])?/);
-
-            if (match) {
-                city = (match[2] || '').replace('臺', '台');
-                district = match[3] || '';
-                village = match[4] || '';
-            } else {
-                 // --- Fallback Strategy: Parse from address_components ---
-                city = get('administrative_area_level_1').replace('臺', '台');
-                district = get('administrative_area_level_2') || get('locality');
-                village = get('administrative_area_level_4') || get('administrative_area_level_3') || get('sublocality_level_1') || get('sublocality');
-            }
+            const city = get('administrative_area_level_1').replace('臺', '台');
+            const district = get('administrative_area_level_2') || get('locality');
             
             let fullAddress = city + district;
-            if (village) fullAddress += village;
 
-            if (!fullAddress) {
-                fullAddress = result.formatted_address.split(',').slice(-3, -1).join(' ').trim();
-            }
-
-            return { city, district, village, fullAddress, county: city };
+            return { city, district, fullAddress, county: city };
         }
         return null;
      } catch (err) {
