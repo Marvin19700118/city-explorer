@@ -53,6 +53,7 @@ export type Title = {
 export type CurrentArea = {
     city: string;
     district: string;
+    village?: string;
     fullAddress: string;
     county: string;
 };

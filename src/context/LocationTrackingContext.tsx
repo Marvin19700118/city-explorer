@@ -78,13 +78,16 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
 
             const city = get('administrative_area_level_1').replace('臺', '台');
             const district = get('administrative_area_level_2') || get('locality');
+            const village = get('administrative_area_level_4') || get('administrative_area_level_3') || get('sublocality_level_1') || get('sublocality');
             
             let fullAddress = city + district;
+            if (village) fullAddress += village;
+
             if (!fullAddress) {
                 fullAddress = response.results[0].formatted_address.split(',').slice(-3, -1).join(' ').trim();
             }
 
-            return { city, district, fullAddress, county: city };
+            return { city, district, village, fullAddress, county: city };
         }
         return null;
      } catch (err) {
