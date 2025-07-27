@@ -2,11 +2,23 @@
 'use client';
 
 import * as React from 'react';
-import { Gem, MapPin, Compass } from 'lucide-react';
+import { Gem, MapPin, Compass, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { CityPoints, Title } from '@/lib/types';
 import { TitleIcon } from '@/components/icons';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const TITLES: Title[] = [
     { levelThreshold: 0, name: '新手探險家', icon: 'Feather' },
@@ -35,35 +47,33 @@ export default function AchievementsPage() {
   const [visitedCounties, setVisitedCounties] = React.useState<string[]>([]);
   const [isClient, setIsClient] = React.useState(false);
 
+  const loadPoints = React.useCallback(() => {
+    const savedCityPoints = localStorage.getItem('cityPoints');
+    const cityPoints: CityPoints = savedCityPoints ? JSON.parse(savedCityPoints) : {};
+    
+    const discoveredCounties = Object.keys(cityPoints).filter(county => (cityPoints[county] || 0) > 0);
+    setVisitedCounties(discoveredCounties.sort()); // Sort for consistent order
+
+    const stats: ProgressStats = discoveredCounties.reduce((acc, county) => {
+      const points = cityPoints[county] || 0;
+      const level = Math.floor(points / POINTS_PER_LEVEL);
+      const title = getTitleForLevel(level);
+
+      acc[county] = {
+        points,
+        level: level + 1, // Display level as 1-based
+        title,
+      };
+      return acc;
+    }, {} as ProgressStats);
+
+    setProgress(stats);
+  }, []);
+
   React.useEffect(() => {
     setIsClient(true);
-    // Function to load points, can be reused.
-    const loadPoints = () => {
-        const savedCityPoints = localStorage.getItem('cityPoints');
-        const cityPoints: CityPoints = savedCityPoints ? JSON.parse(savedCityPoints) : {};
-        
-        const discoveredCounties = Object.keys(cityPoints).filter(county => (cityPoints[county] || 0) > 0);
-        setVisitedCounties(discoveredCounties.sort()); // Sort for consistent order
-
-        const stats: ProgressStats = discoveredCounties.reduce((acc, county) => {
-          const points = cityPoints[county] || 0;
-          const level = Math.floor(points / POINTS_PER_LEVEL);
-          const title = getTitleForLevel(level);
-
-          acc[county] = {
-            points,
-            level: level + 1, // Display level as 1-based
-            title,
-          };
-          return acc;
-        }, {} as ProgressStats);
-
-        setProgress(stats);
-    };
-    
     loadPoints();
 
-    // Listen for storage changes from other tabs, though less critical for this app.
     const handleStorageChange = (e: StorageEvent) => {
         if (e.key === 'cityPoints') {
             loadPoints();
@@ -72,16 +82,20 @@ export default function AchievementsPage() {
     
     window.addEventListener('storage', handleStorageChange);
     
-    // An interval to refresh from localStorage to catch updates from the same tab,
-    // as 'storage' event doesn't fire for same-tab changes.
-    const intervalId = setInterval(loadPoints, 1000); // Refresh every second
+    const intervalId = setInterval(loadPoints, 1000); 
 
     return () => {
         window.removeEventListener('storage', handleStorageChange);
         clearInterval(intervalId);
     };
 
-  }, []);
+  }, [loadPoints]);
+  
+  const handleClearAllProgress = () => {
+    localStorage.removeItem('cityPoints');
+    loadPoints(); // Refresh the UI
+  };
+
 
   if (!isClient) {
     return null; // or a loading skeleton
@@ -89,9 +103,35 @@ export default function AchievementsPage() {
 
   return (
     <div className="p-4 space-y-4">
-      <header className="flex items-center gap-2 text-2xl font-bold font-headline text-primary">
-        <Gem className="h-6 w-6" />
-        <h2>探索成就</h2>
+      <header className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-2xl font-bold font-headline text-primary">
+          <Gem className="h-6 w-6" />
+          <h2>探索成就</h2>
+        </div>
+        {visitedCounties.length > 0 && (
+           <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 />
+                  重設所有進度
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>確定要重設所有進度嗎？</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    這個操作無法復原。這將會永久刪除您在所有城市的經驗值和等級。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>取消</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleClearAllProgress} className="bg-destructive hover:bg-destructive/90">
+                    確認重設
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+        )}
       </header>
       
       {visitedCounties.length > 0 ? (
