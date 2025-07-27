@@ -1,3 +1,4 @@
+
 import { Footprints, MapPin } from 'lucide-react';
 import type { CurrentArea } from '@/lib/types';
 import { useLocation } from '@/context/LocationTrackingContext';
@@ -18,11 +19,11 @@ export const StatusBar = () => {
         <MapPin className="h-8 w-8 text-sky-500" />
         {currentArea ? (
           <>
-            <p className="font-headline text-base font-bold text-foreground -mb-1">
-              {currentArea.city}
+            <p className="font-headline text-lg font-bold text-foreground -mb-1">
+              {currentArea.village || currentArea.district}
             </p>
-             <p className="font-headline text-lg font-bold text-foreground">
-              {currentArea.district}
+            <p className="text-sm text-muted-foreground">
+              {currentArea.city} {currentArea.district}
             </p>
           </>
         ) : (
