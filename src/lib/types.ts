@@ -19,6 +19,8 @@ export type PointOfInterest = {
   areaDescription: string;
   discovered: boolean;
   county: string; // e.g., '台北市'
+  district: string; // e.g., '信義區'
+  previousQuestions?: string[]; // For tracking asked questions
 };
 
 export type LatLng = {
@@ -67,6 +69,10 @@ export type GameSaveData = {
     lastUpdated: string;
 }
 
+export type AskedQuestionHistory = {
+  [district: string]: string[];
+}
+
 // AI Related types
 
 // For generate-location-intro.ts
@@ -86,6 +92,7 @@ export const GenerateAreaQuizInputSchema = z.object({
   areaDescription: z.string().describe('A detailed description of the area for which the quiz is to be generated.'),
   lat: z.number().optional(),
   lng: z.number().optional(),
+  previousQuestions: z.array(z.string()).optional().describe('A list of previously asked questions to avoid repetition.'),
 });
 export type GenerateAreaQuizInput = z.infer<typeof GenerateAreaQuizInputSchema>;
 

@@ -29,6 +29,13 @@ const generateAreaQuizPrompt = ai.definePrompt({
 
 地區描述: {{{areaDescription}}}
 
+{{#if previousQuestions}}
+請避免產生以下已經問過的問題：
+{{#each previousQuestions}}
+- {{{this}}}
+{{/each}}
+{{/if}}
+
 將測驗結果輸出為 JSON 物件。每個問題應包含一個 question 欄位、一個 answers 欄位（包含 4 個字串的陣列）以及一個 correctAnswerIndex 欄位（答案在 answers 陣列中的 0-based 索引）。`,
 });
 

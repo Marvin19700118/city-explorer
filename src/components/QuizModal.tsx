@@ -16,7 +16,7 @@ import { Label } from './ui/label';
 import { Skeleton } from './ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { createQuiz } from '@/app/actions';
-import type { PointOfInterest, QuizData, QuizQuestion, GenerateAreaQuizInput } from '@/lib/types';
+import type { PointOfInterest, QuizData, QuizQuestion, GenerateAreaQuizInput, AskedQuestionHistory } from '@/lib/types';
 import { CheckCircle, XCircle, BrainCircuit, RotateCw, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -48,6 +48,7 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
     try {
       const input: GenerateAreaQuizInput = {
         areaDescription: poi.areaDescription,
+        previousQuestions: poi.previousQuestions,
       };
       if (poi.name === '目前位置' && poi.position) {
         input.lat = poi.position.lat;
@@ -104,6 +105,16 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
         
         if (finalXp > 0) {
            onQuizComplete(finalXp, poi?.county);
+        }
+
+        // Save asked questions to localStorage
+        if (poi?.district && quizData?.questions) {
+            const askedQuestionsJSON = localStorage.getItem('askedQuestions');
+            const askedQuestionHistory: AskedQuestionHistory = askedQuestionsJSON ? JSON.parse(askedQuestionsJSON) : {};
+            const newQuestions = quizData.questions.map(q => q.question);
+            const existingQuestions = askedQuestionHistory[poi.district] || [];
+            askedQuestionHistory[poi.district] = [...new Set([...existingQuestions, ...newQuestions])]; // Use Set to avoid duplicates
+            localStorage.setItem('askedQuestions', JSON.stringify(askedQuestionHistory));
         }
         
         // Show final score card

@@ -8,22 +8,23 @@ import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
 import { GuideModal } from '@/components/GuideModal';
 import { useLocation } from '@/context/LocationTrackingContext';
-import type { PointOfInterest, Trip, Settings, GenerateLocationIntroOutput, CityPoints, CurrentArea } from '@/lib/types';
+import type { PointOfInterest, Trip, Settings, GenerateLocationIntroOutput, CityPoints, CurrentArea, AskedQuestionHistory } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Chatbot } from '@/components/Chatbot';
+import { createQuiz } from '@/app/actions';
 import { generateLocationIntro as generateLocationIntroAction } from '@/app/actions';
 
 const TAIPEI_CENTER = { lat: 25.0330, lng: 121.5654 };
 
 const initialPois: PointOfInterest[] = [
-  { id: 'poi1', name: '台北101', position: { lat: 25.0339, lng: 121.5645 }, areaDescription: '一座位於台灣台北市信義區的摩天大樓。樓高509.2公尺，地上101層、地下5層，總樓地板面積37萬4千平方公尺，由李祖原聯合建築師事務所設計。於1999年動工，2004年12月31日完工開幕。', discovered: false, county: '台北市' },
-  { id: 'poi2', name: '國立故宮博物院', position: { lat: 25.1026, lng: 121.5485 }, areaDescription: '位於台灣台北市士林區，為台灣最具規模的博物館以及台灣八景之一，也是古代中國藝術史與漢學研究機構。館舍在1965年11月12日落成。', discovered: false, county: '台北市' },
-  { id: 'poi3', name: '中正紀念堂', position: { lat: 25.0345, lng: 121.5218 }, areaDescription: '為紀念中華民國第一任總統蔣中正而興建，是位於臺灣臺北市中正區的國家紀念建築。全區250,000平方公尺，主樓高76公尺。', discovered: false, county: '台北市' },
-  { id: 'poi4', name: '西門町', position: { lat: 25.0479, lng: 121.5074 }, areaDescription: '位於臺灣臺北市萬華區東北方，為臺北市西區最重要且國際化程度最高的消費商圈，以年輕族群為主要的消費對象，並吸引了許多國際觀光客以自助旅行造訪此處。', discovered: false, county: '台北市' },
+  { id: 'poi1', name: '台北101', position: { lat: 25.0339, lng: 121.5645 }, areaDescription: '一座位於台灣台北市信義區的摩天大樓。樓高509.2公尺，地上101層、地下5層，總樓地板面積37萬4千平方公尺，由李祖原聯合建築師事務所設計。於1999年動工，2004年12月31日完工開幕。', discovered: false, county: '台北市', district: '信義區' },
+  { id: 'poi2', name: '國立故宮博物院', position: { lat: 25.1026, lng: 121.5485 }, areaDescription: '位於台灣台北市士林區，為台灣最具規模的博物館以及台灣八景之一，也是古代中國藝術史與漢學研究機構。館舍在1965年11月12日落成。', discovered: false, county: '台北市', district: '士林區' },
+  { id: 'poi3', name: '中正紀念堂', position: { lat: 25.0345, lng: 121.5218 }, areaDescription: '為紀念中華民國第一任總統蔣中正而興建，是位於臺灣臺北市中正區的國家紀念建築。全區250,000平方公尺，主樓高76公尺。', discovered: false, county: '台北市', district: '中正區' },
+  { id: 'poi4', name: '西門町', position: { lat: 25.0479, lng: 121.5074 }, areaDescription: '位於臺灣臺北市萬華區東北方，為臺北市西區最重要且國際化程度最高的消費商圈，以年輕族群為主要的消費對象，並吸引了許多國際觀光客以自助旅行造訪此處。', discovered: false, county: '台北市', district: '萬華區' },
 ];
 
 const mockTrip: Trip = {
@@ -186,22 +187,34 @@ export default function MapPage() {
   }, [position, pois, toast, isTracking, settings.areaNotifications]);
 
   const handleStartQuiz = (poi: PointOfInterest) => {
-    setActiveQuizPoi(poi);
+    const askedQuestionsJSON = localStorage.getItem('askedQuestions');
+    const askedQuestionHistory: AskedQuestionHistory = askedQuestionsJSON ? JSON.parse(askedQuestionsJSON) : {};
+    const previousQuestions = askedQuestionHistory[poi.district] || [];
+
+    const poiWithPreviousQuestions = { ...poi, previousQuestions };
+    setActiveQuizPoi(poiWithPreviousQuestions);
   };
   
   const handleStartLocalChallenge = async () => {
     if (!position) return;
     const areaInfo = await getAreaNameFromPosition(position);
     
-    if (areaInfo && areaInfo.fullAddress) {
+    if (areaInfo && areaInfo.fullAddress && areaInfo.district) {
         setCurrentArea(areaInfo);
+
+        const askedQuestionsJSON = localStorage.getItem('askedQuestions');
+        const askedQuestionHistory: AskedQuestionHistory = askedQuestionsJSON ? JSON.parse(askedQuestionsJSON) : {};
+        const previousQuestions = askedQuestionHistory[areaInfo.district] || [];
+
         const localPoi: PointOfInterest = {
             id: `local-${Date.now()}`,
             name: '目前位置',
             position: position,
             areaDescription: `關於台灣${areaInfo.fullAddress}的介紹`,
             discovered: true,
-            county: areaInfo.county, // Assign the dynamically found county
+            county: areaInfo.county, 
+            district: areaInfo.district,
+            previousQuestions: previousQuestions,
         };
         setActiveQuizPoi(localPoi);
     } else {
