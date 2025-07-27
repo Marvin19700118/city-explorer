@@ -72,19 +72,42 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
         const geocoder = new window.google.maps.Geocoder();
         const response = await geocoder.geocode({ location: pos, language: 'zh-TW' });
         
-        if (response.results && response.results[0]) {
-            const components = response.results[0].address_components;
+        if (response.results && response.results.length > 0) {
+            const result = response.results[0];
+            const components = result.address_components;
             const get = (type: string) => components.find(c => c.types.includes(type))?.long_name || '';
 
-            const city = get('administrative_area_level_1').replace('臺', '台');
-            const district = get('administrative_area_level_2') || get('locality');
-            const village = get('administrative_area_level_4') || get('administrative_area_level_3') || get('sublocality_level_1') || get('sublocality');
+            // --- Primary Strategy: Parse from formatted_address ---
+            const formattedAddress = result.formatted_address;
+            const addressParts = formattedAddress.split(', ');
+            
+            let city = '', district = '', village = '';
+            
+            // This pattern is fragile but often works for Taiwan addresses
+            const match = formattedAddress.match(/(\d+)?(.+[縣市])(.+[區鄉鎮市])(.+[里鄰])?/);
+
+            if (match) {
+                city = (match[2] || '').replace('臺', '台');
+                district = match[3] || '';
+                village = match[4] || '';
+            }
+            
+            // --- Fallback Strategy: Parse from address_components ---
+            if (!city) {
+                city = get('administrative_area_level_1').replace('臺', '台');
+            }
+            if (!district) {
+                district = get('administrative_area_level_2') || get('locality');
+            }
+            if (!village) {
+                village = get('administrative_area_level_4') || get('administrative_area_level_3') || get('sublocality_level_1') || get('sublocality');
+            }
             
             let fullAddress = city + district;
             if (village) fullAddress += village;
 
             if (!fullAddress) {
-                fullAddress = response.results[0].formatted_address.split(',').slice(-3, -1).join(' ').trim();
+                fullAddress = result.formatted_address.split(',').slice(-3, -1).join(' ').trim();
             }
 
             return { city, district, village, fullAddress, county: city };
