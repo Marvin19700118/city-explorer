@@ -2,23 +2,11 @@
 'use client';
 
 import * as React from 'react';
-import { Gem, MapPin, Compass, Trash2 } from 'lucide-react';
+import { Gem, MapPin, Compass } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { CityPoints, Title } from '@/lib/types';
 import { TitleIcon } from '@/components/icons';
-import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 const TITLES: Title[] = [
     { levelThreshold: 0, name: '新手探險家', icon: 'Feather' },
@@ -90,12 +78,6 @@ export default function AchievementsPage() {
     };
 
   }, [loadPoints]);
-  
-  const handleClearAllProgress = () => {
-    localStorage.removeItem('cityPoints');
-    loadPoints(); // Refresh the UI
-  };
-
 
   if (!isClient) {
     return null; // or a loading skeleton
@@ -108,30 +90,6 @@ export default function AchievementsPage() {
           <Gem className="h-6 w-6" />
           <h2>探索成就</h2>
         </div>
-        {visitedCounties.length > 0 && (
-           <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm">
-                  <Trash2 />
-                  重設所有進度
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>確定要重設所有進度嗎？</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    這個操作無法復原。這將會永久刪除您在所有城市的經驗值和等級。
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>取消</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleClearAllProgress} className="bg-destructive hover:bg-destructive/90">
-                    確認重設
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-        )}
       </header>
       
       {visitedCounties.length > 0 ? (
