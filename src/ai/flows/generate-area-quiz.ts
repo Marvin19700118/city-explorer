@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -30,7 +31,7 @@ const generateAreaQuizPrompt = ai.definePrompt({
 地區描述: {{{areaDescription}}}
 
 {{#if previousQuestions}}
-請避免產生以下已經問過的問題：
+請避免產生與以下已問過問題重複或主題相似的題目：
 {{#each previousQuestions}}
 - {{{this}}}
 {{/each}}
