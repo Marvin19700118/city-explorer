@@ -13,16 +13,14 @@ export const StatusBar = () => {
         </p>
         <p className="text-sm text-muted-foreground">已探索</p>
       </div>
-       <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-4 w-48 text-center">
+       <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-4 w-48 text-center h-full">
         <MapPin className="h-8 w-8 text-sky-500" />
         {currentArea ? (
           <>
             <p className="font-headline text-lg font-bold text-foreground mt-1 truncate w-full" title={`${currentArea.city}${currentArea.district}`}>
               {currentArea.city} {currentArea.district}
             </p>
-            <p className="text-sm text-muted-foreground truncate w-full" title={currentArea.village}>
-                {currentArea.village || '探索中...'}
-            </p>
+            <p className="text-sm text-muted-foreground">目前位置</p>
           </>
         ) : (
            <>
