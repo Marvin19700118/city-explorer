@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -8,7 +9,7 @@ export default function Home() {
   const router = useRouter();
 
   React.useEffect(() => {
-    // Always redirect to the welcome page on start.
+    // Always redirect to the welcome page on start, every time.
     router.replace('/welcome');
   }, [router]);
 
