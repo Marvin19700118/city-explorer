@@ -14,7 +14,8 @@ import type {
     GenerateLocationIntroInput,
     GenerateLocationIntroOutput,
     GenerateRestaurantDescriptionInput,
-    GenerateRestaurantDescriptionOutput
+    GenerateRestaurantDescriptionOutput,
+    Locale
 } from '@/lib/types';
 
 
@@ -32,14 +33,16 @@ export async function createQuiz(input: GenerateAreaQuizInput): Promise<QuizData
   }
 }
 
-export async function getChatbotResponse(locationName: string, query: string, history: Message[]): Promise<string> {
+export async function getChatbotResponse(locationName: string, query: string, history: Message[], locale: Locale): Promise<string> {
     try {
-        const input: ChatbotInput = { locationName, query, history };
+        const input: ChatbotInput = { locationName, query, history, locale };
         const result = await getChatbotResponseFlow(input);
         return result.response;
     } catch (error) {
         console.error("Error getting chatbot response:", error);
-        return "抱歉，我現在無法回答。請稍後再試。";
+        return locale === 'en' 
+            ? "Sorry, I can't respond right now. Please try again later."
+            : "抱歉，我現在無法回答。請稍後再試。";
     }
 }
 

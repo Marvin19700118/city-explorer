@@ -1,0 +1,46 @@
+
+{
+  "nav": {
+    "map": "地圖",
+    "food": "美食",
+    "history": "紀錄",
+    "achievements": "成就",
+    "settings": "設定"
+  },
+  "common": {
+    "loading": "載入中...",
+    "cancel": "取消"
+  },
+  "settings": {
+    "title": "設定",
+    "gdrive": {
+      "title": "Google 雲端同步",
+      "description": "使用您的 Google 帳號來備份與還原您的遊戲進度。",
+      "signIn": "使用 Google 登入",
+      "signOut": "登出",
+      "syncNow": "立即同步到雲端",
+      "syncing": "同步中...",
+      "restore": "從雲端還原",
+      "gsiErrorTitle": "Google 登入錯誤",
+      "gsiErrorDescription": "Google 登入腳本尚未載入完成，請稍後再試。",
+      "notSignedInTitle": "尚未登入",
+      "notSignedInDescription": "請先登入以使用雲端同步功能。",
+      "syncSuccessTitle": "同步成功",
+      "syncSuccessDescription": "您的資料已成功備份至 Google 雲端硬碟。",
+      "syncErrorTitle": "同步失敗",
+      "restoreNoFileTitle": "找不到備份",
+      "restoreNoFileDescription": "您的 Google 雲端硬碟中找不到備份檔案。",
+      "restoreSuccessTitle": "還原成功",
+      "restoreSuccessDescription": "您的資料已從雲端備份還原，備份時間：",
+      "restoreErrorTitle": "還原失敗",
+      "restoreConfirmTitle": "確定要還原嗎？",
+      "restoreConfirmDescription": "這個操作將會用雲端備份覆寫您目前的本機資料，此操作無法復原。",
+      "restoreConfirmAction": "確認還原"
+    },
+    "language": {
+      "title": "語言",
+      "description": "切換應用程式的顯示語言。",
+      "toggle": "切換為英文"
+    }
+  }
+}

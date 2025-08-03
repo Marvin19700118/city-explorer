@@ -1,0 +1,46 @@
+
+{
+  "nav": {
+    "map": "Map",
+    "food": "Food",
+    "history": "History",
+    "achievements": "Achievements",
+    "settings": "Settings"
+  },
+  "common": {
+    "loading": "Loading...",
+    "cancel": "Cancel"
+  },
+  "settings": {
+    "title": "Settings",
+    "gdrive": {
+      "title": "Google Drive Sync",
+      "description": "Back up and restore your game progress using your Google account.",
+      "signIn": "Sign In with Google",
+      "signOut": "Sign Out",
+      "syncNow": "Sync to Cloud",
+      "syncing": "Syncing...",
+      "restore": "Restore from Cloud",
+      "gsiErrorTitle": "Google Sign-In Error",
+      "gsiErrorDescription": "Google Sign-In client has not loaded yet. Please try again in a moment.",
+      "notSignedInTitle": "Not Signed In",
+      "notSignedInDescription": "Please sign in to use the cloud sync feature.",
+      "syncSuccessTitle": "Sync Successful",
+      "syncSuccessDescription": "Your data has been successfully backed up to Google Drive.",
+      "syncErrorTitle": "Sync Error",
+      "restoreNoFileTitle": "No Backup Found",
+      "restoreNoFileDescription": "No backup file was found in your Google Drive.",
+      "restoreSuccessTitle": "Restore Successful",
+      "restoreSuccessDescription": "Your data has been restored from the backup dated:",
+      "restoreErrorTitle": "Restore Error",
+      "restoreConfirmTitle": "Confirm Restore",
+      "restoreConfirmDescription": "This will overwrite your current local data with the data from your cloud backup. This action cannot be undone.",
+      "restoreConfirmAction": "Yes, Restore"
+    },
+    "language": {
+      "title": "Language",
+      "description": "Switch the display language of the application.",
+      "toggle": "Switch to Traditional Chinese"
+    }
+  }
+}
