@@ -37,44 +37,45 @@ export default function AchievementsPage() {
   const [visitedDistricts, setVisitedDistricts] = React.useState<string[]>([]);
   const [isClient, setIsClient] = React.useState(false);
 
-  const loadPoints = () => {
-    const savedCityPoints = localStorage.getItem('cityPoints');
-    if (!savedCityPoints) return;
-
-    try {
-        const cityPoints: CityPoints = JSON.parse(savedCityPoints);
-        
-        const discoveredDistricts = Object.keys(cityPoints).filter(key => (cityPoints[key] || 0) > 0);
-        setVisitedDistricts(discoveredDistricts.sort());
-
-        const stats: ProgressStats = discoveredDistricts.reduce((acc, key) => {
-          const points = cityPoints[key] || 0;
-          const level = Math.floor(points / POINTS_PER_LEVEL);
-          const title = getTitleForLevel(level);
-          const [county, district] = key.split('-');
-
-          if (county && district) {
-            acc[key] = {
-              points,
-              level: level + 1,
-              title,
-              county,
-              district
-            };
-          }
-          return acc;
-        }, {} as ProgressStats);
-
-        setProgress(stats);
-    } catch (e) {
-        console.error("Failed to parse cityPoints from localStorage", e);
-        // Clear corrupted data
-        localStorage.removeItem('cityPoints');
-    }
-  };
-
   React.useEffect(() => {
     setIsClient(true);
+    
+    const loadPoints = () => {
+      const savedCityPoints = localStorage.getItem('cityPoints');
+      if (!savedCityPoints) return;
+
+      try {
+          const cityPoints: CityPoints = JSON.parse(savedCityPoints);
+          
+          const discoveredDistricts = Object.keys(cityPoints).filter(key => (cityPoints[key] || 0) > 0);
+          setVisitedDistricts(discoveredDistricts.sort());
+
+          const stats: ProgressStats = discoveredDistricts.reduce((acc, key) => {
+            const points = cityPoints[key] || 0;
+            const level = Math.floor(points / POINTS_PER_LEVEL);
+            const title = getTitleForLevel(level);
+            const [county, district] = key.split('-');
+
+            if (county && district) {
+              acc[key] = {
+                points,
+                level: level + 1,
+                title,
+                county,
+                district
+              };
+            }
+            return acc;
+          }, {} as ProgressStats);
+
+          setProgress(stats); // This was the missing line
+      } catch (e) {
+          console.error("Failed to parse cityPoints from localStorage", e);
+          // Clear corrupted data
+          localStorage.removeItem('cityPoints');
+      }
+    };
+
     loadPoints();
 
     const handleStorageChange = (e: StorageEvent) => {
