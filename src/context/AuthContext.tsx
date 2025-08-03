@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const script = document.getElementById('gsi-client-script');
     if (script && window.google) {
         initializeGsi();
-    } else {
+    } else if (!script) {
         const newScript = document.createElement('script');
         newScript.id = 'gsi-client-script';
         newScript.src = 'https://accounts.google.com/gsi/client';
