@@ -372,7 +372,7 @@ export default function MapPage() {
         />
       </div>
 
-      <div className="border-t-2 border-primary/20 p-2">
+      <div className="p-2 border-t-2 border-primary/20">
         <StatusBar />
       </div>
 
