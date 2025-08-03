@@ -62,7 +62,7 @@ export default function AchievementsPage() {
             if (county && district) {
               acc[key] = {
                 points,
-                level: level + 1,
+                level: level,
                 title,
                 county,
                 district
