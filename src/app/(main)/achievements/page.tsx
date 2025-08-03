@@ -27,30 +27,35 @@ type ProgressStats = {
     points: number;
     level: number;
     title: Title;
+    county: string;
+    district: string;
   };
 };
 
 export default function AchievementsPage() {
   const [progress, setProgress] = React.useState<ProgressStats>({});
-  const [visitedCounties, setVisitedCounties] = React.useState<string[]>([]);
+  const [visitedDistricts, setVisitedDistricts] = React.useState<string[]>([]);
   const [isClient, setIsClient] = React.useState(false);
 
   const loadPoints = React.useCallback(() => {
     const savedCityPoints = localStorage.getItem('cityPoints');
     const cityPoints: CityPoints = savedCityPoints ? JSON.parse(savedCityPoints) : {};
     
-    const discoveredCounties = Object.keys(cityPoints).filter(county => (cityPoints[county] || 0) > 0);
-    setVisitedCounties(discoveredCounties.sort()); // Sort for consistent order
+    const discoveredDistricts = Object.keys(cityPoints).filter(key => (cityPoints[key] || 0) > 0);
+    setVisitedDistricts(discoveredDistricts.sort()); // Sort for consistent order
 
-    const stats: ProgressStats = discoveredCounties.reduce((acc, county) => {
-      const points = cityPoints[county] || 0;
+    const stats: ProgressStats = discoveredDistricts.reduce((acc, key) => {
+      const points = cityPoints[key] || 0;
       const level = Math.floor(points / POINTS_PER_LEVEL);
       const title = getTitleForLevel(level);
+      const [county, district] = key.split('-');
 
-      acc[county] = {
+      acc[key] = {
         points,
         level: level + 1, // Display level as 1-based
         title,
+        county,
+        district
       };
       return acc;
     }, {} as ProgressStats);
@@ -92,29 +97,29 @@ export default function AchievementsPage() {
         </div>
       </header>
       
-      {visitedCounties.length > 0 ? (
+      {visitedDistricts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {visitedCounties.map(county => {
-            const countyProgress = progress[county];
+          {visitedDistricts.map(key => {
+            const districtProgress = progress[key];
             
-            if (!countyProgress) return null;
+            if (!districtProgress) return null;
 
             return (
-              <Card key={county}>
+              <Card key={key}>
                 <CardHeader className="pb-4">
                   <CardTitle className="text-lg flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-5 h-5 text-muted-foreground" />
-                      <span>{county}</span>
+                      <span>{districtProgress.county} {districtProgress.district}</span>
                     </div>
                      <Badge variant="outline" className="gap-2 border-accent text-accent">
-                        <TitleIcon title={countyProgress.title.name} className="w-4 h-4"/>
-                        {countyProgress.title.name}
+                        <TitleIcon title={districtProgress.title.name} className="w-4 h-4"/>
+                        {districtProgress.title.name}
                      </Badge>
                   </CardTitle>
                   <CardDescription className="flex items-baseline gap-4 pt-2">
-                      <span className="font-bold text-lg text-primary">Lvl {countyProgress.level}</span>
-                      <span className="text-sm font-bold text-foreground/80">{countyProgress.points} XP</span>
+                      <span className="font-bold text-lg text-primary">Lvl {districtProgress.level}</span>
+                      <span className="text-sm font-bold text-foreground/80">{districtProgress.points} XP</span>
                   </CardDescription>
                 </CardHeader>
               </Card>

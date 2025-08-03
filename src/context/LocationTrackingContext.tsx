@@ -25,12 +25,6 @@ const haversineDistance = (
   return R * c;
 };
 
-const taiwanCounties = [
-  '台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市', '基隆市', '新竹市',
-  '嘉義市', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣',
-  '宜蘭縣', '花蓮縣', '台東縣', '澎湖縣', '金門縣', '連江縣'
-];
-
 // XP per 100 meters
 const XP_PER_100_METERS = 10;
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
@@ -47,7 +41,7 @@ interface LocationContextType {
   setCurrentArea: React.Dispatch<React.SetStateAction<CurrentArea | null>>;
   startTracking: () => void;
   stopTracking: () => void;
-  addXp: (xpGained: number, forCounty?: string) => void;
+  addXp: (xpGained: number, county: string, district: string) => void;
   getAreaNameFromPosition: (pos: LatLng) => Promise<CurrentArea | null>;
 }
 
@@ -93,25 +87,16 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
      }
   }, []);
 
-  const addXp = useCallback(async (xpGained: number, forCounty?: string) => {
-    if (xpGained <= 0) return;
-
-    let targetCounty = forCounty;
-
-    if (!targetCounty && position) {
-      const area = await getAreaNameFromPosition(position);
-      if (area) targetCounty = area.county;
-    }
-
-    if (!targetCounty) return;
-
-    const normalizedCounty = taiwanCounties.find(c => targetCounty!.includes(c.replace(/[市縣]/, ''))) || targetCounty;
+  const addXp = useCallback(async (xpGained: number, county: string, district: string) => {
+    if (xpGained <= 0 || !county || !district) return;
+    
+    const key = `${county}-${district}`;
 
     try {
         const savedPointsJSON = localStorage.getItem('cityPoints');
         const cityPoints: CityPoints = savedPointsJSON ? JSON.parse(savedPointsJSON) : {};
         
-        cityPoints[normalizedCounty] = (cityPoints[normalizedCounty] || 0) + xpGained;
+        cityPoints[key] = (cityPoints[key] || 0) + xpGained;
         
         localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
 
@@ -123,7 +108,16 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
             variant: "destructive",
         });
     }
-  }, [position, getAreaNameFromPosition, toast]);
+  }, [toast]);
+
+  const onXpForExploration = useCallback(async (xpGained: number) => {
+    if (xpGained <= 0 || !position) return;
+    
+    const area = await getAreaNameFromPosition(position);
+    if (area && area.county && area.district) {
+        addXp(xpGained, area.county, area.district);
+    }
+  }, [position, addXp, getAreaNameFromPosition]);
 
 
   const stopTracking = useCallback(() => {
@@ -222,12 +216,12 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
         const xpGained = Math.floor((distanceGained * 1000) / 100) * XP_PER_100_METERS;
         
         if (xpGained > 0) {
-            addXp(xpGained);
+            onXpForExploration(xpGained);
         }
         
         lastDistanceRef.current = distance;
     }
-  }, [distance, isTracking, addXp]);
+  }, [distance, isTracking, onXpForExploration]);
 
 
   return (

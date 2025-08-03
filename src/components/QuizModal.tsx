@@ -25,7 +25,7 @@ type QuizModalProps = {
   poi: PointOfInterest | null;
   isOpen: boolean;
   onClose: () => void;
-  onQuizComplete: (xpGained: number, county?: string) => void;
+  onQuizComplete: (xpGained: number, county: string, district: string) => void;
 };
 
 const XP_PER_CORRECT_ANSWER = 10;
@@ -103,8 +103,8 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
         const isPerfect = score === quizData?.questions.length;
         const finalXp = totalXp + (isPerfect ? PERFECT_SCORE_BONUS_XP : 0);
         
-        if (finalXp > 0) {
-           onQuizComplete(finalXp, poi?.county);
+        if (finalXp > 0 && poi) {
+           onQuizComplete(finalXp, poi.county, poi.district);
         }
 
         // Save asked questions to localStorage
