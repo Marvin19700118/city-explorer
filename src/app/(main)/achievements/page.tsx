@@ -42,6 +42,7 @@ export default function AchievementsPage() {
     
     const loadPoints = () => {
       const savedCityPoints = localStorage.getItem('cityPoints');
+      // Gracefully handle the case where no points are saved yet.
       if (!savedCityPoints) {
         setProgress({});
         setVisitedDistricts([]);
@@ -74,6 +75,7 @@ export default function AchievementsPage() {
           setProgress(stats);
       } catch (e) {
           console.error("Failed to parse cityPoints from localStorage", e);
+          // If parsing fails, clear the corrupted data and reset state.
           localStorage.removeItem('cityPoints');
           setProgress({});
           setVisitedDistricts([]);
@@ -82,7 +84,9 @@ export default function AchievementsPage() {
 
     loadPoints();
 
+    // Listen for changes from other tabs/components
     const handleStorageChange = (e: StorageEvent) => {
+        // If cityPoints changed, or if all local storage was cleared, reload points.
         if (e.key === 'cityPoints' || e.key === null) { 
             loadPoints();
         }
@@ -90,6 +94,7 @@ export default function AchievementsPage() {
     
     window.addEventListener('storage', handleStorageChange);
     
+    // Cleanup listener on component unmount
     return () => {
         window.removeEventListener('storage', handleStorageChange);
     };
