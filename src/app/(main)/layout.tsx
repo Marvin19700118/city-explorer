@@ -28,7 +28,7 @@ export default function MainAppLayout({
         <div className="relative mx-auto flex h-[800px] max-h-[90vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl border-4 border-gray-300 bg-background shadow-2xl">
             <main className="flex-1 overflow-auto">{children}</main>
 
-            <nav className="absolute bottom-0 left-0 right-0 h-24 bg-background/80 pb-4 backdrop-blur-lg">
+            <nav className="absolute bottom-0 left-0 right-0 h-24 border-t border-black/10 bg-background/80 pb-4 backdrop-blur-lg">
                 <div className="mx-auto grid h-full max-w-md grid-cols-4 items-center justify-items-center px-4 pt-2">
                     {navItems.map((item) => (
                     <Link
@@ -41,10 +41,8 @@ export default function MainAppLayout({
                             : 'text-muted-foreground hover:bg-muted/50'
                         )}
                     >
-                        <div className={cn("p-2 rounded-full", pathname === item.href ? 'bg-primary/10' : '')}>
-                         <item.icon className="h-6 w-6" />
-                        </div>
-                        <span className={cn(pathname === item.href ? 'font-semibold' : '')}>{item.label}</span>
+                        <item.icon className="h-6 w-6" />
+                        <span className={cn('font-medium', pathname === item.href ? 'text-primary' : 'text-muted-foreground')}>{item.label}</span>
                     </Link>
                     ))}
                 </div>

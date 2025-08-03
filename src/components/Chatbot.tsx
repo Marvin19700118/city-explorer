@@ -116,7 +116,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
           </SheetDescription>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+        <ScrollArea className="flex-1 p-4 bg-accent" ref={scrollAreaRef}>
           <div className="space-y-4">
             {messages.map((msg, index) => (
               <div
@@ -138,13 +138,13 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
                     'max-w-xs rounded-lg px-4 py-2 text-sm',
                     msg.role === 'user'
                       ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
+                      : 'bg-background'
                   )}
                 >
                   <p className="whitespace-pre-wrap">{msg.content}</p>
                 </div>
                  {msg.role === 'user' && (
-                  <Avatar className="h-8 w-8 bg-accent/80 text-accent-foreground">
+                  <Avatar className="h-8 w-8 bg-secondary text-secondary-foreground">
                     <AvatarFallback>
                       <User size={20} />
                     </AvatarFallback>
@@ -159,7 +159,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
                       <Bot size={20} />
                     </AvatarFallback>
                   </Avatar>
-                   <div className="max-w-xs rounded-lg px-4 py-2 text-sm bg-muted flex items-center gap-2">
+                   <div className="max-w-xs rounded-lg px-4 py-2 text-sm bg-background flex items-center gap-2">
                        <span className="w-2 h-2 bg-primary rounded-full animate-pulse delay-0"></span>
                        <span className="w-2 h-2 bg-primary rounded-full animate-pulse delay-150"></span>
                        <span className="w-2 h-2 bg-primary rounded-full animate-pulse delay-300"></span>
