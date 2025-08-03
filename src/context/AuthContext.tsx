@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const client = window.google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
         scope: DRIVE_SCOPE,
+        redirect_uri: window.location.origin, // Explicitly set the redirect URI
         callback: (tokenResponse: any) => {
           if (tokenResponse && tokenResponse.access_token) {
             tokenResponse.created_at = Date.now();
