@@ -217,7 +217,7 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
 
     if (showResult) {
         return isLastQuestion ? (
-            <Button onClick={handleNextQuestion} className="w-full bg-accent hover:bg-accent/90">完成問答</Button>
+            <Button onClick={handleNextQuestion} className="w-full bg-green-500 text-white hover:bg-green-600">完成問答</Button>
         ) : (
             <Button onClick={() => handleNextQuestion()} className="w-full">下一題</Button>
         )
