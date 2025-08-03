@@ -28,23 +28,29 @@ export default function MainAppLayout({
         <div className="relative mx-auto flex h-[800px] max-h-[90vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl border-4 border-gray-300 bg-background shadow-2xl">
             <main className="flex-1 overflow-auto">{children}</main>
 
-            <nav className="absolute bottom-0 left-0 right-0 h-24 border-t border-black/10 bg-background/80 pb-4 backdrop-blur-lg">
-                <div className="mx-auto grid h-full max-w-md grid-cols-4 items-center justify-items-center px-4 pt-2">
-                    {navItems.map((item) => (
-                    <Link
-                        key={item.label}
-                        href={item.href}
-                        className={cn(
-                        'flex flex-col items-center justify-center gap-1 rounded-lg p-2 text-xs font-medium transition-colors w-16 h-14',
-                        pathname === item.href
-                            ? 'text-primary'
-                            : 'text-muted-foreground hover:bg-muted/50'
-                        )}
-                    >
-                        <item.icon className="h-6 w-6" />
-                        <span className={cn('font-medium', pathname === item.href ? 'text-primary' : 'text-muted-foreground')}>{item.label}</span>
-                    </Link>
-                    ))}
+            <nav className="h-20 border-t bg-background shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
+                <div className="mx-auto grid h-full max-w-md grid-cols-4 items-center justify-items-center px-2">
+                    {navItems.map((item) => {
+                      const isActive = pathname === item.href;
+                      return (
+                        <Link
+                            key={item.label}
+                            href={item.href}
+                            className={cn(
+                            'flex flex-col items-center justify-center gap-1 rounded-full p-2 text-xs font-medium transition-colors w-20 h-10',
+                            !isActive && 'text-muted-foreground hover:bg-muted/50'
+                            )}
+                        >
+                          <div className={cn(
+                              'flex h-8 w-16 items-center justify-center rounded-full',
+                               isActive ? 'bg-primary/20 text-primary' : 'text-muted-foreground'
+                          )}>
+                             <item.icon className="h-6 w-6" />
+                          </div>
+                           <span className={cn('font-semibold', isActive ? 'text-primary' : 'text-muted-foreground')}>{item.label}</span>
+                        </Link>
+                      )
+                    })}
                 </div>
             </nav>
         </div>

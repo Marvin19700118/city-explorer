@@ -20,7 +20,7 @@ export const StatusBar = () => {
       </Card>
        <Card className="flex flex-col items-center justify-center rounded-lg p-3 text-center h-full border">
          <div className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-blue-500" />
+            <MapPin className="h-5 w-5 text-primary" />
             <span className="text-sm text-muted-foreground">目前位置</span>
         </div>
         {currentArea ? (

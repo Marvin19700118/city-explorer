@@ -339,7 +339,7 @@ export default function MapPage() {
             onClick={handleOpenGuide}
             disabled={!position || isGuideLoading}
             size="icon"
-            className="bg-sky-500 hover:bg-sky-600"
+            className="bg-blue-500 hover:bg-blue-600 text-white"
           >
             <Mic />
           </Button>
@@ -347,7 +347,7 @@ export default function MapPage() {
               onClick={handleStartLocalChallenge} 
               disabled={!position} 
               size="icon"
-              className="bg-accent hover:bg-accent/90"
+              className="bg-amber-500 hover:bg-amber-600 text-white"
           >
             <Trophy />
           </Button>
@@ -372,7 +372,7 @@ export default function MapPage() {
         />
       </div>
 
-      <div className="p-2 border-t-2 border-primary/20">
+      <div className="p-2 border-t bg-background">
         <StatusBar />
       </div>
 

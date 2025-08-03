@@ -116,7 +116,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
           </SheetDescription>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 p-4 bg-accent" ref={scrollAreaRef}>
+        <ScrollArea className="flex-1 p-4 bg-secondary" ref={scrollAreaRef}>
           <div className="space-y-4">
             {messages.map((msg, index) => (
               <div
