@@ -370,12 +370,13 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips
           <MarkerF
             position={userPosition}
             icon={{
-              path: 'M-10,0a10,10 0 1,0 20,0a10,10 0 1,0 -20,0',
+              path: 'M12 2C9.24 2 7 4.24 7 7c0 2.25 1.81 4.12 4.1 4.91V14H9v2h2v7h2v-7h2v-2h-2.1c2.29-.79 4.1-2.66 4.1-4.91 0-2.76-2.24-5-5-5zm0 8c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z',
               fillColor: 'hsl(var(--primary))',
               fillOpacity: 1,
-              strokeColor: 'hsl(var(--primary-foreground))',
+              strokeColor: 'hsl(var(--background))',
               strokeWeight: 2,
-              scale: 1,
+              scale: 1.5,
+              anchor: new google.maps.Point(12, 12),
             }}
           />
         )}
