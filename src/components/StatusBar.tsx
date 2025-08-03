@@ -9,7 +9,7 @@ export const StatusBar = () => {
   const { distance, currentArea } = useLocation();
   return (
     <div className="grid grid-cols-2 gap-2">
-      <Card className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-3 text-center">
+      <Card className="flex flex-col items-center justify-center rounded-lg p-3 text-center border">
         <div className="flex items-center gap-2">
             <Footprints className="h-5 w-5 text-accent" />
             <span className="text-sm text-muted-foreground">已探索</span>
@@ -18,14 +18,14 @@ export const StatusBar = () => {
           {distance.toFixed(2)} <span className="text-base font-normal text-muted-foreground">km</span>
         </p>
       </Card>
-       <Card className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-3 text-center h-full">
+       <Card className="flex flex-col items-center justify-center rounded-lg p-3 text-center h-full border">
          <div className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-blue-500" />
             <span className="text-sm text-muted-foreground">目前位置</span>
         </div>
         {currentArea ? (
           <div className="flex flex-col items-center">
-            <p className="font-headline text-base font-bold text-foreground truncate max-w-[120px]">
+            <p className="font-headline text-lg font-bold text-foreground">
               {currentArea.village || currentArea.district}
             </p>
             <p className="text-xs text-muted-foreground">

@@ -33,84 +33,237 @@ const mapOptions = {
   disableDefaultUI: true,
   zoomControl: false,
   styles: [
-    { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
-    { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
-    { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
     {
-      featureType: 'administrative.locality',
-      elementType: 'labels.text.fill',
-      stylers: [{ color: '#d59563' }],
+      "featureType": "all",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#7c93a3"
+        },
+        {
+          "lightness": "-10"
+        }
+      ]
     },
     {
-      featureType: 'poi',
-      elementType: 'labels.text.fill',
-      stylers: [{ color: '#d59563' }],
+      "featureType": "administrative.country",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "visibility": "on"
+        }
+      ]
     },
     {
-      featureType: 'poi.park',
-      elementType: 'geometry',
-      stylers: [{ color: '#263c3f' }],
+      "featureType": "administrative.country",
+      "elementType": "geometry.stroke",
+      "stylers": [
+        {
+          "color": "#a0a4a5"
+        }
+      ]
     },
     {
-      featureType: 'poi.park',
-      elementType: 'labels.text.fill',
-      stylers: [{ color: '#6b9a76' }],
+      "featureType": "administrative.province",
+      "elementType": "geometry.stroke",
+      "stylers": [
+        {
+          "color": "#62838e"
+        }
+      ]
     },
     {
-      featureType: 'road',
-      elementType: 'geometry',
-      stylers: [{ color: '#38414e' }],
+      "featureType": "landscape",
+      "elementType": "geometry.fill",
+      "stylers": [
+        {
+          "color": "#f2f2f2"
+        }
+      ]
     },
     {
-      featureType: 'road',
-      elementType: 'geometry.stroke',
-      stylers: [{ color: '#212a37' }],
+      "featureType": "landscape.man_made",
+      "elementType": "geometry.stroke",
+      "stylers": [
+        {
+          "visibility": "off"
+        }
+      ]
     },
     {
-      featureType: 'road',
-      elementType: 'labels.text.fill',
-      stylers: [{ color: '#9ca5b3' }],
+      "featureType": "poi",
+      "elementType": "all",
+      "stylers": [
+        {
+          "visibility": "off"
+        }
+      ]
     },
     {
-      featureType: 'road.highway',
-      elementType: 'geometry',
-      stylers: [{ color: '#746855' }],
+      "featureType": "poi.park",
+      "elementType": "geometry.fill",
+      "stylers": [
+        {
+          "color": "#bae5a6"
+        },
+        {
+          "visibility": "on"
+        }
+      ]
     },
     {
-      featureType: 'road.highway',
-      elementType: 'geometry.stroke',
-      stylers: [{ color: '#1f2835' }],
+      "featureType": "road",
+      "elementType": "all",
+      "stylers": [
+        {
+          "saturation": -100
+        },
+        {
+          "lightness": 45
+        },
+        {
+          "visibility": "simplified"
+        }
+      ]
     },
     {
-      featureType: 'road.highway',
-      elementType: 'labels.text.fill',
-      stylers: [{ color: '#f3d19c' }],
+      "featureType": "road.highway",
+      "elementType": "all",
+      "stylers": [
+        {
+          "visibility": "simplified"
+        }
+      ]
     },
     {
-      featureType: 'transit',
-      elementType: 'geometry',
-      stylers: [{ color: '#2f3948' }],
+      "featureType": "road.highway",
+      "elementType": "geometry.fill",
+      "stylers": [
+        {
+          "color": "#fac9a9"
+        },
+        {
+          "visibility": "simplified"
+        }
+      ]
     },
     {
-      featureType: 'transit.station',
-      elementType: 'labels.text.fill',
-      stylers: [{ color: '#d59563' }],
+      "featureType": "road.highway",
+      "elementType": "labels.text",
+      "stylers": [
+        {
+          "color": "#4e4e4e"
+        }
+      ]
     },
     {
-      featureType: 'water',
-      elementType: 'geometry',
-      stylers: [{ color: '#17263c' }],
+      "featureType": "road.arterial",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#787878"
+        }
+      ]
     },
     {
-      featureType: 'water',
-      elementType: 'labels.text.fill',
-      stylers: [{ color: '#515c6d' }],
+      "featureType": "road.arterial",
+      "elementType": "labels.icon",
+      "stylers": [
+        {
+          "visibility": "off"
+        }
+      ]
     },
     {
-      featureType: 'water',
-      elementType: 'labels.text.stroke',
-      stylers: [{ color: '#17263c' }],
+      "featureType": "transit",
+      "elementType": "all",
+      "stylers": [
+        {
+          "visibility": "simplified"
+        }
+      ]
     },
+    {
+      "featureType": "transit.station.airport",
+      "elementType": "labels.icon",
+      "stylers": [
+        {
+          "hue": "#0a00ff"
+        },
+        {
+          "saturation": "-77"
+        },
+        {
+          "gamma": "2.15"
+        },
+        {
+          "lightness": "12"
+        }
+      ]
+    },
+    {
+      "featureType": "transit.station.rail",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#43321e"
+        }
+      ]
+    },
+    {
+      "featureType": "transit.station.rail",
+      "elementType": "labels.icon",
+      "stylers": [
+        {
+          "hue": "#ff6c00"
+        },
+        {
+          "lightness": "4"
+        },
+        {
+          "gamma": "0.75"
+        },
+        {
+          "saturation": "-68"
+        }
+      ]
+    },
+    {
+      "featureType": "water",
+      "elementType": "all",
+      "stylers": [
+        {
+          "color": "#eaf6f8"
+        },
+        {
+          "visibility": "on"
+        }
+      ]
+    },
+    {
+      "featureType": "water",
+      "elementType": "geometry.fill",
+      "stylers": [
+        {
+          "color": "#c7eced"
+        }
+      ]
+    },
+    {
+      "featureType": "water",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "lightness": "-49"
+        },
+        {
+          "saturation": "-53"
+        },
+        {
+          "gamma": "0.79"
+        }
+      ]
+    }
   ],
 };
 
@@ -211,7 +364,7 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         center={center}
-        zoom={userPosition ? 15 : 12}
+        zoom={userPosition ? 14 : 12}
         options={{...mapOptions, gestureHandling: 'greedy' }}
         onLoad={onLoad}
         onUnmount={onUnmount}
