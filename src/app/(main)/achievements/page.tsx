@@ -50,7 +50,6 @@ export default function AchievementsPage() {
 
       try {
           const cityPoints: CityPoints = JSON.parse(savedCityPoints);
-          
           const discoveredDistricts = Object.keys(cityPoints).filter(key => (cityPoints[key] || 0) > 0);
           
           const stats: ProgressStats = discoveredDistricts.reduce((acc, key) => {
