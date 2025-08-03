@@ -4,9 +4,9 @@
 import * as React from 'react';
 import { Gem, MapPin, Compass } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import type { CityPoints, Title } from '@/lib/types';
 import { TitleIcon } from '@/components/icons';
+import { TitleBadge } from '@/components/TitleBadge';
 
 const TITLES: Title[] = [
     { levelThreshold: 0, name: '新手探險家', icon: 'Feather' },
@@ -140,10 +140,7 @@ export default function AchievementsPage() {
                       <MapPin className="w-5 h-5 text-muted-foreground" />
                       <span>{districtProgress.county} {districtProgress.district}</span>
                     </div>
-                     <Badge variant="outline" className="gap-2 border-accent text-accent">
-                        <TitleIcon title={districtProgress.title.name} className="w-4 h-4"/>
-                        {districtProgress.title.name}
-                     </Badge>
+                     <TitleBadge title={districtProgress.title.name} />
                   </CardTitle>
                   <CardDescription className="flex items-baseline gap-4 pt-2">
                       <span className="font-bold text-lg text-primary">Lvl {districtProgress.level}</span>
