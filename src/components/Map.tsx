@@ -338,7 +338,7 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips
 
   if (loadError) {
     return (
-       <div className="flex h-full w-full items-center justify-center p-4 absolute inset-0 bg-background z-10">
+       <div className="flex h-full w-full items-center justify-center p-4 bg-background z-10">
          <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Map Load Error</AlertTitle>
@@ -351,7 +351,7 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips
   }
 
   if (!isLoaded) {
-    return <Skeleton className="absolute inset-0" />;
+    return <Skeleton className="h-full w-full" />;
   }
   
   const center = userPosition || defaultCenter;
@@ -370,7 +370,7 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips
           <MarkerF
             position={userPosition}
             icon={{
-              path: 'M12 2C9.24 2 7 4.24 7 7c0 2.25 1.81 4.12 4.1 4.91V14H9v2h2v7h2v-7h2v-2h-2.1c2.29-.79 4.1-2.66 4.1-4.91 0-2.76-2.24-5-5-5zm0 8c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z',
+              path: 'M12 3a5.5 5.5 0 0 0-5.5 5.5c0 2.42 1.25 4.54 3 5.68V18.5a1.5 1.5 0 0 0 1.5 1.5h2a1.5 1.5 0 0 0 1.5-1.5v-4.32c1.75-1.14 3-3.26 3-5.68A5.5 5.5 0 0 0 12 3zm-3 8.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm6 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z',
               fillColor: 'hsl(var(--primary))',
               fillOpacity: 1,
               strokeColor: 'hsl(var(--background))',
