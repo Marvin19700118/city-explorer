@@ -109,7 +109,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
         <SheetHeader className="p-4 border-b">
           <SheetTitle className="flex items-center gap-2 font-headline text-primary">
             <Sparkles />
-            AI 智能問答
+            AI 導遊
           </SheetTitle>
           <SheetDescription>
             你的在地導遊，目前在 {locationName || '未知地點'}
