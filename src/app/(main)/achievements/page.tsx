@@ -37,7 +37,7 @@ export default function AchievementsPage() {
   const [visitedDistricts, setVisitedDistricts] = React.useState<string[]>([]);
   const [isClient, setIsClient] = React.useState(false);
 
-  const loadPoints = React.useCallback(() => {
+  const loadPoints = () => {
     const savedCityPoints = localStorage.getItem('cityPoints');
     if (!savedCityPoints) return;
 
@@ -71,7 +71,7 @@ export default function AchievementsPage() {
         // Clear corrupted data
         localStorage.removeItem('cityPoints');
     }
-  }, []);
+  };
 
   React.useEffect(() => {
     setIsClient(true);
@@ -89,7 +89,7 @@ export default function AchievementsPage() {
         window.removeEventListener('storage', handleStorageChange);
     };
 
-  }, [loadPoints]);
+  }, []);
 
   if (!isClient) {
     return (
