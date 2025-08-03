@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { Gem, MapPin, Compass } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { CityPoints, Title } from '@/lib/types';
 import { TitleIcon } from '@/components/icons';
@@ -39,28 +39,38 @@ export default function AchievementsPage() {
 
   const loadPoints = React.useCallback(() => {
     const savedCityPoints = localStorage.getItem('cityPoints');
-    const cityPoints: CityPoints = savedCityPoints ? JSON.parse(savedCityPoints) : {};
-    
-    const discoveredDistricts = Object.keys(cityPoints).filter(key => (cityPoints[key] || 0) > 0);
-    setVisitedDistricts(discoveredDistricts.sort()); // Sort for consistent order
+    if (!savedCityPoints) return;
 
-    const stats: ProgressStats = discoveredDistricts.reduce((acc, key) => {
-      const points = cityPoints[key] || 0;
-      const level = Math.floor(points / POINTS_PER_LEVEL);
-      const title = getTitleForLevel(level);
-      const [county, district] = key.split('-');
+    try {
+        const cityPoints: CityPoints = JSON.parse(savedCityPoints);
+        
+        const discoveredDistricts = Object.keys(cityPoints).filter(key => (cityPoints[key] || 0) > 0);
+        setVisitedDistricts(discoveredDistricts.sort());
 
-      acc[key] = {
-        points,
-        level: level + 1, // Display level as 1-based
-        title,
-        county,
-        district
-      };
-      return acc;
-    }, {} as ProgressStats);
+        const stats: ProgressStats = discoveredDistricts.reduce((acc, key) => {
+          const points = cityPoints[key] || 0;
+          const level = Math.floor(points / POINTS_PER_LEVEL);
+          const title = getTitleForLevel(level);
+          const [county, district] = key.split('-');
 
-    setProgress(stats);
+          if (county && district) {
+            acc[key] = {
+              points,
+              level: level + 1,
+              title,
+              county,
+              district
+            };
+          }
+          return acc;
+        }, {} as ProgressStats);
+
+        setProgress(stats);
+    } catch (e) {
+        console.error("Failed to parse cityPoints from localStorage", e);
+        // Clear corrupted data
+        localStorage.removeItem('cityPoints');
+    }
   }, []);
 
   React.useEffect(() => {
@@ -68,24 +78,32 @@ export default function AchievementsPage() {
     loadPoints();
 
     const handleStorageChange = (e: StorageEvent) => {
-        if (e.key === 'cityPoints') {
+        if (e.key === 'cityPoints' || e.key === null) { // e.key is null when localStorage.clear() is called
             loadPoints();
         }
     };
     
     window.addEventListener('storage', handleStorageChange);
     
-    const intervalId = setInterval(loadPoints, 1000); 
-
     return () => {
         window.removeEventListener('storage', handleStorageChange);
-        clearInterval(intervalId);
     };
 
   }, [loadPoints]);
 
   if (!isClient) {
-    return null; // or a loading skeleton
+    return (
+        <div className="p-4 space-y-4">
+            <div className="flex items-center gap-2 text-2xl font-bold font-headline text-primary">
+                <Gem className="h-6 w-6" />
+                <h2>探索成就</h2>
+            </div>
+             <div className="text-center p-8 bg-muted/50 rounded-lg">
+                <Compass className="w-16 h-16 mx-auto text-accent animate-pulse" />
+                <h3 className="text-2xl font-bold mt-4">讀取中...</h3>
+            </div>
+        </div>
+    );
   }
 
   return (
