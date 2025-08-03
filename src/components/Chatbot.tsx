@@ -105,7 +105,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="top" className="h-[75vh] max-h-[75vh] flex flex-col p-0">
+      <SheetContent side="top" className="h-[calc(100%-88px)] flex flex-col p-0">
         <SheetHeader className="p-4 border-b">
           <SheetTitle className="flex items-center gap-2 font-headline text-primary">
             <Sparkles />
@@ -116,7 +116,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
           </SheetDescription>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 p-4 bg-secondary" ref={scrollAreaRef}>
+        <ScrollArea className="flex-1 p-4 bg-accent" ref={scrollAreaRef}>
           <div className="space-y-4">
             {messages.map((msg, index) => (
               <div
