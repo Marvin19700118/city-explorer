@@ -24,7 +24,7 @@ export default function WelcomePage() {
                 <Sparkles className="h-12 w-12" />
               </div>
               <h1 className="text-3xl font-bold font-headline text-primary">
-                歡迎來到城市探險家
+                歡迎來到 AI tour guide
               </h1>
               <p className="text-muted-foreground">
                 AI 導遊帶你深度探索一個城市的人文，歷史等各種知識，讓你更了解這個城市。 AI 導遊會透過 在地挑戰問答遊戲，podcast 簡介以及導遊chatbot 來跟你互動，讓你輕鬆即時獲取這個城市的知識。
@@ -54,7 +54,7 @@ export default function WelcomePage() {
                   <Utensils className="h-6 w-6 mt-1 text-accent flex-shrink-0" />
                   <div>
                     <h3 className="font-semibold">美食搜尋</h3>
-                    <p className="text-muted-foreground text-xs">尋找您附近的高評價餐廳，並讓 AI 為您產生獨特的餐廳簡介。</p>
+                    <p className="text-muted-foreground text-xs">尋找您附近的高評價餐廳，并讓 AI 為您產生獨特的餐廳簡介。</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">

@@ -46,7 +46,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
       setMessages([
         {
           role: 'model',
-          content: `你好！我是你的在地導遊「城市探險家」。我們現在在${locationName}，有什麼想問的嗎？`,
+          content: `你好！我是你的在地導遊「AI tour guide」。我們現在在${locationName}，有什麼想問的嗎？`,
         },
       ]);
     } else {

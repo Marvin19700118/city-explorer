@@ -324,7 +324,7 @@ export default function MapPage() {
       <header className="flex items-center justify-between gap-1 p-4 font-headline text-2xl font-bold text-primary">
         <div className="flex items-center gap-2">
           <MapPin className="h-6 w-6" />
-          <h1>城市探險家</h1>
+          <h1>AI tour guide</h1>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -372,7 +372,7 @@ export default function MapPage() {
         />
       </div>
 
-      <div className="p-2 border-t bg-background">
+      <div className="p-2 border-t-2 border-primary/20 bg-background">
         <StatusBar />
       </div>
 

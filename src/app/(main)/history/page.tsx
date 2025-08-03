@@ -42,10 +42,10 @@ export default function HistoryPage() {
     ).join('\n    ');
   
     return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="城市探險家" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+<gpx version="1.1" creator="AI tour guide" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
   <metadata>
     <name>Trip on ${new Date(trip.date).toLocaleDateString()}</name>
-    <desc>A trip recorded by 城市探險家 app.</desc>
+    <desc>A trip recorded by AI tour guide app.</desc>
   </metadata>
   <trk>
     <name>Trip on ${new Date(trip.date).toLocaleDateString()}</name>

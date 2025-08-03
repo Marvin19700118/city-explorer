@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata: Metadata = {
-  title: '城市探險家',
+  title: 'AI tour guide',
   description: 'An urban exploration game.',
 };
 
