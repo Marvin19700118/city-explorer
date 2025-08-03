@@ -3,40 +3,41 @@ import { Footprints, MapPin } from 'lucide-react';
 import type { CurrentArea } from '@/lib/types';
 import { useLocation } from '@/context/LocationTrackingContext';
 import { cn } from '@/lib/utils';
+import { Card } from './ui/card';
 
 export const StatusBar = () => {
   const { distance, currentArea } = useLocation();
   return (
-    <div className="flex items-center justify-center gap-4 p-2 h-[88px]">
-      <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-4 w-48 text-center">
-        <Footprints className="h-8 w-8 text-accent" />
-        <p className="font-headline text-2xl font-bold text-foreground mt-1">
-          {distance.toFixed(2)} km
+    <div className="grid grid-cols-2 gap-2">
+      <Card className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-3 text-center">
+        <div className="flex items-center gap-2">
+            <Footprints className="h-5 w-5 text-accent" />
+            <span className="text-sm text-muted-foreground">已探索</span>
+        </div>
+        <p className="font-headline text-2xl font-bold text-foreground">
+          {distance.toFixed(2)} <span className="text-base font-normal text-muted-foreground">km</span>
         </p>
-        <p className="text-sm text-muted-foreground">已探索</p>
-      </div>
-       <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-4 w-48 text-center h-full">
-        <MapPin className="h-8 w-8 text-sky-500" />
+      </Card>
+       <Card className="flex flex-col items-center justify-center rounded-lg bg-muted/50 p-3 text-center h-full">
+         <div className="flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-blue-500" />
+            <span className="text-sm text-muted-foreground">目前位置</span>
+        </div>
         {currentArea ? (
-          <>
-            <p className="font-headline text-lg font-bold text-foreground -mb-1">
+          <div className="flex flex-col items-center">
+            <p className="font-headline text-base font-bold text-foreground truncate max-w-[120px]">
               {currentArea.village || currentArea.district}
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {currentArea.city} {currentArea.district}
             </p>
-          </>
+          </div>
         ) : (
-           <>
-            <p className="font-headline text-lg font-bold text-foreground mt-1">
+           <p className="font-headline text-base font-bold text-muted-foreground mt-1">
                 定位中...
             </p>
-            <p className="text-sm text-muted-foreground">
-                請稍候
-            </p>
-           </>
         )}
-      </div>
+      </Card>
     </div>
   );
 };
