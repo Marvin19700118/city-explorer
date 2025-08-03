@@ -42,14 +42,17 @@ export default function AchievementsPage() {
     
     const loadPoints = () => {
       const savedCityPoints = localStorage.getItem('cityPoints');
-      if (!savedCityPoints) return;
+      if (!savedCityPoints) {
+        setProgress({});
+        setVisitedDistricts([]);
+        return;
+      }
 
       try {
           const cityPoints: CityPoints = JSON.parse(savedCityPoints);
           
           const discoveredDistricts = Object.keys(cityPoints).filter(key => (cityPoints[key] || 0) > 0);
-          setVisitedDistricts(discoveredDistricts.sort());
-
+          
           const stats: ProgressStats = discoveredDistricts.reduce((acc, key) => {
             const points = cityPoints[key] || 0;
             const level = Math.floor(points / POINTS_PER_LEVEL);
@@ -67,19 +70,21 @@ export default function AchievementsPage() {
             }
             return acc;
           }, {} as ProgressStats);
-
-          setProgress(stats); // This was the missing line
+          
+          setVisitedDistricts(Object.keys(stats).sort());
+          setProgress(stats);
       } catch (e) {
           console.error("Failed to parse cityPoints from localStorage", e);
-          // Clear corrupted data
           localStorage.removeItem('cityPoints');
+          setProgress({});
+          setVisitedDistricts([]);
       }
     };
 
     loadPoints();
 
     const handleStorageChange = (e: StorageEvent) => {
-        if (e.key === 'cityPoints' || e.key === null) { // e.key is null when localStorage.clear() is called
+        if (e.key === 'cityPoints' || e.key === null) { 
             loadPoints();
         }
     };
