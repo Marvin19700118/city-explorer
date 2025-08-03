@@ -69,6 +69,7 @@ export default function SettingsPage() {
         const fileId = await getFileId(accessToken);
         const metadata = { name: GDRIVE_FILE_NAME, mimeType: 'application/json' };
         if (!fileId) {
+            // @ts-ignore
             metadata.parents = ['appDataFolder'];
         }
 
@@ -115,6 +116,7 @@ export default function SettingsPage() {
         const fileId = await getFileId(accessToken);
         if (!fileId) {
             toast({ title: t('settings.gdrive.restoreNoFileTitle'), description: t('settings.gdrive.restoreNoFileDescription'), variant: "destructive" });
+            setIsSyncing(false);
             return;
         }
 
@@ -224,4 +226,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

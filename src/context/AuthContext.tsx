@@ -4,13 +4,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const GOOGLE_CLIENT_ID = "103148999584-4e4s7645his87n8eis652dl741ge1c8c.apps.googleusercontent.com";
-const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 
 interface AuthContextType {
   isSignedIn: boolean;
   signOut: () => void;
   getAccessToken: () => Promise<string | null>;
   gsiLoaded: boolean;
+  tokenClient: any;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -18,7 +19,6 @@ const AuthContext = createContext<AuthContextType | null>(null);
 declare global {
   interface Window {
     google: any;
-    gapi: any;
     tokenClient: any;
   }
 }
@@ -26,11 +26,11 @@ declare global {
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [gsiLoaded, setGsiLoaded] = useState(false);
+  const [tokenClient, setTokenClient] = useState<any>(null);
 
-  // Initialize the GSI client
   const initializeGsi = useCallback(() => {
     if (window.google && window.google.accounts) {
-      window.tokenClient = window.google.accounts.oauth2.initTokenClient({
+      const client = window.google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
         scope: DRIVE_SCOPE,
         callback: (tokenResponse: any) => {
@@ -41,26 +41,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         },
       });
+      setTokenClient(client);
       setGsiLoaded(true);
     }
   }, []);
   
-  // Load GSI script
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = initializeGsi;
-    document.body.appendChild(script);
-    
-    return () => {
-      document.body.removeChild(script);
-    };
+    const script = document.getElementById('gsi-client-script');
+    if (script && window.google) {
+        initializeGsi();
+    } else {
+        const newScript = document.createElement('script');
+        newScript.id = 'gsi-client-script';
+        newScript.src = 'https://accounts.google.com/gsi/client';
+        newScript.async = true;
+        newScript.defer = true;
+        newScript.onload = initializeGsi;
+        document.body.appendChild(newScript);
+    }
   }, [initializeGsi]);
 
 
-  // Check for existing token on load
   useEffect(() => {
     const token = localStorage.getItem('gdrive_token');
     if (token) {
@@ -79,17 +80,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const tokenItem = localStorage.getItem('gdrive_token');
     if (tokenItem) {
       const token = JSON.parse(tokenItem).access_token;
-      if (token && window.google && window.google.accounts) {
+      if (token && window.google && window.google.accounts && window.google.accounts.oauth2) {
         window.google.accounts.oauth2.revoke(token, () => {
-          localStorage.removeItem('gdrive_token');
-          setIsSignedIn(false);
+          // Callback after revocation
         });
-      } else {
-        // Fallback if token or google api is not available
-        localStorage.removeItem('gdrive_token');
-        setIsSignedIn(false);
       }
     }
+    localStorage.removeItem('gdrive_token');
+    setIsSignedIn(false);
   };
   
   const getAccessToken = async (): Promise<string | null> => {
@@ -102,28 +100,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const expiresAt = (tokenData.created_at || 0) + (tokenData.expires_in || 0) * 1000;
     if (Date.now() > expiresAt - 5 * 60 * 1000) {
         return new Promise((resolve, reject) => {
-            if (window.tokenClient) {
+            if (tokenClient) {
                 // The callback in initTokenClient will handle saving the new token.
-                window.tokenClient.requestAccessToken({ prompt: '' });
-
-                // Poll for the new token, as the callback is asynchronous.
-                const interval = setInterval(() => {
-                    const newTokenItem = localStorage.getItem('gdrive_token');
-                    if(newTokenItem) {
-                        const newTokenData = JSON.parse(newTokenItem);
-                        // Check if the new token is different from the old one
-                        if (newTokenData.access_token !== tokenData.access_token) {
-                           clearInterval(interval);
-                           resolve(newTokenData.access_token);
-                        }
+                const originalCallback = tokenClient.callback;
+                tokenClient.callback = (tokenResponse: any) => {
+                    originalCallback(tokenResponse); // Call original callback
+                    if (tokenResponse && tokenResponse.access_token) {
+                       resolve(tokenResponse.access_token);
+                    } else {
+                       reject(new Error("Token refresh failed."));
                     }
-                }, 500);
-
-                // Timeout to prevent an infinite loop in case of an issue
-                setTimeout(() => { 
-                    clearInterval(interval);
-                    reject(new Error("Token refresh timeout"));
-                }, 10000);
+                };
+                tokenClient.requestAccessToken({ prompt: '' });
             } else {
                 reject(new Error("Token client not initialized for refresh"));
             }
@@ -134,7 +122,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ isSignedIn, signOut, getAccessToken, gsiLoaded }}>
+    <AuthContext.Provider value={{ isSignedIn, signOut, getAccessToken, gsiLoaded, tokenClient }}>
       {children}
     </AuthContext.Provider>
   );
