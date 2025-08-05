@@ -8,6 +8,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { LocationTrackingProvider } from '@/context/LocationTrackingContext';
 import { I18nProvider, useI18n } from '@/context/I18nContext';
+import { AuthProvider } from '@/context/AuthContext';
 
 const NavItemsWrapper = ({ children }: { children: React.ReactNode }) => {
   const { t } = useI18n();
@@ -62,12 +63,14 @@ export default function MainAppLayout({
 }) {
 
   return (
-    <I18nProvider>
-      <LocationTrackingProvider>
-          <div className="flex min-h-screen flex-col items-center justify-center bg-gray-200 font-body text-foreground">
-            <NavItemsWrapper>{children}</NavItemsWrapper>
-          </div>
-      </LocationTrackingProvider>
-    </I18nProvider>
+    <AuthProvider>
+      <I18nProvider>
+        <LocationTrackingProvider>
+            <div className="flex min-h-screen flex-col items-center justify-center bg-gray-200 font-body text-foreground">
+              <NavItemsWrapper>{children}</NavItemsWrapper>
+            </div>
+        </LocationTrackingProvider>
+      </I18nProvider>
+    </AuthProvider>
   );
 }
