@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Map, BrainCircuit, Utensils, Gem, Sparkles, ArrowRight } from 'lucide-react';
+import { Map, BrainCircuit, Utensils, Gem, Sparkles, ArrowRight, Landmark } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function WelcomePage() {
@@ -41,6 +41,13 @@ export default function WelcomePage() {
                   <div>
                     <h3 className="font-semibold">地圖探索</h3>
                     <p className="text-muted-foreground text-xs">在真實世界中移動，揭開地圖上的戰爭迷霧，發現新的興趣點。</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-4">
+                  <Landmark className="h-6 w-6 mt-1 text-accent flex-shrink-0" />
+                  <div>
+                    <h3 className="font-semibold">熱門景點</h3>
+                    <p className="text-muted-foreground text-xs">尋找附近的熱門景點，聆聽 AI 語音導覽，並透過趣味問答深入了解景點故事。</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
