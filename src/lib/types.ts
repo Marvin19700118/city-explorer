@@ -154,6 +154,7 @@ export type GenerateAttractionInfoInput = z.infer<typeof GenerateAttractionInfoI
 
 export const GenerateAttractionInfoOutputSchema = z.object({
     introduction: z.string().describe("A short, engaging introduction of the attraction (100-150 words)."),
-    quiz: z.array(QuizQuestionSchema).describe('An array of 3 quiz questions about the attraction.')
+    quiz: z.array(QuizQuestionSchema).describe('An array of 3 quiz questions about the attraction.'),
+    audioDataUri: z.string().nullable().describe('A data URI of the introduction audio in WAV format.'),
 });
 export type GenerateAttractionInfoOutput = z.infer<typeof GenerateAttractionInfoOutputSchema>;

@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Star, MapPin, BrainCircuit, Sparkles, FileText, Loader2 } from 'lucide-react';
+import { Star, MapPin, BrainCircuit, Sparkles, FileText, Loader2, Mic } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { generateAttractionInfo as generateAttractionInfoAction } from '@/app/actions';
@@ -31,6 +31,7 @@ export const AttractionCard: React.FC<AttractionCardProps> = ({ place, onQuizCom
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isIntroModalOpen, setIsIntroModalOpen] = React.useState(false);
   const [isQuizModalOpen, setIsQuizModalOpen] = React.useState(false);
+  const audioRef = React.useRef<HTMLAudioElement>(null);
   
   const photoUrl = place.photos?.[0]?.getUrl({ maxWidth: 400, maxHeight: 400 }) || 'https://placehold.co/400x400.png';
   
@@ -78,6 +79,14 @@ export const AttractionCard: React.FC<AttractionCardProps> = ({ place, onQuizCom
       }
     }
   };
+  
+  React.useEffect(() => {
+    if (isIntroModalOpen && attractionInfo?.audioDataUri && audioRef.current) {
+        audioRef.current.src = attractionInfo.audioDataUri;
+        audioRef.current.play().catch(e => console.error("Audio autoplay failed:", e));
+    }
+  }, [isIntroModalOpen, attractionInfo]);
+
 
   const handleStartQuiz = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -144,7 +153,7 @@ export const AttractionCard: React.FC<AttractionCardProps> = ({ place, onQuizCom
           
           <div className="p-2 border-t bg-muted/30 grid grid-cols-3 gap-2">
              <Button variant="ghost" size="sm" onClick={handleShowIntro} disabled={isGenerating}>
-              {isGenerating && !attractionInfo ? <Loader2 className="animate-spin" /> : <FileText />}
+              {isGenerating && !attractionInfo ? <Loader2 className="animate-spin" /> : <Mic />}
                 AI 介紹
              </Button>
              <Button variant="ghost" size="sm" onClick={handleStartQuiz} disabled={isGenerating}>
@@ -170,9 +179,17 @@ export const AttractionCard: React.FC<AttractionCardProps> = ({ place, onQuizCom
               由 AI tour guide 為您產生的專屬介紹
             </DialogDescription>
           </DialogHeader>
-          <p className="py-4 text-foreground leading-relaxed">
-            {attractionInfo?.introduction || "正在生成介紹..."}
-          </p>
+          <div className="py-4 space-y-4">
+            <p className="text-foreground leading-relaxed">
+                {attractionInfo?.introduction || "正在生成介紹..."}
+            </p>
+            {attractionInfo?.audioDataUri && (
+                <audio ref={audioRef} controls className="w-full">
+                    <source src={attractionInfo.audioDataUri} type="audio/wav" />
+                    您的瀏覽器不支援音訊播放。
+                </audio>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
       

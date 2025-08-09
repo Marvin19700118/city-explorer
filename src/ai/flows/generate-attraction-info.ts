@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview An AI flow to generate an introduction and a quiz for a tourist attraction.
+ * @fileOverview An AI flow to generate an introduction, a quiz, and audio for a tourist attraction.
  *
  * - generateAttractionInfo - A function that handles the generation.
  * - GenerateAttractionInfoInput - The input type for the function.
@@ -12,6 +12,36 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { GenerateAttractionInfoInputSchema, GenerateAttractionInfoOutputSchema, GenerateAttractionInfoInput, GenerateAttractionInfoOutput } from '@/lib/types';
+import wav from 'wav';
+import { googleAI } from '@genkit-ai/googleai';
+
+
+async function toWav(
+  pcmData: Buffer,
+  channels = 1,
+  rate = 24000,
+  sampleWidth = 2
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const writer = new wav.Writer({
+      channels,
+      sampleRate: rate,
+      bitDepth: sampleWidth * 8,
+    });
+
+    let bufs = [] as any[];
+    writer.on('error', reject);
+    writer.on('data', function (d) {
+      bufs.push(d);
+    });
+    writer.on('end', function () {
+      resolve(Buffer.concat(bufs).toString('base64'));
+    });
+
+    writer.write(pcmData);
+    writer.end();
+  });
+}
 
 
 const generateAttractionInfoFlow = ai.defineFlow(
@@ -32,19 +62,64 @@ const generateAttractionInfoFlow = ai.defineFlow(
 
 請將最終結果以一個 JSON 物件的形式回傳，包含 'introduction' 和 'quiz' 兩個欄位。`;
 
-    const { output } = await ai.generate({
+    const { output: infoOutput } = await ai.generate({
         prompt: prompt,
         model: 'googleai/gemini-2.0-flash',
         output: {
-            schema: GenerateAttractionInfoOutputSchema,
+            schema: z.object({
+                introduction: z.string(),
+                quiz: z.array(z.any()),
+            }),
         }
     });
 
-    return output!;
+    if (!infoOutput) {
+        throw new Error("Failed to generate attraction info text and quiz.");
+    }
+    
+    const { introduction, quiz } = infoOutput;
+
+    // Generate TTS from the introduction
+    const { media } = await ai.generate({
+        model: googleAI.model('gemini-2.5-flash-preview-tts'),
+        config: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Algenib' },
+            },
+          },
+        },
+        prompt: introduction,
+      });
+
+      if (!media) {
+        // Don't throw, just return without audio
+        return {
+          introduction,
+          quiz,
+          audioDataUri: null,
+        }
+      }
+
+      const audioBuffer = Buffer.from(
+        media.url.substring(media.url.indexOf(',') + 1),
+        'base64'
+      );
+
+      const wavBase64 = await toWav(audioBuffer);
+      const audioDataUri = 'data:audio/wav;base64,' + wavBase64;
+    
+      return {
+        introduction,
+        quiz,
+        audioDataUri,
+      };
   }
 );
 
 
 export async function generateAttractionInfo(input: GenerateAttractionInfoInput): Promise<GenerateAttractionInfoOutput> {
-    return generateAttractionInfoFlow(input);
+    const result = await generateAttractionInfoFlow(input);
+    return result;
 }
