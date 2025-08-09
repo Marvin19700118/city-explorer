@@ -42,7 +42,8 @@ export default function SettingsPage() {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
     if (!response.ok) {
-        throw new Error('Failed to search for file in Google Drive.');
+        const errorData = await response.json().catch(() => ({ error: { message: 'Failed to search for file in Google Drive.' } }));
+        throw new Error(`Failed to search for file: ${errorData.error.message}`);
     }
     const data = await response.json();
     return data.files.length > 0 ? data.files[0].id : null;
@@ -125,7 +126,8 @@ export default function SettingsPage() {
         });
 
         if (!response.ok) {
-             throw new Error("Failed to download file from Google Drive.");
+             const errorData = await response.json().catch(() => ({ error: { message: 'Failed to download file from Google Drive.' } }));
+             throw new Error(`Failed to download file: ${errorData.error.message}`);
         }
 
         const saveData: GameSaveData = await response.json();
