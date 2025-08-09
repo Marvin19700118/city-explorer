@@ -26,13 +26,14 @@ type QuizModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onQuizComplete: (xpGained: number, county: string, district: string) => void;
+  overrideQuizData?: QuizData | null;
 };
 
 const XP_PER_CORRECT_ANSWER = 10;
 const PERFECT_SCORE_BONUS_XP = 50;
 
 
-export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalProps) => {
+export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete, overrideQuizData = null }: QuizModalProps) => {
   const [quizData, setQuizData] = React.useState<QuizData | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(0);
@@ -43,6 +44,12 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
 
   const fetchQuiz = React.useCallback(async () => {
     if (!poi) return;
+
+    if (overrideQuizData) {
+        setQuizData(overrideQuizData);
+        return;
+    }
+
     setIsLoading(true);
     setQuizData(null);
     try {
@@ -68,7 +75,7 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
     } finally {
       setIsLoading(false);
     }
-  }, [poi, onClose, toast]);
+  }, [poi, onClose, toast, overrideQuizData]);
 
   React.useEffect(() => {
     if (isOpen && poi) {
@@ -107,8 +114,8 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
            onQuizComplete(finalXp, poi.county, poi.district);
         }
 
-        // Save asked questions to localStorage
-        if (poi?.district && quizData?.questions) {
+        // Save asked questions to localStorage only for non-overridden quizzes
+        if (!overrideQuizData && poi?.district && quizData?.questions) {
             const askedQuestionsJSON = localStorage.getItem('askedQuestions');
             const askedQuestionHistory: AskedQuestionHistory = askedQuestionsJSON ? JSON.parse(askedQuestionsJSON) : {};
             const newQuestions = quizData.questions.map(q => q.question);
@@ -143,6 +150,10 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
           </div>
         </div>
       );
+    }
+    
+    if (!isLoading && !quizData) {
+        return <p>正在載入問答...</p>
     }
 
     if (isQuizFinished) {
@@ -207,7 +218,7 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
   };
   
   const renderFooter = () => {
-    if (isLoading) return null;
+    if (isLoading || (!isLoading && !quizData)) return null;
 
     if (isQuizFinished) {
         return <Button onClick={onClose} className="w-full">關閉</Button>
@@ -231,10 +242,10 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete }: QuizModalPro
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-headline text-2xl text-primary">
-            <BrainCircuit /> {poi?.name === '目前位置' ? '在地挑戰' : `區域問答: ${poi?.name}`}
+            <BrainCircuit /> {poi?.name === '目前位置' ? '在地挑戰' : `趣味問答: ${poi?.name}`}
           </DialogTitle>
           <DialogDescription>
-            測試您對這個區域的了解程度！
+            測試您對這個景點的了解程度！
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">{renderContent()}</div>

@@ -4,11 +4,15 @@ import type { LucideIcon } from 'lucide-react';
 
 export type Locale = 'en' | 'zh';
 
-export type QuizQuestion = {
-  question: string;
-  answers: string[];
-  correctAnswerIndex: number;
-};
+export const QuizQuestionSchema = z.object({
+  question: z.string().describe('The quiz question.'),
+  answers: z.array(z.string()).describe('An array of 4 possible answers to the question.'),
+  correctAnswerIndex: z
+    .number()
+    .describe('The index of the correct answer in the answers array.'),
+});
+export type QuizQuestion = z.infer<typeof QuizQuestionSchema>;
+
 
 export type QuizData = {
   questions: QuizQuestion[];
@@ -101,15 +105,7 @@ export const GenerateAreaQuizInputSchema = z.object({
 export type GenerateAreaQuizInput = z.infer<typeof GenerateAreaQuizInputSchema>;
 
 export const GenerateAreaQuizOutputSchema = z.object({
-  quiz: z.array(
-    z.object({
-      question: z.string().describe('The quiz question.'),
-      answers: z.array(z.string()).describe('An array of 4 possible answers to the question.'),
-      correctAnswerIndex: z
-        .number()
-        .describe('The index of the correct answer in the answers array.'),
-    })
-  ).describe('An array of quiz questions, their answers, and correct answer indices.'),
+  quiz: z.array(QuizQuestionSchema).describe('An array of quiz questions, their answers, and correct answer indices.'),
 });
 export type GenerateAreaQuizOutput = z.infer<typeof GenerateAreaQuizOutputSchema>;
 
@@ -146,3 +142,18 @@ export const GenerateRestaurantDescriptionOutputSchema = z.object({
     description: z.string().describe("A short, engaging description of the restaurant (50-70 words).")
 });
 export type GenerateRestaurantDescriptionOutput = z.infer<typeof GenerateRestaurantDescriptionOutputSchema>;
+
+
+// For generate-attraction-info.ts
+export const GenerateAttractionInfoInputSchema = z.object({
+    attractionName: z.string().describe("The name of the tourist attraction."),
+    attractionAddress: z.string().describe("The address of the tourist attraction."),
+    locale: z.custom<Locale>().optional().default('zh'),
+});
+export type GenerateAttractionInfoInput = z.infer<typeof GenerateAttractionInfoInputSchema>;
+
+export const GenerateAttractionInfoOutputSchema = z.object({
+    introduction: z.string().describe("A short, engaging introduction of the attraction (100-150 words)."),
+    quiz: z.array(QuizQuestionSchema).describe('An array of 3 quiz questions about the attraction.')
+});
+export type GenerateAttractionInfoOutput = z.infer<typeof GenerateAttractionInfoOutputSchema>;

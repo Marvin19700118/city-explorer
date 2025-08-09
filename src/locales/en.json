@@ -5,7 +5,8 @@
     "food": "Food",
     "history": "History",
     "achievements": "Achievements",
-    "settings": "Settings"
+    "settings": "Settings",
+    "attractions": "Attractions"
   },
   "common": {
     "loading": "Loading...",

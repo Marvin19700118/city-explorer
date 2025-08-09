@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Map, Gem, History, Utensils, Settings } from 'lucide-react';
+import { Map, Gem, History, Utensils, Settings, Landmark } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -16,10 +16,10 @@ const NavItemsWrapper = ({ children }: { children: React.ReactNode }) => {
 
   const navItems = [
     { href: '/map', label: t('nav.map'), icon: Map },
+    { href: '/attractions', label: t('nav.attractions'), icon: Landmark },
     { href: '/food', label: t('nav.food'), icon: Utensils },
     { href: '/history', label: t('nav.history'), icon: History },
     { href: '/achievements', label: t('nav.achievements'), icon: Gem },
-    { href: '/settings', label: t('nav.settings'), icon: Settings },
   ];
 
   return (
@@ -63,14 +63,14 @@ export default function MainAppLayout({
 }) {
 
   return (
-    <AuthProvider>
-      <I18nProvider>
-        <LocationTrackingProvider>
-            <div className="flex min-h-screen flex-col items-center justify-center bg-gray-200 font-body text-foreground">
-              <NavItemsWrapper>{children}</NavItemsWrapper>
-            </div>
-        </LocationTrackingProvider>
-      </I18nProvider>
-    </AuthProvider>
+    <I18nProvider>
+      <LocationTrackingProvider>
+          <div className="flex min-h-screen flex-col items-center justify-center bg-gray-200 font-body text-foreground">
+            <AuthProvider>
+                <NavItemsWrapper>{children}</NavItemsWrapper>
+            </AuthProvider>
+          </div>
+      </LocationTrackingProvider>
+    </I18nProvider>
   );
 }

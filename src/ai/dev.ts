@@ -6,3 +6,4 @@ import '@/ai/flows/generate-area-quiz.ts';
 import '@/ai/flows/generate-chatbot-response.ts';
 import '@/ai/flows/generate-location-intro.ts';
 import '@/ai/flows/generate-restaurant-description.ts';
+import '@/ai/flows/generate-attraction-info.ts';
