@@ -20,6 +20,7 @@ const NavItemsWrapper = ({ children }: { children: React.ReactNode }) => {
     { href: '/food', label: t('nav.food'), icon: Utensils },
     { href: '/history', label: t('nav.history'), icon: History },
     { href: '/achievements', label: t('nav.achievements'), icon: Gem },
+    { href: '/settings', label: t('nav.settings'), icon: Settings },
   ];
 
   return (
@@ -27,7 +28,7 @@ const NavItemsWrapper = ({ children }: { children: React.ReactNode }) => {
       <main className="flex-1 overflow-auto">{children}</main>
 
       <nav className="h-20 border-t bg-background/80 shadow-[0_-1px_3px_rgba(0,0,0,0.1)] backdrop-blur-sm">
-        <div className="mx-auto grid h-full max-w-md grid-cols-5 items-center justify-items-center px-2">
+        <div className="mx-auto grid h-full max-w-md grid-cols-6 items-center justify-items-center px-2">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (
