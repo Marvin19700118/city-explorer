@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-const GOOGLE_CLIENT_ID = "103148999584-4e4s7645his87n8eis652dl741ge1c8c.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "466060292717-en70sgcdvkf5dslg6413hg7rvhpu4et9.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 
 interface AuthContextType {
