@@ -11,7 +11,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { GenerateAttractionInfoInputSchema, GenerateAttractionInfoOutputSchema, GenerateAttractionInfoInput, GenerateAttractionInfoOutput } from '@/lib/types';
+import { GenerateAttractionInfoInputSchema, GenerateAttractionInfoOutputSchema, GenerateAttractionInfoInput, GenerateAttractionInfoOutput, QuizQuestionSchema } from '@/lib/types';
 import wav from 'wav';
 import { googleAI } from '@genkit-ai/googleai';
 
@@ -52,34 +52,44 @@ const generateAttractionInfoFlow = ai.defineFlow(
   },
   async (input) => {
     
-    const prompt = `你是一位風趣幽默、知識淵博的在地導遊 AI。
-你的任務是為觀光景點「${input.attractionName}」產生一段引人入勝的介紹和一個有趣的問答測驗。
+    // Step 1: Generate Introduction Text
+    const introPrompt = `你是一位風趣幽默、知識淵博的在地導遊 AI。
+你的任務是為觀光景點「${input.attractionName}」產生一段引人入勝的介紹。
 地址位於「${input.attractionAddress}」。
+請產生一段約 100-150 字的生動簡介。內容可以包含歷史、文化、特色、或有趣的小知識。文筆要像個真正的部落客，風趣、有吸引力，並使用繁體中文。`;
 
-1.  **介紹 (introduction)**: 產生一段約 100-150 字的生動簡介。內容可以包含歷史、文化、特色、或有趣的小知識。文筆要像個真正的部落客，風趣、有吸引力，並使用繁體中文。
+    const { text: introduction } = await ai.generate({
+        prompt: introPrompt,
+        model: 'googleai/gemini-2.0-flash',
+    });
 
-2.  **測驗 (quiz)**: 產生一個包含 3 個問題的選擇題測驗。每個問題應有 4 個可能的答案。問題應與該景點的歷史、文化或特色相關且有趣。將測驗結果輸出為 JSON 物件。每個問題應包含一個 question 欄位、一個 answers 欄位（包含 4 個字串的陣列）以及一個 correctAnswerIndex 欄位（答案在 answers 陣列中的 0-based 索引）。
+    if (!introduction) {
+        throw new Error("Failed to generate attraction introduction text.");
+    }
 
-請將最終結果以一個 JSON 物件的形式回傳，包含 'introduction' 和 'quiz' 兩個欄位。`;
+    // Step 2: Generate Quiz
+    const quizPrompt = `你是一位 AI 測驗產生器。請根據以下景點，產生一個包含 3 個問題的選擇題測驗。每個問題應有 4 個可能的答案。
+問題應與該景點的歷史、文化或特色相關且有趣。
+請用繁體中文回答。
 
-    const { output: infoOutput } = await ai.generate({
-        prompt: prompt,
+景點: ${input.attractionName}
+地址: ${input.attractionAddress}
+
+將測驗結果輸出為 JSON 物件陣列。每個問題應包含一個 question 欄位、一個 answers 欄位（包含 4 個字串的陣列）以及一個 correctAnswerIndex 欄位（答案在 answers 陣列中的 0-based 索引）。`;
+
+    const { output: quiz } = await ai.generate({
+        prompt: quizPrompt,
         model: 'googleai/gemini-2.0-flash',
         output: {
-            schema: z.object({
-                introduction: z.string(),
-                quiz: z.array(z.any()),
-            }),
+            schema: z.array(QuizQuestionSchema),
         }
     });
 
-    if (!infoOutput) {
-        throw new Error("Failed to generate attraction info text and quiz.");
+    if (!quiz) {
+        throw new Error("Failed to generate attraction quiz.");
     }
     
-    const { introduction, quiz } = infoOutput;
-
-    // Generate TTS from the introduction
+    // Step 3: Generate TTS from the introduction
     const { media } = await ai.generate({
         model: googleAI.model('gemini-2.5-flash-preview-tts'),
         config: {
