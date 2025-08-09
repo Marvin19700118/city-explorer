@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -16,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Chatbot } from '@/components/Chatbot';
 import { createQuiz } from '@/app/actions';
 import { generateLocationIntro as generateLocationIntroAction } from '@/app/actions';
+import Link from 'next/link';
 
 const TAIPEI_CENTER = { lat: 25.0330, lng: 121.5654 };
 
@@ -321,10 +323,10 @@ export default function MapPage() {
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center justify-between gap-1 p-4 font-headline text-2xl font-bold text-primary">
-        <div className="flex items-center gap-2">
+        <Link href="/welcome" className="flex items-center gap-2 transition-opacity hover:opacity-80">
           <MapPin className="h-6 w-6" />
           <h1>AI 城市導遊</h1>
-        </div>
+        </Link>
         <div className="flex items-center gap-2">
           <Button
             onClick={handleToggleChatbot}
