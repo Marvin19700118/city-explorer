@@ -8,16 +8,18 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Terminal, WifiOff } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AttractionList } from '@/components/AttractionList';
-import { Button } from '@/components/ui/button';
 import { useJsApiLoader } from '@react-google-maps/api';
 
 const libraries: ('maps' | 'places')[] = ['maps', 'places'];
 
+type Places = (google.maps.places.PlaceResult & { distance?: number })[];
+
 export default function AttractionsPage() {
   const { position, loading, error } = useLocation();
   const [isClient, setIsClient] = React.useState(false);
-  const [places, setPlaces] = React.useState<(google.maps.places.PlaceResult & { distance?: number })[] | null>(null);
+  const [places, setPlaces] = React.useState<Places | null>(null);
   const [isSearching, setIsSearching] = React.useState(false);
+  const [hasSearched, setHasSearched] = React.useState(false);
 
   const { isLoaded: isMapApiLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
@@ -25,17 +27,66 @@ export default function AttractionsPage() {
     libraries,
   });
 
+  const searchNearbyAttractions = React.useCallback(async (): Promise<Places> => {
+    return new Promise((resolve) => {
+      if (!position || !isMapApiLoaded) {
+        console.error("Position or Google Maps Places service not available.");
+        return resolve([]);
+      }
+      
+      const placesService = new google.maps.places.PlacesService(document.createElement('div'));
+      const request: google.maps.places.PlaceSearchRequest = {
+        location: new google.maps.LatLng(position.lat, position.lng),
+        radius: 10000, // 10km
+        type: 'tourist_attraction',
+        fields: ['name', 'geometry', 'photos', 'place_id', 'rating', 'types', 'vicinity'],
+      };
+
+      placesService.nearbySearch(request, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          const attractions = results.filter(place => (place.rating || 0) > 4.2);
+
+          if (google.maps.geometry?.spherical) {
+            const placesWithDistance = attractions.map(place => {
+              const placeLocation = place.geometry?.location;
+              if (placeLocation) {
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(
+                  new google.maps.LatLng(position.lat, position.lng),
+                  placeLocation
+                );
+                return { ...place, distance };
+              }
+              return { ...place, distance: Infinity };
+            });
+            placesWithDistance.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
+            resolve(placesWithDistance);
+          } else {
+            resolve(attractions);
+          }
+        } else {
+          console.error(`Places search failed with status: ${status}`);
+          resolve([]);
+        }
+      });
+    });
+  }, [position, isMapApiLoaded]);
+  
   React.useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const handleSearch = async (searchFn: () => Promise<(google.maps.places.PlaceResult & { distance?: number })[]>) => {
-    setIsSearching(true);
-    setPlaces(null);
-    const results = await searchFn();
-    setPlaces(results);
-    setIsSearching(false);
-  };
+  React.useEffect(() => {
+    // Automatically search when position and API are ready, but only once.
+    if (position && isMapApiLoaded && !isSearching && !hasSearched) {
+      setIsSearching(true);
+      setHasSearched(true); // Prevent re-searching
+      searchNearbyAttractions().then(results => {
+        setPlaces(results);
+        setIsSearching(false);
+      });
+    }
+  }, [position, isMapApiLoaded, isSearching, hasSearched, searchNearbyAttractions]);
+
 
   if (!isClient) {
     return (
@@ -52,12 +103,13 @@ export default function AttractionsPage() {
   }
 
   const renderContent = () => {
-    if (loading) {
+    if (loading || isSearching) {
       return (
-         <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-muted/50 rounded-lg">
-          <MapPin className="w-16 h-16 mx-auto text-accent animate-pulse" />
-          <h3 className="text-2xl font-bold mt-4">正在取得您的位置...</h3>
-        </div>
+         <div className="space-y-3 p-4">
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
+          </div>
       );
     }
 
@@ -82,16 +134,6 @@ export default function AttractionsPage() {
         </div>
       );
     }
-    
-    if (isSearching) {
-       return (
-          <div className="space-y-3 p-4">
-            <Skeleton className="h-28 w-full" />
-            <Skeleton className="h-28 w-full" />
-            <Skeleton className="h-28 w-full" />
-          </div>
-        );
-    }
 
     if (places && places.length === 0) {
        return (
@@ -107,18 +149,12 @@ export default function AttractionsPage() {
         return <AttractionList places={places} />;
     }
 
-    // Default state: show button if we have a position
-    if (position) {
-       return (
-          <AttractionList onSearch={(searchFn) => handleSearch(searchFn)} isSearchReady={isMapApiLoaded} />
-       );
-    }
-
+    // Default state before search is triggered
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-muted/50 rounded-lg">
-        <MapPin className="w-16 h-16 mx-auto text-accent" />
-        <h3 className="text-2xl font-bold mt-4">無法取得您的位置</h3>
-        <p className="text-muted-foreground mt-2">請允許位置存取權限以尋找附近的熱門景點。</p>
+        <MapPin className="w-16 h-16 mx-auto text-accent animate-pulse" />
+        <h3 className="text-2xl font-bold mt-4">正在尋找附近景點...</h3>
+        <p className="text-muted-foreground mt-2">請允許位置存取權限並稍待片刻。</p>
       </div>
     );
   };
