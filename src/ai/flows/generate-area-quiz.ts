@@ -22,7 +22,7 @@ const generateAreaQuizFlow = ai.defineFlow(
     
     let promptContent = `地區描述: ${input.areaDescription}\n\n`;
     if (input.previousQuestions && input.previousQuestions.length > 0) {
-      promptContent += `請避免產生與以下已問過問題重複或主題相似的題目：\n${input.previousQuestions.join('\n- ')}\n\n`;
+      promptContent += `請避免產生與以下已問過問題重複或主題相似的題目：\n- ${input.previousQuestions.join('\n- ')}\n\n`;
     }
 
     const { output } = await ai.generate({
