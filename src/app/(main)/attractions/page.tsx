@@ -28,6 +28,7 @@ export default function AttractionsPage() {
   });
 
   const incrementPlacesApiCount = () => {
+    if (typeof window === 'undefined') return;
     let count = parseInt(localStorage.getItem('placesApiCallCount') || '0', 10);
     count++;
     localStorage.setItem('placesApiCallCount', count.toString());
@@ -46,14 +47,16 @@ export default function AttractionsPage() {
         location: new google.maps.LatLng(position.lat, position.lng),
         radius: 10000, // 10km
         type: 'tourist_attraction',
-        fields: ['name', 'geometry', 'photos', 'place_id', 'rating', 'types', 'vicinity'],
+        fields: ['name', 'geometry', 'photos', 'place_id', 'rating', 'types', 'vicinity', 'business_status'],
       };
 
       incrementPlacesApiCount();
 
       placesService.nearbySearch(request, (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          const attractions = results.filter(place => (place.rating || 0) > 4.2);
+          const attractions = results.filter(place => 
+            place.business_status === 'OPERATIONAL' && (place.rating || 0) > 4.2
+          );
 
           if (google.maps.geometry?.spherical) {
             const placesWithDistance = attractions.map(place => {
