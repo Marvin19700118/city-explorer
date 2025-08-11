@@ -27,6 +27,13 @@ export default function AttractionsPage() {
     libraries,
   });
 
+  const incrementPlacesApiCount = () => {
+    let count = parseInt(localStorage.getItem('placesApiCallCount') || '0', 10);
+    count++;
+    localStorage.setItem('placesApiCallCount', count.toString());
+  };
+
+
   const searchNearbyAttractions = React.useCallback(async (): Promise<Places> => {
     return new Promise((resolve) => {
       if (!position || !isMapApiLoaded) {
@@ -41,6 +48,8 @@ export default function AttractionsPage() {
         type: 'tourist_attraction',
         fields: ['name', 'geometry', 'photos', 'place_id', 'rating', 'types', 'vicinity'],
       };
+
+      incrementPlacesApiCount();
 
       placesService.nearbySearch(request, (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
@@ -135,7 +144,7 @@ export default function AttractionsPage() {
       );
     }
 
-    if (places && places.length === 0) {
+    if (places && places.length === 0 && hasSearched) {
        return (
         <div className="text-center p-8 bg-muted/50 rounded-lg">
           <Search className="w-16 h-16 mx-auto text-accent" />
@@ -145,7 +154,7 @@ export default function AttractionsPage() {
       );
     }
 
-    if (places) {
+    if (places && places.length > 0) {
         return <AttractionList places={places} />;
     }
 

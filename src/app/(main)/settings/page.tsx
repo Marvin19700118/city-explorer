@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Settings as SettingsIcon, Languages, LogIn, LogOut, Download, Upload, AlertTriangle } from 'lucide-react';
+import { Settings as SettingsIcon, Languages, LogIn, LogOut, Download, Upload, AlertTriangle, Activity, BrainCircuit, Map, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -23,11 +23,48 @@ import {
 
 const GDRIVE_FILE_NAME = 'aitourguide.json';
 
+type ApiCounts = {
+  gemini: number;
+  places: number;
+}
+
 export default function SettingsPage() {
   const { isSignedIn, gsiLoaded, tokenClient, getAccessToken, signOut } = useAuth();
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = React.useState(false);
   const { i18n, setLocale, t } = useI18n();
+  const [apiCounts, setApiCounts] = React.useState<ApiCounts>({ gemini: 0, places: 0 });
+
+  const loadApiCounts = React.useCallback(() => {
+    const geminiCount = parseInt(localStorage.getItem('geminiApiCallCount') || '0', 10);
+    const placesCount = parseInt(localStorage.getItem('placesApiCallCount') || '0', 10);
+    setApiCounts({ gemini: geminiCount, places: placesCount });
+  }, []);
+
+  React.useEffect(() => {
+    loadApiCounts();
+    
+    // Listen for storage changes from other tabs to keep counts in sync
+    const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'geminiApiCallCount' || e.key === 'placesApiCallCount') {
+            loadApiCounts();
+        }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+        window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [loadApiCounts]);
+
+  const handleResetCounters = () => {
+    localStorage.setItem('geminiApiCallCount', '0');
+    localStorage.setItem('placesApiCallCount', '0');
+    loadApiCounts();
+    toast({ title: "計數器已重設", description: "API 呼叫次數已歸零。" });
+  };
+
 
   const handleSignIn = () => {
     if (gsiLoaded && tokenClient) {
@@ -161,6 +198,33 @@ export default function SettingsPage() {
         <SettingsIcon className="h-6 w-6" />
         <h2>{t('settings.title')}</h2>
       </header>
+
+       <Card>
+        <CardHeader>
+          <CardTitle>API 使用統計</CardTitle>
+          <CardDescription>追蹤應用程式中 Gemini 和 Places API 的累計呼叫次數。</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                    <BrainCircuit className="h-6 w-6 text-primary" />
+                    <span className="font-medium">Gemini API 呼叫次數</span>
+                </div>
+                <span className="font-bold text-lg font-mono">{apiCounts.gemini}</span>
+            </div>
+             <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                    <Map className="h-6 w-6 text-green-500" />
+                    <span className="font-medium">Places API 呼叫次數</span>
+                </div>
+                <span className="font-bold text-lg font-mono">{apiCounts.places}</span>
+            </div>
+            <Button onClick={handleResetCounters} variant="outline" className="w-full">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                重設計數器
+            </Button>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
