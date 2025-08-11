@@ -14,7 +14,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Avatar, AvatarFallback } from './ui/avatar';
-import { SendHorizonal, Bot, User, Sparkles } from 'lucide-react';
+import { SendHorizonal, Bot, User, Sparkles, ImagePlus, X } from 'lucide-react';
 import type { Message } from '@/lib/types';
 import { getChatbotResponse } from '@/app/actions';
 import { cn } from '@/lib/utils';
@@ -28,17 +28,19 @@ type ChatbotProps = {
 };
 
 const suggestedPrompts = [
-    "這裡有什麼好吃的？",
-    "推薦一些拍照景點",
-    "介紹一下這裡的歷史",
-    "有沒有什麼有趣的小知識？",
+    "這張照片是在哪裡拍的？",
+    "照片裡有什麼特別之處？",
+    "介紹一下照片的背景故事",
+    "這附近有什麼好吃的？",
 ];
 
 export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
+  const [imagePreview, setImagePreview] = React.useState<string | null>(null);
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   React.useEffect(() => {
@@ -46,11 +48,12 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
       setMessages([
         {
           role: 'model',
-          content: `你好！我是你的在地導遊「AI tour guide」。我們現在在${locationName}，有什麼想問的嗎？`,
+          content: `你好！我是你的在地導遊「AI tour guide」。我們現在在${locationName}，有什麼想問的嗎？或者可以上傳一張照片讓我分析看看！`,
         },
       ]);
     } else {
         setMessages([]);
+        setImagePreview(null);
     }
   }, [isOpen, locationName]);
 
@@ -67,22 +70,41 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
     }
   }, [messages]);
 
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSendMessage = async (messageContent?: string) => {
     const content = (messageContent || input).trim();
-    if (!content || !locationName) return;
+    if ((!content && !imagePreview) || !locationName) return;
 
     const userMessage: Message = { role: 'user', content };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInput('');
     setIsLoading(true);
+    
+    const photoDataUri = imagePreview;
+    setImagePreview(null); // Clear preview after sending
 
     try {
       const historyForAI = newMessages.map(({ role, content }) => ({ role, content }));
       
-      const response = await getChatbotResponse(locationName, content, historyForAI);
+      const response = await getChatbotResponse({
+        locationName, 
+        query: content, 
+        history: historyForAI,
+        photoDataUri
+      });
       
-      const botMessage: Message = { role: 'model', content: response };
+      const botMessage: Message = { role: 'model', content: response.response };
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
        toast({
@@ -177,7 +199,35 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
                     </Button>
                 ))}
             </div>
+             {imagePreview && (
+                <div className="relative p-2">
+                    <img src={imagePreview} alt="Preview" className="max-h-24 rounded-md" />
+                    <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-0 right-0 h-6 w-6"
+                        onClick={() => setImagePreview(null)}
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
+                </div>
+            )}
             <div className="flex items-center gap-2 p-2">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleImageChange}
+              />
+               <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => fileInputRef.current?.click()} 
+                disabled={isLoading}
+              >
+                  <ImagePlus />
+               </Button>
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -185,7 +235,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
                 placeholder="在這裡輸入你的問題..."
                 disabled={isLoading}
               />
-              <Button onClick={() => handleSendMessage()} disabled={!input.trim() || isLoading} size="icon">
+              <Button onClick={() => handleSendMessage()} disabled={(!input.trim() && !imagePreview) || isLoading} size="icon">
                 <SendHorizonal />
               </Button>
             </div>

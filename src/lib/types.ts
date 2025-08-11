@@ -84,7 +84,6 @@ export type AskedQuestionHistory = {
 // For generate-location-intro.ts
 export const GenerateLocationIntroInputSchema = z.object({
   locationName: z.string().describe('A description of the area, like "信義區" or "台灣台北市中正區".'),
-  locale: z.custom<Locale>().optional().default('zh'),
 });
 export type GenerateLocationIntroInput = z.infer<typeof GenerateLocationIntroInputSchema>;
 
@@ -100,7 +99,6 @@ export const GenerateAreaQuizInputSchema = z.object({
   lat: z.number().optional(),
   lng: z.number().optional(),
   previousQuestions: z.array(z.string()).optional().describe('A list of previously asked questions to avoid repetition.'),
-  locale: z.custom<Locale>().optional().default('zh'),
 });
 export type GenerateAreaQuizInput = z.infer<typeof GenerateAreaQuizInputSchema>;
 
@@ -120,7 +118,9 @@ export const ChatbotInputSchema = z.object({
   locationName: z.string().describe('The name of the location, e.g., a district or city.'),
   query: z.string().describe("The user's latest query."),
   history: z.array(MessageSchema).describe('The conversation history.'),
-  locale: z.custom<Locale>().optional().default('zh'),
+  photoDataUri: z.string().optional().describe(
+      "A photo of a plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+    ),
 });
 export type ChatbotInput = z.infer<typeof ChatbotInputSchema>;
 
@@ -134,7 +134,6 @@ export type ChatbotResponse = z.infer<typeof ChatbotResponseSchema>;
 export const GenerateRestaurantDescriptionInputSchema = z.object({
     restaurantName: z.string().describe("The name of the restaurant."),
     restaurantAddress: z.string().describe("The address of the restaurant."),
-    locale: z.custom<Locale>().optional().default('zh'),
 });
 export type GenerateRestaurantDescriptionInput = z.infer<typeof GenerateRestaurantDescriptionInputSchema>;
 
@@ -148,7 +147,6 @@ export type GenerateRestaurantDescriptionOutput = z.infer<typeof GenerateRestaur
 export const GenerateAttractionInfoInputSchema = z.object({
     attractionName: z.string().describe("The name of the tourist attraction."),
     attractionAddress: z.string().describe("The address of the tourist attraction."),
-    locale: z.custom<Locale>().optional().default('zh'),
 });
 export type GenerateAttractionInfoInput = z.infer<typeof GenerateAttractionInfoInputSchema>;
 

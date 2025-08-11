@@ -11,15 +11,14 @@ import { generateAttractionInfo as generateAttractionInfoFlow } from '@/ai/flows
 import type { 
     QuizData, 
     GenerateAreaQuizInput,
-    Message,
     ChatbotInput,
     GenerateLocationIntroInput,
     GenerateLocationIntroOutput,
     GenerateRestaurantDescriptionInput,
     GenerateRestaurantDescriptionOutput,
-    Locale,
     GenerateAttractionInfoInput,
-    GenerateAttractionInfoOutput
+    GenerateAttractionInfoOutput,
+    ChatbotResponse
 } from '@/lib/types';
 
 
@@ -37,16 +36,13 @@ export async function createQuiz(input: GenerateAreaQuizInput): Promise<QuizData
   }
 }
 
-export async function getChatbotResponse(locationName: string, query: string, history: Message[], locale: Locale): Promise<string> {
+export async function getChatbotResponse(input: ChatbotInput): Promise<ChatbotResponse> {
     try {
-        const input: ChatbotInput = { locationName, query, history, locale };
         const result = await getChatbotResponseFlow(input);
-        return result.response;
+        return result;
     } catch (error) {
         console.error("Error getting chatbot response:", error);
-        return locale === 'en' 
-            ? "Sorry, I can't respond right now. Please try again later."
-            : "抱歉，我現在無法回答。請稍後再試。";
+        return { response: "抱歉，我現在無法回答。請稍後再試。" };
     }
 }
 
