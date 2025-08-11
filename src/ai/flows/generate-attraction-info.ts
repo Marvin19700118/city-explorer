@@ -5,13 +5,11 @@
  * @fileOverview An AI flow to generate an introduction, a quiz, and audio for a tourist attraction.
  *
  * - generateAttractionInfo - A function that handles the generation.
- * - GenerateAttractionInfoInput - The input type for the function.
- * - GenerateAttractionInfoOutput - The return type for the function.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
-import { GenerateAttractionInfoInputSchema, GenerateAttractionInfoOutputSchema, GenerateAttractionInfoInput, GenerateAttractionInfoOutput, QuizQuestionSchema } from '@/lib/types';
+import { z } from 'zod';
+import { GenerateAttractionInfoInput, GenerateAttractionInfoOutput, QuizQuestionSchema } from '@/lib/types';
 import wav from 'wav';
 import { googleAI } from '@genkit-ai/googleai';
 
@@ -28,7 +26,7 @@ async function toWav(
       bitDepth: sampleWidth * 8,
     });
 
-    let bufs = [] as any[];
+    let bufs: any[] = [];
     writer.on('error', reject);
     writer.on('data', function (d) {
       bufs.push(d);
@@ -43,7 +41,7 @@ async function toWav(
 }
 
 export async function generateAttractionInfo(input: GenerateAttractionInfoInput): Promise<GenerateAttractionInfoOutput> {
-    
+
     // Step 1: Generate Introduction Text and Quiz in parallel
     const introAndQuizPromise = ai.generate({
         model: 'googleai/gemini-2.0-flash',
@@ -70,7 +68,7 @@ export async function generateAttractionInfo(input: GenerateAttractionInfoInput)
     if (!output || !output.introduction || !output.quiz) {
         throw new Error("Failed to generate attraction introduction and quiz.");
     }
-    
+
     const { introduction, quiz } = output;
 
     // Step 2: Generate TTS from the introduction
@@ -105,7 +103,7 @@ export async function generateAttractionInfo(input: GenerateAttractionInfoInput)
 
         const wavBase64 = await toWav(audioBuffer);
         const audioDataUri = 'data:audio/wav;base64,' + wavBase64;
-      
+
         return {
             introduction,
             quiz,

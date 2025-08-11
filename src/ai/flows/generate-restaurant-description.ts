@@ -8,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { GenerateRestaurantDescriptionInput, GenerateRestaurantDescriptionOutput, GenerateRestaurantDescriptionInputSchema, GenerateRestaurantDescriptionOutputSchema } from '@/lib/types';
+import { GenerateRestaurantDescriptionInput, GenerateRestaurantDescriptionOutput, GenerateRestaurantDescriptionOutputSchema } from '@/lib/types';
 
 export async function generateRestaurantDescription(input: GenerateRestaurantDescriptionInput): Promise<GenerateRestaurantDescriptionOutput> {
     const result = await ai.generate({

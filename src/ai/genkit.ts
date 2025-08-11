@@ -1,36 +1,14 @@
 
-import {genkit, GenerationCommonOptions, GenerationOptions} from 'genkit';
+import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
 
-function incrementGeminiApiCount() {
-  if (typeof window !== 'undefined') {
-    let count = parseInt(localStorage.getItem('geminiApiCallCount') || '0', 10);
-    count++;
-    localStorage.setItem('geminiApiCallCount', count.toString());
-  }
-}
-
-const genkitInstance = genkit({
+// This is the correct way to initialize and export the genkit instance.
+// The previous implementation with a custom 'ai' object was flawed and
+// did not correctly export all necessary genkit functions, causing errors.
+export const ai = genkit({
   plugins: [
     googleAI({
       apiKey: process.env.GEMINI_API_KEY || '__GENKIT_API_KEY__',
     }),
   ],
 });
-
-const originalGenerate = genkitInstance.generate;
-
-const wrappedGenerate: typeof originalGenerate = async (
-  options: GenerationOptions,
-  commonOptions?: GenerationCommonOptions
-) => {
-  incrementGeminiApiCount();
-  // @ts-ignore
-  return originalGenerate(options, commonOptions);
-};
-
-
-export const ai = {
-  ...genkitInstance,
-  generate: wrappedGenerate,
-};

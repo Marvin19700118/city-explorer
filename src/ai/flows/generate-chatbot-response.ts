@@ -7,7 +7,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { ChatbotInput, ChatbotInputSchema, ChatbotResponse, ChatbotResponseSchema } from '@/lib/types';
+import { ChatbotInput, ChatbotResponse, ChatbotResponseSchema } from '@/lib/types';
 
 export async function getChatbotResponse(input: ChatbotInput): Promise<ChatbotResponse> {
     const result = await ai.generate({

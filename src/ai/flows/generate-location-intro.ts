@@ -5,12 +5,10 @@
  * @fileOverview An AI flow to generate a local guide introduction and audio for a specific area.
  *
  * - generateLocationIntro - A function that handles the guide generation.
- * - GenerateLocationIntroInput - The input type for the function.
- * - GenerateLocationIntroOutput - The return type for the function.
  */
 
 import {ai} from '@/ai/genkit';
-import { GenerateLocationIntroInput, GenerateLocationIntroOutput, GenerateLocationIntroInputSchema, GenerateLocationIntroOutputSchema } from '@/lib/types';
+import { GenerateLocationIntroInput, GenerateLocationIntroOutput } from '@/lib/types';
 import wav from 'wav';
 import { googleAI } from '@genkit-ai/googleai';
 
@@ -27,7 +25,7 @@ async function toWav(
       bitDepth: sampleWidth * 8,
     });
 
-    let bufs = [] as any[];
+    let bufs: any[] = [];
     writer.on('error', reject);
     writer.on('data', function (d) {
       bufs.push(d);

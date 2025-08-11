@@ -5,12 +5,10 @@
  * @fileOverview AI flow to generate a quiz about a specific area based on its description or coordinates.
  *
  * The flow takes an area description and optional coordinates as input and returns a quiz consisting of questions and answers.
- * It uses a Genkit prompt to generate the quiz content.
  */
 
 import {ai} from '@/ai/genkit';
 import { GenerateAreaQuizInput, GenerateAreaQuizOutput, GenerateAreaQuizOutputSchema } from '@/lib/types';
-import { z } from 'zod';
 
 export async function generateAreaQuiz(input: GenerateAreaQuizInput): Promise<GenerateAreaQuizOutput> {
   let promptContent = `地區描述: ${input.areaDescription}\n\n`;
