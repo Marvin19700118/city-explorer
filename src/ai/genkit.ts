@@ -10,7 +10,11 @@ function incrementGeminiApiCount() {
   }
 }
 
-const originalGenerate = genkit.generate;
+const genkitInstance = genkit({
+  plugins: [googleAI({apiKey: process.env.GEMINI_API_KEY})],
+});
+
+const originalGenerate = genkitInstance.generate;
 
 const wrappedGenerate: typeof originalGenerate = async (
   options: GenerationOptions,
@@ -23,8 +27,6 @@ const wrappedGenerate: typeof originalGenerate = async (
 
 
 export const ai = {
-  ...genkit({
-    plugins: [googleAI({apiKey: process.env.GEMINI_API_KEY})],
-  }),
+  ...genkitInstance,
   generate: wrappedGenerate,
 };
