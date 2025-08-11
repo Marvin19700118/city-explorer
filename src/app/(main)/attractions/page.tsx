@@ -18,6 +18,7 @@ export default function AttractionsPage() {
   const [isClient, setIsClient] = React.useState(false);
   const [places, setPlaces] = React.useState<(google.maps.places.PlaceResult & { distance?: number })[] | null>(null);
   const [isSearching, setIsSearching] = React.useState(false);
+  const [apiCallCount, setApiCallCount] = React.useState(0);
 
   const { isLoaded: isMapApiLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
@@ -31,6 +32,7 @@ export default function AttractionsPage() {
 
   const handleSearch = async (searchFn: () => Promise<(google.maps.places.PlaceResult & { distance?: number })[]>) => {
     setIsSearching(true);
+    setApiCallCount(prev => prev + 1);
     setPlaces(null);
     const results = await searchFn();
     setPlaces(results);
@@ -131,6 +133,7 @@ export default function AttractionsPage() {
           <h2>熱門景點</h2>
         </div>
         <p className="text-muted-foreground text-sm">探索您附近（10公里內）評價最高的旅遊景點。</p>
+        <p className="text-xs text-muted-foreground mt-1">Place API 呼叫次數: {apiCallCount}</p>
       </header>
       <div className="flex-1 overflow-auto">
         {renderContent()}
