@@ -11,7 +11,11 @@ function incrementGeminiApiCount() {
 }
 
 const genkitInstance = genkit({
-  plugins: [googleAI({apiKey: process.env.GEMINI_API_KEY})],
+  plugins: [
+    googleAI({
+      apiKey: process.env.GEMINI_API_KEY || '__GENKIT_API_KEY__',
+    }),
+  ],
 });
 
 const originalGenerate = genkitInstance.generate;
