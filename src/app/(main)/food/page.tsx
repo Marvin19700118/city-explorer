@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Utensils, MapPin, Search } from 'lucide-react';
+import { Utensils, MapPin } from 'lucide-react';
 import { useLocation } from '@/context/LocationTrackingContext';
 import { PoiList } from '@/components/PoiList';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -12,10 +12,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function FoodPage() {
   const { position, loading, error } = useLocation();
   const [isClient, setIsClient] = React.useState(false);
+  const [places, setPlaces] = React.useState<(google.maps.places.PlaceResult & { distance?: number })[] | null>(null);
+  const [isSearching, setIsSearching] = React.useState(false);
 
   React.useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const handleSearch = async (searchFn: () => Promise<(google.maps.places.PlaceResult & { distance?: number })[]>) => {
+    setIsSearching(true);
+    setPlaces(null);
+    const results = await searchFn();
+    setPlaces(results);
+    setIsSearching(false);
+  };
 
   if (!isClient) {
     return (
@@ -34,10 +44,9 @@ export default function FoodPage() {
   const renderContent = () => {
     if (loading) {
       return (
-        <div className="p-4 space-y-4">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
+        <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-muted/50 rounded-lg">
+          <MapPin className="w-16 h-16 mx-auto text-accent animate-pulse" />
+          <h3 className="text-2xl font-bold mt-4">正在取得您的位置...</h3>
         </div>
       );
     }
@@ -64,8 +73,22 @@ export default function FoodPage() {
       );
     }
 
+    if (isSearching) {
+        return (
+            <div className="p-4 space-y-4">
+                <Skeleton className="h-28 w-full" />
+                <Skeleton className="h-28 w-full" />
+                <Skeleton className="h-28 w-full" />
+            </div>
+        );
+    }
+
+    if (places) {
+        return <PoiList places={places} />
+    }
+    
     if (position) {
-      return <PoiList position={position} />;
+      return <PoiList onSearch={handleSearch} />;
     }
 
     return (
