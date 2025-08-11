@@ -9,12 +9,21 @@ import { Terminal, WifiOff } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AttractionList } from '@/components/AttractionList';
 import { Button } from '@/components/ui/button';
+import { useJsApiLoader } from '@react-google-maps/api';
+
+const libraries: ('maps' | 'places')[] = ['maps', 'places'];
 
 export default function AttractionsPage() {
   const { position, loading, error } = useLocation();
   const [isClient, setIsClient] = React.useState(false);
   const [places, setPlaces] = React.useState<(google.maps.places.PlaceResult & { distance?: number })[] | null>(null);
   const [isSearching, setIsSearching] = React.useState(false);
+
+  const { isLoaded: isMapApiLoaded } = useJsApiLoader({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+    preventGoogleFontsLoading: true, 
+    libraries,
+  });
 
   React.useEffect(() => {
     setIsClient(true);
@@ -101,7 +110,7 @@ export default function AttractionsPage() {
     // Default state: show button if we have a position
     if (position) {
        return (
-          <AttractionList onSearch={(searchFn) => handleSearch(searchFn)} />
+          <AttractionList onSearch={(searchFn) => handleSearch(searchFn)} isSearchReady={isMapApiLoaded} />
        );
     }
 

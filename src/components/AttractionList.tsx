@@ -15,9 +15,10 @@ type Places = (google.maps.places.PlaceResult & { distance?: number })[];
 interface AttractionListProps {
   places?: Places | null;
   onSearch?: (searchFn: () => Promise<Places>) => void;
+  isSearchReady?: boolean;
 }
 
-export const AttractionList: React.FC<AttractionListProps> = ({ places, onSearch }) => {
+export const AttractionList: React.FC<AttractionListProps> = ({ places, onSearch, isSearchReady }) => {
   const { position, addXp, currentArea } = useLocation();
 
   const search = React.useCallback(async (): Promise<Places> => {
@@ -69,7 +70,7 @@ export const AttractionList: React.FC<AttractionListProps> = ({ places, onSearch
   if (onSearch) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
-        <Button onClick={() => onSearch(search)}>
+        <Button onClick={() => onSearch(search)} disabled={!isSearchReady}>
           <Search className="mr-2 h-4 w-4" />
           搜尋附近景點
         </Button>
