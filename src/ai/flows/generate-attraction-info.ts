@@ -54,7 +54,7 @@ export async function generateAttractionInfo(input: GenerateAttractionInfoInput)
 地址: 「${input.attractionAddress}」
 
 請為此景點完成兩件事：
-1.  **介紹**: 產生一段約 100-150 字的生動簡介。內容可以包含歷史、文化、特色、或有趣的小知識。文筆要像個真正的部落客，風趣、有吸引力。
+1.  **介紹**: 產生一段約 100-150 字的生動簡介。內容可以包含歷史、文化、特色、或有趣的小知識。文筆要像個真正的部落客，有吸引力。
 2.  **測驗**: 產生一個包含 3 個問題的選擇題測驗。每個問題應有 4 個可能的答案，並與景點的歷史、文化或特色相關。`,
         output: {
             schema: z.object({
@@ -64,7 +64,8 @@ export async function generateAttractionInfo(input: GenerateAttractionInfoInput)
         }
     });
 
-    const { output } = await introAndQuizPromise;
+    const result = await introAndQuizPromise;
+    const output = result.output;
 
     if (!output || !output.introduction || !output.quiz) {
         throw new Error("Failed to generate attraction introduction and quiz.");

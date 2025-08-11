@@ -10,7 +10,7 @@ import { ai } from '@/ai/genkit';
 import { ChatbotInput, ChatbotInputSchema, ChatbotResponse, ChatbotResponseSchema } from '@/lib/types';
 
 export async function getChatbotResponse(input: ChatbotInput): Promise<ChatbotResponse> {
-    const { output } = await ai.generate({
+    const result = await ai.generate({
       model: 'googleai/gemini-2.0-flash',
       system: `你是一個風趣幽默、知識淵博的在地導遊 AI，名叫「AI tour guide」。
 你的任務是根據使用者所在的行政區「${input.locationName}」，以輕鬆、引人入勝的對話方式，回答使用者關於這個區域的任何問題。
@@ -29,10 +29,10 @@ export async function getChatbotResponse(input: ChatbotInput): Promise<ChatbotRe
       }
     });
 
-    const result = output!;
+    const output = result.output;
     // Sometimes the model returns an empty response, so we provide a default.
-    if (!result.response) {
+    if (!output || !output.response) {
       return { response: "抱歉，我好像有點詞窮了，可以再問一次嗎？" };
     }
-    return result;
+    return output;
 }

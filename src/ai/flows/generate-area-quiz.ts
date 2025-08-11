@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import { GenerateAreaQuizInput, GenerateAreaQuizOutput, GenerateAreaQuizInputSchema, GenerateAreaQuizOutputSchema } from '@/lib/types';
+import { GenerateAreaQuizInput, GenerateAreaQuizOutput, GenerateAreaQuizOutputSchema } from '@/lib/types';
 import { z } from 'zod';
 
 export async function generateAreaQuiz(input: GenerateAreaQuizInput): Promise<GenerateAreaQuizOutput> {
@@ -18,7 +18,7 @@ export async function generateAreaQuiz(input: GenerateAreaQuizInput): Promise<Ge
     promptContent += `請避免產生與以下已問過問題重複或主題相似的題目：\n- ${input.previousQuestions.join('\n- ')}\n\n`;
   }
 
-  const { output } = await ai.generate({
+  const result = await ai.generate({
     model: 'googleai/gemini-2.0-flash',
     system: `您是一位 AI 測驗產生器。請根據以下地區描述，產生一個包含 3-5 個問題的選擇題測驗。每個問題應有 4 個可能的答案。
 問題應與該地區的歷史、文化或地標相關且有趣。
@@ -30,10 +30,14 @@ export async function generateAreaQuiz(input: GenerateAreaQuizInput): Promise<Ge
     },
   });
 
-  const result = output!;
-  // For local challenges, we only want 3 questions.
-  if (result.quiz.length > 3) {
-    result.quiz = result.quiz.slice(0, 3);
+  const output = result.output;
+  if (!output) {
+    throw new Error('AI failed to generate quiz output.');
   }
-  return result;
+
+  // For local challenges, we only want 3 questions.
+  if (output.quiz.length > 3) {
+    output.quiz = output.quiz.slice(0, 3);
+  }
+  return output;
 }
