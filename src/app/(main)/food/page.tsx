@@ -17,7 +17,6 @@ export default function FoodPage() {
   const [isClient, setIsClient] = React.useState(false);
   const [places, setPlaces] = React.useState<(google.maps.places.PlaceResult & { distance?: number })[] | null>(null);
   const [isSearching, setIsSearching] = React.useState(false);
-  const [apiCallCount, setApiCallCount] = React.useState(0);
   
   const { isLoaded: isMapApiLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
@@ -31,7 +30,6 @@ export default function FoodPage() {
 
   const handleSearch = async (searchFn: () => Promise<(google.maps.places.PlaceResult & { distance?: number })[]>) => {
     setIsSearching(true);
-    setApiCallCount(prev => prev + 1);
     setPlaces(null);
     const results = await searchFn();
     setPlaces(results);
@@ -128,7 +126,6 @@ export default function FoodPage() {
             <Utensils className="h-6 w-6" />
             <h2>附近美食</h2>
         </div>
-        <p className="text-xs text-muted-foreground">Place API 呼叫次數: {apiCallCount}</p>
       </header>
       {renderContent()}
     </div>
