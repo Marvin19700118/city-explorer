@@ -53,7 +53,7 @@ export const PoiCard: React.FC<PoiCardProps> = ({ place }) => {
   const openWebSearch = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (place.name) {
-      window.open(`https://www.google.com/search?q=${encodeURIComponent(place.name)}`, '_blank');
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(place.name + " " + (place.vicinity || ''))}`, '_blank');
     }
   };
 
@@ -76,7 +76,7 @@ export const PoiCard: React.FC<PoiCardProps> = ({ place }) => {
                   {place.distance !== undefined && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                           <MapPin className="w-3 h-3"/>
-                          距離約 {place.distance.toFixed(0)} 公尺
+                          距離約 {(place.distance).toFixed(1)} 公里
                       </p>
                   )}
               </div>
