@@ -90,7 +90,7 @@ export type GenerateLocationIntroInput = z.infer<typeof GenerateLocationIntroInp
 
 export const GenerateLocationIntroOutputSchema = z.object({
   introduction: z.string().describe('A fun, engaging introduction to the area, around 100-150 words.'),
-  audioDataUri: z.string().describe('A data URI of the introduction audio in WAV format.'),
+  audioDataUri: z.string().nullable().describe('A data URI of the introduction audio in WAV format.'),
 });
 export type GenerateLocationIntroOutput = z.infer<typeof GenerateLocationIntroOutputSchema>;
 
