@@ -15,9 +15,10 @@ type Places = (google.maps.places.PlaceResult & { distance?: number })[];
 interface PoiListProps {
   places?: Places | null;
   onSearch?: (searchFn: () => Promise<Places>) => void;
+  isSearchReady?: boolean;
 }
 
-export const PoiList: React.FC<PoiListProps> = ({ places, onSearch }) => {
+export const PoiList: React.FC<PoiListProps> = ({ places, onSearch, isSearchReady }) => {
   const { position } = useLocation();
 
   const search = React.useCallback((): Promise<Places> => {
@@ -69,7 +70,7 @@ export const PoiList: React.FC<PoiListProps> = ({ places, onSearch }) => {
   if (onSearch) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
-        <Button onClick={() => onSearch(search)}>
+        <Button onClick={() => onSearch(search)} disabled={!isSearchReady}>
           <Search className="mr-2 h-4 w-4" />
           搜尋附近美食
         </Button>
@@ -77,7 +78,7 @@ export const PoiList: React.FC<PoiListProps> = ({ places, onSearch }) => {
     );
   }
 
-  if (!places) {
+  if (places && places.length === 0) {
      return (
       <div className="text-center p-8 bg-muted/50 rounded-lg">
           <Search className="w-16 h-16 mx-auto text-accent" />
@@ -85,6 +86,10 @@ export const PoiList: React.FC<PoiListProps> = ({ places, onSearch }) => {
           <p className="text-muted-foreground mt-2">試著移動到其他地方或稍後再試。</p>
         </div>
     );
+  }
+
+  if (!places) {
+    return null; // Should be handled by parent
   }
 
   return (

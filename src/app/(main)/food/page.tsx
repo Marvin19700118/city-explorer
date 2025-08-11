@@ -2,12 +2,15 @@
 'use client';
 
 import * as React from 'react';
-import { Utensils, MapPin } from 'lucide-react';
+import { Utensils, MapPin, Search } from 'lucide-react';
 import { useLocation } from '@/context/LocationTrackingContext';
 import { PoiList } from '@/components/PoiList';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Terminal, WifiOff } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useJsApiLoader } from '@react-google-maps/api';
+
+const libraries: ('maps' | 'places')[] = ['maps', 'places'];
 
 export default function FoodPage() {
   const { position, loading, error } = useLocation();
@@ -15,6 +18,12 @@ export default function FoodPage() {
   const [places, setPlaces] = React.useState<(google.maps.places.PlaceResult & { distance?: number })[] | null>(null);
   const [isSearching, setIsSearching] = React.useState(false);
   const [apiCallCount, setApiCallCount] = React.useState(0);
+  
+  const { isLoaded: isMapApiLoaded } = useJsApiLoader({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+    preventGoogleFontsLoading: true, 
+    libraries,
+  });
 
   React.useEffect(() => {
     setIsClient(true);
@@ -85,12 +94,22 @@ export default function FoodPage() {
         );
     }
 
+    if (places && places.length === 0) {
+      return (
+        <div className="text-center p-8 bg-muted/50 rounded-lg">
+          <Search className="w-16 h-16 mx-auto text-accent" />
+          <h3 className="text-2xl font-bold mt-4">找不到附近的餐廳</h3>
+          <p className="text-muted-foreground mt-2">試著移動到其他地方或稍後再試。</p>
+        </div>
+      );
+    }
+    
     if (places) {
         return <PoiList places={places} />
     }
     
     if (position) {
-      return <PoiList onSearch={handleSearch} />;
+      return <PoiList onSearch={handleSearch} isSearchReady={isMapApiLoaded} />;
     }
 
     return (
