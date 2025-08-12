@@ -27,12 +27,18 @@ type ChatbotProps = {
   locationName: string | null;
 };
 
-const suggestedPrompts = [
+const imageSuggestedPrompts = [
     "這張照片是在哪裡拍的？",
     "照片裡有什麼特別之處？",
     "介紹一下照片的背景故事",
-    "這附近有什麼好吃的？",
 ];
+
+const generalSuggestedPrompts = [
+    "這附近有什麼好吃的？",
+    "推薦一些私房景點",
+    "這裡有什麼有趣的歷史嗎？",
+    "給我一些拍照建議",
+]
 
 export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
   const [messages, setMessages] = React.useState<Message[]>([]);
@@ -124,6 +130,8 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
       handleSendMessage();
     }
   };
+  
+  const suggestedPrompts = imagePreview ? imageSuggestedPrompts : generalSuggestedPrompts;
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
