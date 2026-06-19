@@ -18,6 +18,8 @@ import { Chatbot } from '@/components/Chatbot';
 import { createQuiz } from '@/app/actions';
 import { generateLocationIntro as generateLocationIntroAction } from '@/app/actions';
 import Link from 'next/link';
+import { DailyGoalCard } from '@/components/DailyGoalCard';
+import { addDistanceToday, recordWalkToday } from '@/lib/dailyStats';
 
 const TAIPEI_CENTER = { lat: 25.0330, lng: 121.5654 };
 
@@ -81,6 +83,7 @@ export default function MapPage() {
     areaNotifications: true,
   });
 
+  const [goalRefresh, setGoalRefresh] = React.useState(0);
   const [isGuideModalOpen, setIsGuideModalOpen] = React.useState(false);
   const [guideData, setGuideData] = React.useState<GenerateLocationIntroOutput | null>(null);
   const [isGuideLoading, setIsGuideLoading] = React.useState(false);
@@ -107,6 +110,10 @@ export default function MapPage() {
       const updatedTrips = [...existingTrips, newTrip];
       localStorage.setItem('trips', JSON.stringify(updatedTrips));
       setTrips(updatedTrips);
+
+      addDistanceToday(distance);
+      recordWalkToday();
+      setGoalRefresh(n => n + 1);
 
       toast({
         title: "旅程已儲存!",
@@ -363,6 +370,8 @@ export default function MapPage() {
           )}
         </div>
       </header>
+
+      <DailyGoalCard refreshTrigger={goalRefresh} />
 
       <div className="relative flex-1 bg-muted">
         {renderMapComponent()}

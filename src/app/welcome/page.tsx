@@ -4,80 +4,100 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Map, BrainCircuit, Utensils, Gem, Sparkles, ArrowRight, Landmark } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowRight, Footprints, MapPin, Flame, Sparkles } from 'lucide-react';
+import { loadDailyStats, loadStreak } from '@/lib/dailyStats';
 
 export default function WelcomePage() {
   const router = useRouter();
+  const [stats, setStats] = React.useState<{ distance: number; goalKm: number } | null>(null);
+  const [streakCount, setStreakCount] = React.useState(0);
+  const [isClient, setIsClient] = React.useState(false);
 
-  const handleStart = () => {
-    // No longer need to set hasVisited, just navigate.
-    router.push('/map');
-  };
+  React.useEffect(() => {
+    setIsClient(true);
+    const s = loadDailyStats();
+    setStats(s);
+    setStreakCount(loadStreak().count);
+  }, []);
+
+  const progress = stats ? Math.min(1, stats.distance / stats.goalKm) : 0;
+  const goalDone = progress >= 1;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-black font-body text-foreground">
       <div className="relative mx-auto flex h-auto max-h-[90vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl border-4 border-primary/50 bg-background shadow-2xl shadow-primary/20">
-        <div className="overflow-y-auto p-6 space-y-6">
-            <div className="text-center space-y-2">
-              <div className="inline-block rounded-full bg-primary/20 p-4 text-primary">
-                <Sparkles className="h-12 w-12" />
-              </div>
-              <h1 className="text-3xl font-bold font-headline text-primary">
-                歡迎來到 AI 城市導遊
-              </h1>
-              <p className="text-muted-foreground">
-                AI 導遊帶你深度探索一個城市的人文，歷史等各種知識，讓你更了解這個城市。 AI 導遊會透過 在地挑戰問答遊戲，podcast 簡介以及導遊chatbot 來跟你互動，讓你輕鬆即時獲取這個城市的知識。
-              </p>
+        <div className="overflow-y-auto p-6 space-y-5">
+
+          {/* Hero */}
+          <div className="text-center space-y-2 pt-2">
+            <div className="inline-block rounded-full bg-primary/20 p-4 text-primary">
+              <Sparkles className="h-10 w-10" />
             </div>
+            <h1 className="text-2xl font-bold font-headline text-primary">AI 城市探索</h1>
+            <p className="text-sm text-muted-foreground">每次出門，都是一場探險</p>
+          </div>
 
-            <Card className="bg-muted/30">
-              <CardHeader>
-                <CardTitle className="text-lg text-foreground">核心功能</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-sm">
-                <div className="flex items-start gap-4">
-                  <Map className="h-6 w-6 mt-1 text-accent flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold">地圖探索</h3>
-                    <p className="text-muted-foreground text-xs">在真實世界中移動，揭開地圖上的戰爭迷霧，發現新的興趣點。</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <Landmark className="h-6 w-6 mt-1 text-accent flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold">熱門景點</h3>
-                    <p className="text-muted-foreground text-xs">尋找附近的熱門景點，聆聽 AI 語音導覽，並透過趣味問答深入了解景點故事。</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <BrainCircuit className="h-6 w-6 mt-1 text-accent flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold">在地挑戰</h3>
-                    <p className="text-muted-foreground text-xs">回答關於您周遭環境的 AI 問答，測試您的在地知識並贏得經驗值。</p>
-                  </div>
-                </div>
-                 <div className="flex items-start gap-4">
-                  <Utensils className="h-6 w-6 mt-1 text-accent flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold">美食搜尋</h3>
-                    <p className="text-muted-foreground text-xs">尋找您附近的高評價餐廳，并讓 AI 為您產生獨特的餐廳簡介。</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <Gem className="h-6 w-6 mt-1 text-accent flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold">成就系統</h3>
-                    <p className="text-muted-foreground text-xs">在各個城市累積經驗值，提升您的等級並解鎖專屬頭銜。</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Daily status card — shows after first day */}
+          {isClient && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">今日狀態</p>
 
-            <Button onClick={handleStart} size="lg" className="w-full">
-              開始使用
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+              {/* Goal ring + text */}
+              <div className="flex items-center gap-4">
+                <div className="relative shrink-0">
+                  <svg width="60" height="60" className="-rotate-90">
+                    <circle cx="30" cy="30" r="24" fill="none" stroke="hsl(var(--muted))" strokeWidth="5" />
+                    <circle
+                      cx="30" cy="30" r="24" fill="none"
+                      stroke={goalDone ? 'hsl(var(--primary))' : 'hsl(var(--accent))'}
+                      strokeWidth="5"
+                      strokeDasharray={`${2 * Math.PI * 24 * progress} ${2 * Math.PI * 24}`}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Footprints className="h-5 w-5 text-accent" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  {stats ? (
+                    <>
+                      <p className="font-bold text-foreground">
+                        {goalDone ? '今日目標達成 ✅' : `今日目標 ${stats.goalKm} km`}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        已走 {stats.distance.toFixed(2)} km
+                        {!goalDone && ` / 還差 ${Math.max(0, stats.goalKm - stats.distance).toFixed(1)} km`}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">今天還沒開始走！</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Streak */}
+              <div className="flex items-center gap-2 pt-1 border-t border-border">
+                <Flame className={streakCount > 0 ? 'h-4 w-4 text-orange-400' : 'h-4 w-4 text-muted-foreground'} />
+                <span className="text-sm font-semibold text-foreground">{streakCount} 天連線</span>
+                {streakCount >= 7 && <span className="text-xs text-orange-400">🔥 你好猛！</span>}
+                <MapPin className="h-4 w-4 text-primary ml-auto" />
+                <span className="text-xs text-muted-foreground">出門開始追蹤</span>
+              </div>
+            </div>
+          )}
+
+          {/* Feature pills */}
+          <div className="flex flex-wrap gap-2 justify-center">
+            {['🗺️ 戰爭迷霧地圖', '🐾 探索夥伴', '🏆 成就系統', '🤖 AI 導遊', '🍜 附近美食', '📍 地點解鎖'].map(f => (
+              <span key={f} className="text-xs bg-muted/60 text-muted-foreground rounded-full px-3 py-1">{f}</span>
+            ))}
+          </div>
+
+          <Button onClick={() => router.push('/map')} size="lg" className="w-full text-base font-bold">
+            {goalDone ? '繼續探索 🎉' : '出發！'}
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
         </div>
       </div>
     </div>
