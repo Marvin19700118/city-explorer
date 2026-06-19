@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/ca
 import type { CityPoints, Title } from '@/lib/types';
 import { TitleIcon } from '@/components/icons';
 import { TitleBadge } from '@/components/TitleBadge';
+import { VirtualPet } from '@/components/VirtualPet';
 
 const TITLES: Title[] = [
     { levelThreshold: 0, name: '新手探險家', icon: 'Feather' },
@@ -124,6 +125,8 @@ export default function AchievementsPage() {
           <h2>探索成就</h2>
         </div>
       </header>
+
+      <VirtualPet />
       
       {visitedDistricts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

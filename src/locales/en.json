@@ -2,6 +2,7 @@
 {
   "nav": {
     "map": "Map",
+    "pois": "Places",
     "food": "Food",
     "history": "History",
     "achievements": "Achievements",

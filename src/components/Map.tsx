@@ -278,8 +278,30 @@ const historicalPathOptions = {
     zIndex: 1
 };
 
-// A huge polygon to cover the whole world, with holes for discovered areas
-const createFogPaths = (pois: PointOfInterest[]) => {
+const PATH_REVEAL_RADIUS = 0.003; // ~330m per path point
+const MIN_POINT_SPACING = 0.0005; // ~55m — skip points too close together
+
+function samplePath(path: { lat: number; lng: number }[]): { lat: number; lng: number }[] {
+  if (path.length === 0) return [];
+  const result = [path[0]];
+  for (let i = 1; i < path.length; i++) {
+    const prev = result[result.length - 1];
+    const curr = path[i];
+    const dlat = curr.lat - prev.lat;
+    const dlng = curr.lng - prev.lng;
+    if (Math.sqrt(dlat * dlat + dlng * dlng) > MIN_POINT_SPACING) {
+      result.push(curr);
+    }
+  }
+  return result;
+}
+
+// A huge polygon to cover the whole world, with holes for discovered areas and traveled paths
+const createFogPaths = (
+  pois: PointOfInterest[],
+  currentPath: { lat: number; lng: number }[],
+  trips: Trip[]
+) => {
     const WORLD_CORNERS = [
         { lat: 90, lng: -180 },
         { lat: 90, lng: 180 },
@@ -288,7 +310,6 @@ const createFogPaths = (pois: PointOfInterest[]) => {
     ];
 
     const discoveredPoiHoles = pois.filter(p => p.discovered).map(poi => {
-        // Create a small square hole around the discovered POI
         const radius = 0.01; // Approx 1.1km
         return [
             { lat: poi.position.lat - radius, lng: poi.position.lng - radius },
@@ -298,7 +319,22 @@ const createFogPaths = (pois: PointOfInterest[]) => {
         ];
     });
 
-    return [WORLD_CORNERS, ...discoveredPoiHoles];
+    const allPathPoints = [
+      ...samplePath(currentPath),
+      ...trips.flatMap(t => samplePath(t.path)),
+    ];
+
+    const pathHoles = allPathPoints.map(pt => {
+      const r = PATH_REVEAL_RADIUS;
+      return [
+        { lat: pt.lat - r, lng: pt.lng - r },
+        { lat: pt.lat + r, lng: pt.lng - r },
+        { lat: pt.lat + r, lng: pt.lng + r },
+        { lat: pt.lat - r, lng: pt.lng + r },
+      ];
+    });
+
+    return [WORLD_CORNERS, ...discoveredPoiHoles, ...pathHoles];
 }
 
 const libraries: ('maps' | 'places')[] = ['maps', 'places'];
@@ -326,7 +362,7 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips
     }
   };
 
-  const fogPaths = React.useMemo(() => createFogPaths(pois), [pois]);
+  const fogPaths = React.useMemo(() => createFogPaths(pois, path, trips), [pois, path, trips]);
   const fogOptions = React.useMemo(() => ({
     fillColor: '#000000',
     fillOpacity: fogOpacity / 100,
