@@ -1,11 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { History, MapPin, Footprints, Calendar, Clock, Timer, Download, Map as MapIcon, Trash2 } from 'lucide-react';
+import { History, MapPin, Footprints, Calendar, Clock, Timer, Download, Map as MapIcon, Trash2, BookMarked } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Trip } from '@/lib/types';
+import type { Trip, Trail } from '@/lib/types';
 import { formatDistance } from 'date-fns';
 import {
   AlertDialog,
@@ -72,6 +72,34 @@ ${points}
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleSaveToTrails = async (trip: Trip) => {
+    const startDt = trip.startTime ? new Date(trip.startTime) : new Date(trip.date);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const name = `散步紀錄 ${startDt.getFullYear()}-${pad(startDt.getMonth()+1)}-${pad(startDt.getDate())} ${pad(startDt.getHours())}:${pad(startDt.getMinutes())}`;
+
+    const trail: Trail = {
+      id: `walk-${trip.id}`,
+      name,
+      difficulty: 'easy',
+      points: trip.path.map(p => ({ lat: p.lat, lng: p.lng })),
+      waypoints: [],
+      totalDistanceKm: trip.distance,
+      elevationGainM: trip.elevationGainM ?? 0,
+      walkedPoints: [],
+      walkedDistanceKm: 0,
+      completionPercent: 0,
+      importedAt: new Date().toISOString(),
+    };
+
+    await game.addCustomTrail(trail);
+    toast({ title: '已儲存到步道', description: `「${name}」已加入步道列表。` });
+  };
+
+  const handleDownloadAndSave = async (trip: Trip) => {
+    handleDownloadGpx(trip);
+    await handleSaveToTrails(trip);
   };
 
   const handleOpenInGoogleMaps = (trip: Trip) => {
@@ -149,9 +177,9 @@ ${points}
                 </CardDescription>
               </CardContent>
               <CardFooter className="p-2 border-t bg-muted/30 grid grid-cols-3 gap-2">
-                <Button variant="ghost" size="sm" onClick={() => handleDownloadGpx(trip)}>
-                    <Download />
-                    下載 GPX
+                <Button variant="ghost" size="sm" onClick={() => handleDownloadAndSave(trip)}>
+                    <BookMarked />
+                    匯出到步道
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => handleOpenInGoogleMaps(trip)} disabled={trip.path.length < 2}>
                     <MapIcon />
