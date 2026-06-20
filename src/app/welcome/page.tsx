@@ -5,14 +5,26 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Footprints, MapPin, Flame, Sparkles } from 'lucide-react';
-import { useGame } from '@/context/FirebaseGameContext';
-
 export default function WelcomePage() {
   const router = useRouter();
-  const game = useGame();
-  const stats = game.isLoading ? null : game.dailyStats;
-  const streakCount = game.streak.count;
-  const isClient = !game.isLoading;
+  const [stats, setStats] = React.useState<{ distance: number; goalKm: number } | null>(null);
+  const [streakCount, setStreakCount] = React.useState(0);
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+    // Daily stats from localStorage as fallback (welcome page is outside main provider)
+    try {
+      const raw = localStorage.getItem('dailyStats');
+      if (raw) {
+        const s = JSON.parse(raw);
+        const today = new Date().toISOString().slice(0, 10);
+        if (s.date === today) setStats(s);
+      }
+      const sr = localStorage.getItem('streak');
+      if (sr) setStreakCount(JSON.parse(sr).count || 0);
+    } catch { /* ignore */ }
+  }, []);
 
   const progress = stats ? Math.min(1, stats.distance / stats.goalKm) : 0;
   const goalDone = progress >= 1;

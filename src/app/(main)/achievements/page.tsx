@@ -8,7 +8,7 @@ import type { CityPoints, Title } from '@/lib/types';
 import { TitleIcon } from '@/components/icons';
 import { TitleBadge } from '@/components/TitleBadge';
 import { VirtualPet } from '@/components/VirtualPet';
-import { loadStreak, type Streak } from '@/lib/dailyStats';
+import type { Streak } from '@/lib/dailyStats';
 import { useGame } from '@/context/FirebaseGameContext';
 
 const TITLES: Title[] = [
@@ -39,11 +39,7 @@ export default function AchievementsPage() {
   const game = useGame();
   const [progress, setProgress] = React.useState<ProgressStats>({});
   const [visitedDistricts, setVisitedDistricts] = React.useState<string[]>([]);
-  const [streak, setStreak] = React.useState<Streak>({ lastWalkDate: '', count: 0 });
-
-  React.useEffect(() => {
-    setStreak(loadStreak());
-  }, []);
+  const streak: Streak = game.streak;
 
   React.useEffect(() => {
     const cityPoints: CityPoints = game.cityPoints;
