@@ -68,6 +68,7 @@ export default function MapPage() {
   const { toast } = useToast();
 
   const tripStartTimeRef = React.useRef<string | null>(null);
+  const wakeLockRef = React.useRef<WakeLockSentinel | null>(null);
 
   // Always-current pois ref — prevents stale closures in async callbacks
   const poisRef = React.useRef(game.pois);
@@ -96,12 +97,23 @@ export default function MapPage() {
     libraries: MAP_LIBRARIES,
   });
 
-  const handleStartTracking = () => {
+  const handleStartTracking = async () => {
     tripStartTimeRef.current = new Date().toISOString();
     startTracking();
+    // Keep screen on while recording
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+      }
+    } catch { /* wake lock not supported or denied — silent */ }
   }
 
-  const handleStopTracking = () => {
+  const handleStopTracking = async () => {
+    // Release wake lock
+    if (wakeLockRef.current) {
+      await wakeLockRef.current.release().catch(() => {});
+      wakeLockRef.current = null;
+    }
     if (path.length > 1 && distance > 0.01) {
       const newTrip: Trip = {
         id: Date.now().toString(),
@@ -145,6 +157,19 @@ export default function MapPage() {
     stopTracking();
     tripStartTimeRef.current = null;
   };
+
+  // Re-acquire wake lock when page becomes visible again (e.g. user switched apps briefly)
+  React.useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && isTracking && 'wakeLock' in navigator) {
+        try {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+        } catch { /* silent */ }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isTracking]);
 
   // Once game context finishes loading, sync trail waypoints into POIs
   React.useEffect(() => {
