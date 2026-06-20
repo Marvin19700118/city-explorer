@@ -29,20 +29,30 @@ export default function HistoryPage() {
   }
 
   const generateGpxContent = (trip: Trip): string => {
-    const points = trip.path.map(p =>
-      `<trkpt lat="${p.lat}" lon="${p.lng}"></trkpt>`
-    ).join('\n    ');
+    const startDt = trip.startTime ? new Date(trip.startTime) : new Date(trip.date);
+    const endDt   = trip.endTime   ? new Date(trip.endTime)   : null;
+    const totalMs = endDt ? endDt.getTime() - startDt.getTime() : 0;
+    const intervalMs = trip.path.length > 1 && totalMs > 0
+      ? totalMs / (trip.path.length - 1)
+      : 0;
+
+    const points = trip.path.map((p, i) => {
+      const ptTime = new Date(startDt.getTime() + i * intervalMs);
+      return `    <trkpt lat="${p.lat}" lon="${p.lng}"><time>${ptTime.toISOString()}</time></trkpt>`;
+    }).join('\n');
+
+    const trackName = `散步紀錄 ${startDt.toLocaleDateString('zh-TW')} ${startDt.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}`;
 
     return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="AI tour guide" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+<gpx version="1.1" creator="AI城市導遊" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
   <metadata>
-    <name>Trip on ${new Date(trip.date).toLocaleDateString()}</name>
-    <desc>A trip recorded by AI tour guide app.</desc>
+    <name>${trackName}</name>
+    <time>${startDt.toISOString()}</time>
   </metadata>
   <trk>
-    <name>Trip on ${new Date(trip.date).toLocaleDateString()}</name>
+    <name>${trackName}</name>
     <trkseg>
-    ${points}
+${points}
     </trkseg>
   </trk>
 </gpx>`;
@@ -54,7 +64,10 @@ export default function HistoryPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `trip_${new Date(trip.date).toISOString().split('T')[0]}.gpx`;
+    const startDt = trip.startTime ? new Date(trip.startTime) : new Date(trip.date);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const fileName = `walk_${startDt.getFullYear()}-${pad(startDt.getMonth()+1)}-${pad(startDt.getDate())}_${pad(startDt.getHours())}-${pad(startDt.getMinutes())}-${pad(startDt.getSeconds())}.gpx`;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
