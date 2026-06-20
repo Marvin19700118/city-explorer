@@ -38,6 +38,7 @@ interface LocationContextType {
   loading: boolean;
   isTracking: boolean;
   currentArea: CurrentArea | null;
+  elevationGain: number;
   setCurrentArea: React.Dispatch<React.SetStateAction<CurrentArea | null>>;
   startTracking: () => void;
   stopTracking: () => void;
@@ -55,8 +56,10 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
   const [loading, setLoading] = useState(true);
   const [isTracking, setIsTracking] = useState(false);
   const [currentArea, setCurrentArea] = useState<CurrentArea | null>(null);
+  const [elevationGain, setElevationGain] = useState(0);
 
   const previousPositionRef = useRef<{ latitude: number, longitude: number} | null>(null);
+  const previousAltitudeRef = useRef<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const lastDistanceRef = React.useRef(0);
   const { toast } = useToast();
@@ -139,7 +142,9 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
 
     setIsTracking(true);
     setDistance(0);
+    setElevationGain(0);
     lastDistanceRef.current = 0;
+    previousAltitudeRef.current = null;
     setPath(p => position ? [position] : []);
 
     watchIdRef.current = navigator.geolocation.watchPosition(
@@ -157,6 +162,15 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
           setDistance((d) => d + newDistance);
         }
         previousPositionRef.current = { latitude, longitude };
+
+        const altitude = pos.coords.altitude;
+        if (altitude !== null) {
+          if (previousAltitudeRef.current !== null) {
+            const gain = altitude - previousAltitudeRef.current;
+            if (gain > 2) setElevationGain(g => g + gain);
+          }
+          previousAltitudeRef.current = altitude;
+        }
         if (loading) setLoading(false);
       },
       (err) => {
@@ -233,6 +247,7 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
         loading,
         isTracking,
         currentArea,
+        elevationGain,
         setCurrentArea,
         startTracking,
         stopTracking,

@@ -18,15 +18,51 @@ export type QuizData = {
   questions: QuizQuestion[];
 };
 
+export type PoiType = 'general' | 'trailhead' | 'summit' | 'waterfall' | 'viewpoint' | 'temple';
+
+export type TrailDifficulty = 'easy' | 'moderate' | 'hard' | 'expert';
+
+export type TrailPoint = {
+  lat: number;
+  lng: number;
+  elevation?: number;
+};
+
+export type TrailWaypoint = {
+  id: string;
+  name: string;
+  position: { lat: number; lng: number };
+  poiType: PoiType;
+  elevation?: number;
+};
+
+export type Trail = {
+  id: string;
+  name: string;
+  difficulty: TrailDifficulty;
+  points: TrailPoint[];
+  waypoints: TrailWaypoint[];
+  totalDistanceKm: number;
+  elevationGainM: number;
+  walkedPoints: number[];
+  walkedDistanceKm: number;
+  completionPercent: number;
+  importedAt: string;
+};
+
 export type PointOfInterest = {
   id: string;
   name: string;
   position: { lat: number; lng: number };
   areaDescription: string;
   discovered: boolean;
-  county: string; // e.g., '台北市'
-  district: string; // e.g., '信義區'
-  previousQuestions?: string[]; // For tracking asked questions
+  county: string;
+  district: string;
+  previousQuestions?: string[];
+  poiType?: PoiType;
+  quizzable?: boolean;
+  visitCount?: number;
+  lastVisitedAt?: string;
 };
 
 export type LatLng = {
@@ -41,6 +77,8 @@ export type Trip = {
   path: LatLng[];
   startTime: string | null;
   endTime: string | null;
+  elevationGainM?: number;
+  trailId?: string;
 };
 
 export type Settings = {

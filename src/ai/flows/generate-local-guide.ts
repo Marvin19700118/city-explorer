@@ -35,7 +35,7 @@ export async function generateLocalGuide(input: GenerateLocalGuideInput): Promis
 
   const { text } = await ai.generate({
     prompt,
-    model: 'googleai/gemini-2.0-flash',
+    model: 'googleai/gemini-2.5-flash',
   });
 
   return { introduction: text };

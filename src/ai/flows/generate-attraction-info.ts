@@ -44,7 +44,7 @@ export async function generateAttractionInfo(input: GenerateAttractionInfoInput)
 
     // Step 1: Generate Introduction Text and Quiz in parallel
     const introAndQuizPromise = ai.generate({
-        model: 'googleai/gemini-2.0-flash',
+        model: 'googleai/gemini-2.5-flash',
         system: `你是一位風趣幽默、知識淵博的在地導遊 AI。
 你的任務是為觀光景點產生一段引人入勝的介紹和一個相關的測驗。
 請使用繁體中文。`,

@@ -20,15 +20,14 @@ import { generateLocationIntro as generateLocationIntroAction } from '@/app/acti
 import Link from 'next/link';
 import { DailyGoalCard } from '@/components/DailyGoalCard';
 import { addDistanceToday, recordWalkToday } from '@/lib/dailyStats';
+import { loadTrails, saveTrails } from '@/lib/gpxParser';
+import { checkTrailCompletion, getTrailXpBonus } from '@/lib/trailCompletion';
+import { fetchNearbyPOIs, shouldRefreshPOIs, saveNearbyPOIsMeta } from '@/lib/nearbyPlaces';
+import { useJsApiLoader } from '@react-google-maps/api';
+import type { Trail } from '@/lib/types';
 
 const TAIPEI_CENTER = { lat: 25.0330, lng: 121.5654 };
-
-const initialPois: PointOfInterest[] = [
-  { id: 'poi1', name: '台北101', position: { lat: 25.0339, lng: 121.5645 }, areaDescription: '一座位於台灣台北市信義區的摩天大樓。樓高509.2公尺，地上101層、地下5層，總樓地板面積37萬4千平方公尺，由李祖原聯合建築師事務所設計。於1999年動工，2004年12月31日完工開幕。', discovered: false, county: '台北市', district: '信義區' },
-  { id: 'poi2', name: '國立故宮博物院', position: { lat: 25.1026, lng: 121.5485 }, areaDescription: '位於台灣台北市士林區，為台灣最具規模的博物館以及台灣八景之一，也是古代中國藝術史與漢學研究機構。館舍在1965年11月12日落成。', discovered: false, county: '台北市', district: '士林區' },
-  { id: 'poi3', name: '中正紀念堂', position: { lat: 25.0345, lng: 121.5218 }, areaDescription: '為紀念中華民國第一任總統蔣中正而興建，是位於臺灣臺北市中正區的國家紀念建築。全區250,000平方公尺，主樓高76公尺。', discovered: false, county: '台北市', district: '中正區' },
-  { id: 'poi4', name: '西門町', position: { lat: 25.0479, lng: 121.5074 }, areaDescription: '位於臺灣臺北市萬華區東北方，為臺北市西區最重要且國際化程度最高的消費商圈，以年輕族群為主要的消費對象，並吸引了許多國際觀光客以自助旅行造訪此處。', discovered: false, county: '台北市', district: '萬華區' },
-];
+const MAP_LIBRARIES: ('maps' | 'places')[] = ['maps', 'places'];
 
 const mockTrip: Trip = {
   id: 'mock-trip-1',
@@ -52,16 +51,17 @@ const mockTrip: Trip = {
 };
 
 export default function MapPage() {
-  const { 
-    position, 
-    distance, 
-    path, 
-    error, 
-    loading, 
-    isTracking, 
-    startTracking, 
+  const {
+    position,
+    distance,
+    path,
+    error,
+    loading,
+    isTracking,
+    startTracking,
     stopTracking,
     addXp,
+    elevationGain,
     getAreaNameFromPosition,
     currentArea,
     setCurrentArea,
@@ -69,7 +69,13 @@ export default function MapPage() {
   const { toast } = useToast();
   
   const [trips, setTrips] = React.useState<Trip[]>([]);
+  const [trails, setTrails] = React.useState<Trail[]>([]);
   const tripStartTimeRef = React.useRef<string | null>(null);
+
+  // poiId -> timestamp when user entered 200m radius
+  const poiDwellEntryRef = React.useRef<Map<string, number>>(new Map());
+  // poiId currently mid-visit (don't double-count until user leaves & re-enters)
+  const poiVisitingRef = React.useRef<Set<string>>(new Set());
 
   const [pois, setPois] = React.useState<PointOfInterest[]>([]);
   const [activeQuizPoi, setActiveQuizPoi] = React.useState<PointOfInterest | null>(null);
@@ -89,6 +95,11 @@ export default function MapPage() {
   const [isGuideLoading, setIsGuideLoading] = React.useState(false);
   
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+  const { isLoaded: isMapsLoaded } = useJsApiLoader({
+    googleMapsApiKey,
+    preventGoogleFontsLoading: true,
+    libraries: MAP_LIBRARIES,
+  });
   
   const handleStartTracking = () => {
     tripStartTimeRef.current = new Date().toISOString();
@@ -96,7 +107,7 @@ export default function MapPage() {
   }
 
   const handleStopTracking = () => {
-    if (path.length > 1 && distance > 0.01) { // only save meaningful trips
+    if (path.length > 1 && distance > 0.01) {
       const newTrip: Trip = {
         id: Date.now().toString(),
         date: new Date().toISOString(),
@@ -104,6 +115,7 @@ export default function MapPage() {
         path: path,
         startTime: tripStartTimeRef.current,
         endTime: new Date().toISOString(),
+        elevationGainM: Math.round(elevationGain),
       };
       const existingTripsJSON = localStorage.getItem('trips');
       const existingTrips: Trip[] = existingTripsJSON ? JSON.parse(existingTripsJSON) : [];
@@ -115,9 +127,28 @@ export default function MapPage() {
       recordWalkToday();
       setGoalRefresh(n => n + 1);
 
+      // Update trail completion in background to avoid UI jank
+      setTimeout(() => {
+        const currentTrails = loadTrails();
+        if (currentTrails.length === 0) return;
+        const updatedTrails = currentTrails.map(trail => {
+          const prevWalkedKm = trail.walkedDistanceKm;
+          const updated = checkTrailCompletion(trail, [path]);
+          const bonus = getTrailXpBonus(updated, prevWalkedKm);
+          if (bonus > 0 && position) {
+            getAreaNameFromPosition(position).then(area => {
+              if (area) addXp(bonus, area.county, area.district);
+            });
+          }
+          return updated;
+        });
+        saveTrails(updatedTrails);
+        setTrails(updatedTrails);
+      }, 0);
+
       toast({
         title: "旅程已儲存!",
-        description: `您 ${distance.toFixed(2)} 公里的旅程已被儲存到紀錄中。`,
+        description: `您 ${distance.toFixed(2)} km，爬升 ${Math.round(elevationGain)} m 的旅程已儲存。`,
       });
     }
     stopTracking();
@@ -130,19 +161,55 @@ export default function MapPage() {
     if (savedSettings) {
         setSettings(JSON.parse(savedSettings));
     }
-    const savedPois = localStorage.getItem('pois');
-    if (savedPois) {
-      setPois(JSON.parse(savedPois));
-    } else {
-      setPois(initialPois);
+    // Force re-fetch if POIs have English names (one-time migration to zh-TW)
+    const rawPois = localStorage.getItem('pois');
+    if (rawPois) {
+      try {
+        const parsed: PointOfInterest[] = JSON.parse(rawPois);
+        const hasEnglish = parsed.some(p => /^[A-Za-z]/.test(p.name));
+        if (hasEnglish) {
+          localStorage.removeItem('pois');
+          localStorage.removeItem('nearbyPoisMeta');
+        }
+      } catch { /* ignore */ }
     }
-    
+
+    const savedPois: PointOfInterest[] = (() => {
+      try { return JSON.parse(localStorage.getItem('pois') || '[]'); } catch { return []; }
+    })();
+
+    // Sync trail waypoints into POIs so the "郊山步道" tab shows data
+    const loadedTrails = loadTrails();
+    const existingPoiIds = new Set(savedPois.map(p => p.id));
+    const waypointPois: PointOfInterest[] = [];
+    for (const trail of loadedTrails) {
+      for (const wpt of trail.waypoints) {
+        if (!existingPoiIds.has(wpt.id)) {
+          waypointPois.push({
+            id: wpt.id,
+            name: wpt.name,
+            position: wpt.position,
+            areaDescription: `${trail.name} 的${wpt.poiType === 'trailhead' ? '登山口' : wpt.poiType === 'summit' ? '山頂' : '地標'}`,
+            discovered: true,
+            county: '',
+            district: '',
+            poiType: wpt.poiType,
+            quizzable: false,
+          });
+        }
+      }
+    }
+    const mergedPois = [...savedPois, ...waypointPois];
+    // Always persist so newly imported trail waypoints appear on next load too
+    localStorage.setItem('pois', JSON.stringify(mergedPois));
+    setPois(mergedPois);
+    setTrails(loadedTrails);
+
     const existingTripsJSON = localStorage.getItem('trips');
     if (existingTripsJSON) {
         const existingTrips: Trip[] = JSON.parse(existingTripsJSON);
         setTrips(existingTrips);
     } else {
-        // If no trips exist, add the mock trip
         const initialTrips = [mockTrip];
         localStorage.setItem('trips', JSON.stringify(initialTrips));
         setTrips(initialTrips);
@@ -150,6 +217,34 @@ export default function MapPage() {
     
   }, []);
 
+
+  // Fetch nearby POIs from Google Maps when position + API ready
+  React.useEffect(() => {
+    if (!position || !isMapsLoaded) return;
+    if (!shouldRefreshPOIs(position)) return;
+
+    fetchNearbyPOIs(position).then(freshPois => {
+      if (freshPois.length === 0) return;
+
+      // Preserve discovered status and county/district from existing POIs
+      const existingMap = new Map(pois.map(p => [p.id, p]));
+      const merged = freshPois.map(fp => {
+        const existing = existingMap.get(fp.id);
+        return existing ? { ...fp, discovered: existing.discovered, county: existing.county, district: existing.district } : fp;
+      });
+
+      // Keep any discovered POIs not in fresh results
+      for (const existing of pois) {
+        if (existing.discovered && !merged.find(p => p.id === existing.id)) {
+          merged.push(existing);
+        }
+      }
+
+      setPois(merged);
+      localStorage.setItem('pois', JSON.stringify(merged));
+      saveNearbyPOIsMeta(position);
+    });
+  }, [position, isMapsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
     if (!position || !isTracking || pois.length === 0) return;
@@ -178,11 +273,25 @@ export default function MapPage() {
       const dist = getDistanceInKm(poi.position, position);
 
       if (dist < DISCOVERY_RADIUS_KM) {
+        // Geocode the POI to get county/district for XP tracking
+        getAreaNameFromPosition(poi.position).then(area => {
+          if (!area) return;
+          setPois(prev => {
+            const updated = prev.map(p =>
+              p.id === poi.id ? { ...p, county: area.county, district: area.district } : p
+            );
+            localStorage.setItem('pois', JSON.stringify(updated));
+            return updated;
+          });
+        });
+
         updatedPois = updatedPois.map(p => p.id === poi.id ? { ...p, discovered: true } : p);
         didDiscover = true;
         toast({
-            title: "發現新區域！",
-            description: `您已揭開 ${poi.name} 的面紗。`,
+            title: `發現：${poi.name}！`,
+            description: poi.poiType === 'trailhead' || poi.poiType === 'summit'
+              ? '⛰️ 登山地點解鎖，快去探索！'
+              : '🏛️ 旅遊景點解鎖，點擊挑戰問答！',
             variant: "default",
         });
       }
@@ -193,6 +302,62 @@ export default function MapPage() {
         localStorage.setItem('pois', JSON.stringify(updatedPois));
     }
   }, [position, pois, toast, isTracking, settings.areaNotifications]);
+
+  // Dwell-time visit tracking — 200m radius, 1 hour threshold
+  React.useEffect(() => {
+    if (!position || pois.length === 0) return;
+
+    const VISIT_RADIUS_KM = 0.2;
+    const VISIT_DURATION_MS = 60 * 60 * 1000;
+    const now = Date.now();
+
+    const getDistKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+      const R = 6371;
+      const dLat = (b.lat - a.lat) * Math.PI / 180;
+      const dLng = (b.lng - a.lng) * Math.PI / 180;
+      const s = Math.sin(dLat / 2) ** 2 +
+        Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+    };
+
+    const toRecord: string[] = [];
+
+    for (const poi of pois) {
+      const dist = getDistKm(poi.position, position);
+
+      if (dist < VISIT_RADIUS_KM) {
+        if (!poiDwellEntryRef.current.has(poi.id)) {
+          poiDwellEntryRef.current.set(poi.id, now);
+        } else if (!poiVisitingRef.current.has(poi.id)) {
+          const elapsed = now - poiDwellEntryRef.current.get(poi.id)!;
+          if (elapsed >= VISIT_DURATION_MS) {
+            poiVisitingRef.current.add(poi.id);
+            toRecord.push(poi.id);
+          }
+        }
+      } else {
+        // Left the area — reset so next visit counts fresh
+        poiDwellEntryRef.current.delete(poi.id);
+        poiVisitingRef.current.delete(poi.id);
+      }
+    }
+
+    if (toRecord.length > 0) {
+      setPois(prev => {
+        const updated = prev.map(p => {
+          if (!toRecord.includes(p.id)) return p;
+          const newCount = (p.visitCount ?? 0) + 1;
+          toast({
+            title: `📍 已記錄造訪：${p.name}`,
+            description: `第 ${newCount} 次造訪！待滿一小時計入記錄。`,
+          });
+          return { ...p, visitCount: newCount, lastVisitedAt: new Date().toISOString() };
+        });
+        localStorage.setItem('pois', JSON.stringify(updated));
+        return updated;
+      });
+    }
+  }, [position, pois, toast]);
 
   const handleStartQuiz = (poi: PointOfInterest) => {
     const askedQuestionsJSON = localStorage.getItem('askedQuestions');
@@ -321,6 +486,7 @@ export default function MapPage() {
         pois={pois}
         path={path}
         trips={trips}
+        trails={trails}
         onStartQuiz={handleStartQuiz}
         fogOpacity={settings.fogOpacity}
       />

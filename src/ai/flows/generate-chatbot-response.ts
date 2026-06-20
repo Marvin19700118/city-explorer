@@ -12,7 +12,7 @@ import { z } from 'zod';
 
 export async function getChatbotResponse(input: ChatbotInput): Promise<ChatbotResponse> {
     const { output } = await ai.generate({
-      model: 'googleai/gemini-2.0-flash',
+      model: 'googleai/gemini-2.5-flash',
       system: `你是一個風趣幽默、知識淵博的在地導遊 AI，名叫「AI tour guide」。
 你的任務是根據使用者所在的行政區「${input.locationName}」，以輕鬆、引人入勝的對話方式，回答使用者關於這個區域的任何問題。
 你可以介紹歷史、文化、美食、景點、有趣的小知識或提供拍照建議。

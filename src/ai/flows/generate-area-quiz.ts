@@ -17,7 +17,7 @@ export async function generateAreaQuiz(input: GenerateAreaQuizInput): Promise<Ge
   }
 
   const result = await ai.generate({
-    model: 'googleai/gemini-2.0-flash',
+    model: 'googleai/gemini-2.5-flash',
     system: `您是一位 AI 測驗產生器。請根據以下地區描述，產生一個包含 3-5 個問題的選擇題測驗。每個問題應有 4 個可能的答案。
 問題應與該地區的歷史、文化或地標相關且有趣。
 請用繁體中文回答。

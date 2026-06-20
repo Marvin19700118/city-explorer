@@ -42,7 +42,7 @@ async function toWav(
 export async function generateLocationIntro(input: GenerateLocationIntroInput): Promise<GenerateLocationIntroOutput> {
     // 1. Generate text introduction
     const { text: introduction } = await ai.generate({
-      model: 'googleai/gemini-2.0-flash',
+      model: 'googleai/gemini-2.5-flash',
       system: `你是一個風趣幽默、知識淵博的在地導遊 AI，名叫「AI tour guide」。
 你的任務是根據使用者提供的地區描述，產生一段引人入勝的介紹。
 介紹內容可以包含歷史、文化、美食、景點、有趣的小知識。

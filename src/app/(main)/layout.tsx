@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Map, Gem, History, Utensils, Settings, Landmark, MapPin } from 'lucide-react';
+import { Map, Gem, History, Utensils, Settings, Landmark, MapPin, Mountain } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -16,8 +16,8 @@ const NavItemsWrapper = ({ children }: { children: React.ReactNode }) => {
 
   const navItems = [
     { href: '/map', label: t('nav.map'), icon: Map },
+    { href: '/trails', label: '步道', icon: Mountain },
     { href: '/pois', label: t('nav.pois'), icon: MapPin },
-    { href: '/attractions', label: t('nav.attractions'), icon: Landmark },
     { href: '/food', label: t('nav.food'), icon: Utensils },
     { href: '/history', label: t('nav.history'), icon: History },
     { href: '/achievements', label: t('nav.achievements'), icon: Gem },
