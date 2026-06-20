@@ -4,6 +4,7 @@
 import * as React from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useGame } from '@/context/FirebaseGameContext';
 
 type PetStage = {
   name: string;
@@ -30,29 +31,8 @@ function getPetInfo(totalXp: number) {
 }
 
 export function VirtualPet() {
-  const [totalXp, setTotalXp] = React.useState(0);
-  const [isClient, setIsClient] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsClient(true);
-    const loadXp = () => {
-      try {
-        const saved = localStorage.getItem('cityPoints');
-        if (saved) {
-          const points = JSON.parse(saved) as Record<string, number>;
-          const total = Object.values(points).reduce((sum, v) => sum + (v || 0), 0);
-          setTotalXp(total);
-        }
-      } catch {
-        // ignore parse errors
-      }
-    };
-    loadXp();
-    window.addEventListener('storage', loadXp);
-    return () => window.removeEventListener('storage', loadXp);
-  }, []);
-
-  if (!isClient) return null;
+  const game = useGame();
+  const totalXp = Object.values(game.cityPoints).reduce((sum, v) => sum + (v || 0), 0);
 
   const { current, next, progress } = getPetInfo(totalXp);
 

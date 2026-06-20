@@ -9,6 +9,7 @@ import { TitleIcon } from '@/components/icons';
 import { TitleBadge } from '@/components/TitleBadge';
 import { VirtualPet } from '@/components/VirtualPet';
 import { loadStreak, type Streak } from '@/lib/dailyStats';
+import { useGame } from '@/context/FirebaseGameContext';
 
 const TITLES: Title[] = [
     { levelThreshold: 0, name: '新手探險家', icon: 'Feather' },
@@ -35,77 +36,36 @@ type ProgressStats = {
 };
 
 export default function AchievementsPage() {
+  const game = useGame();
   const [progress, setProgress] = React.useState<ProgressStats>({});
   const [visitedDistricts, setVisitedDistricts] = React.useState<string[]>([]);
   const [streak, setStreak] = React.useState<Streak>({ lastWalkDate: '', count: 0 });
-  const [isClient, setIsClient] = React.useState(false);
 
   React.useEffect(() => {
-    setIsClient(true);
     setStreak(loadStreak());
-
-    const loadPoints = () => {
-      const savedCityPoints = localStorage.getItem('cityPoints');
-      // Gracefully handle the case where no points are saved yet.
-      if (!savedCityPoints) {
-        setProgress({});
-        setVisitedDistricts([]);
-        return;
-      }
-
-      try {
-          const cityPoints: CityPoints = JSON.parse(savedCityPoints);
-          const discoveredDistricts = Object.keys(cityPoints).filter(key => (cityPoints[key] || 0) > 0);
-          
-          const stats: ProgressStats = discoveredDistricts.reduce((acc, key) => {
-            const points = cityPoints[key] || 0;
-            const level = Math.floor(points / POINTS_PER_LEVEL);
-            const title = getTitleForLevel(level);
-            const [county, district] = key.split('-');
-
-            if (county && district) {
-              acc[key] = {
-                points,
-                level: level,
-                title,
-                county,
-                district
-              };
-            }
-            return acc;
-          }, {} as ProgressStats);
-          
-          setVisitedDistricts(Object.keys(stats).sort());
-          setProgress(stats);
-      } catch (e) {
-          console.error("Failed to parse cityPoints from localStorage", e);
-          // If parsing fails, clear the corrupted data and reset state.
-          localStorage.removeItem('cityPoints');
-          setProgress({});
-          setVisitedDistricts([]);
-      }
-    };
-
-    loadPoints();
-
-    // Listen for changes from other tabs/components
-    const handleStorageChange = (e: StorageEvent) => {
-        // If cityPoints changed, or if all local storage was cleared, reload points.
-        if (e.key === 'cityPoints' || e.key === null) { 
-            loadPoints();
-        }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Cleanup listener on component unmount
-    return () => {
-        window.removeEventListener('storage', handleStorageChange);
-    };
-
   }, []);
 
-  if (!isClient) {
+  React.useEffect(() => {
+    const cityPoints: CityPoints = game.cityPoints;
+    const discoveredDistricts = Object.keys(cityPoints).filter(key => (cityPoints[key] || 0) > 0);
+
+    const stats: ProgressStats = discoveredDistricts.reduce((acc, key) => {
+      const points = cityPoints[key] || 0;
+      const level = Math.floor(points / POINTS_PER_LEVEL);
+      const title = getTitleForLevel(level);
+      const [county, district] = key.split('-');
+
+      if (county && district) {
+        acc[key] = { points, level, title, county, district };
+      }
+      return acc;
+    }, {} as ProgressStats);
+
+    setVisitedDistricts(Object.keys(stats).sort());
+    setProgress(stats);
+  }, [game.cityPoints]);
+
+  if (game.isLoading) {
     return (
         <div className="p-4 space-y-4">
             <div className="flex items-center gap-2 text-2xl font-bold font-headline text-primary">

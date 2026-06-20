@@ -2,8 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import type { LatLng, CityPoints, CurrentArea } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
+import type { LatLng, CurrentArea } from '@/lib/types';
 
 // Haversine formula to calculate distance between two lat/lng points
 const haversineDistance = (
@@ -25,8 +24,6 @@ const haversineDistance = (
   return R * c;
 };
 
-// XP per 100 meters
-const XP_PER_100_METERS = 10;
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
 
@@ -42,7 +39,6 @@ interface LocationContextType {
   setCurrentArea: React.Dispatch<React.SetStateAction<CurrentArea | null>>;
   startTracking: () => void;
   stopTracking: () => void;
-  addXp: (xpGained: number, county: string, district: string) => void;
   getAreaNameFromPosition: (pos: LatLng) => Promise<CurrentArea | null>;
 }
 
@@ -61,8 +57,6 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
   const previousPositionRef = useRef<{ latitude: number, longitude: number} | null>(null);
   const previousAltitudeRef = useRef<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
-  const lastDistanceRef = React.useRef(0);
-  const { toast } = useToast();
 
   const getAreaNameFromPosition = useCallback(async (pos: {lat: number, lng: number}): Promise<CurrentArea | null> => {
      if (!GOOGLE_MAPS_API_KEY || typeof window === 'undefined' || !window.google || !window.google.maps || !window.google.maps.Geocoder) return null;
@@ -90,39 +84,6 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
      }
   }, []);
 
-  const addXp = useCallback(async (xpGained: number, county: string, district: string) => {
-    if (xpGained <= 0 || !county || !district) return;
-    
-    const key = `${county}-${district}`;
-
-    try {
-        const savedPointsJSON = localStorage.getItem('cityPoints');
-        const cityPoints: CityPoints = savedPointsJSON ? JSON.parse(savedPointsJSON) : {};
-        
-        cityPoints[key] = (cityPoints[key] || 0) + xpGained;
-        
-        localStorage.setItem('cityPoints', JSON.stringify(cityPoints));
-
-    } catch (error) {
-        console.error("Failed to update cityPoints in localStorage:", error);
-        toast({
-            title: "分數儲存失敗",
-            description: "無法更新您的成就分數。",
-            variant: "destructive",
-        });
-    }
-  }, [toast]);
-
-  const onXpForExploration = useCallback(async (xpGained: number) => {
-    if (xpGained <= 0 || !position) return;
-    
-    const area = await getAreaNameFromPosition(position);
-    if (area && area.county && area.district) {
-        addXp(xpGained, area.county, area.district);
-    }
-  }, [position, addXp, getAreaNameFromPosition]);
-
-
   const stopTracking = useCallback(() => {
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
@@ -143,7 +104,6 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
     setIsTracking(true);
     setDistance(0);
     setElevationGain(0);
-    lastDistanceRef.current = 0;
     previousAltitudeRef.current = null;
     setPath(p => position ? [position] : []);
 
@@ -223,21 +183,6 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
     }
   }, [position, getAreaNameFromPosition]);
 
-  // XP for exploration
-  useEffect(() => {
-    if (isTracking && distance > lastDistanceRef.current) {
-        const distanceGained = distance - lastDistanceRef.current; // in km
-        const xpGained = Math.floor((distanceGained * 1000) / 100) * XP_PER_100_METERS;
-        
-        if (xpGained > 0) {
-            onXpForExploration(xpGained);
-        }
-        
-        lastDistanceRef.current = distance;
-    }
-  }, [distance, isTracking, onXpForExploration]);
-
-
   return (
     <LocationContext.Provider value={{
         position,
@@ -251,7 +196,6 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
         setCurrentArea,
         startTracking,
         stopTracking,
-        addXp,
         getAreaNameFromPosition
     }}>
       {children}

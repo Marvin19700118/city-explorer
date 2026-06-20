@@ -1,5 +1,4 @@
 import type { Trail, TrailDifficulty, TrailPoint, TrailWaypoint, PoiType } from './types';
-import { SEED_TRAILS } from './seedTrails';
 
 function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const R = 6371;
@@ -93,34 +92,4 @@ export function parseGpx(xmlString: string, fileName: string): Trail {
     completionPercent: 0,
     importedAt: new Date().toISOString(),
   };
-}
-
-const SEED_VERSION = '2'; // bump to force-reload seed data
-
-export function loadTrails(): Trail[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    // Force refresh seed data when version changes
-    if (localStorage.getItem('trailsSeedVersion') !== SEED_VERSION) {
-      localStorage.removeItem('trails');
-      localStorage.setItem('trailsSeedVersion', SEED_VERSION);
-    }
-
-    const raw = localStorage.getItem('trails');
-    if (raw !== null) {
-      // Merge: keep user-imported GPX, always use latest seed data
-      const existing: Trail[] = JSON.parse(raw);
-      const userTrails = existing.filter(t => !t.id.startsWith('seed-') && !t.id.startsWith('osm-'));
-      const merged = [...SEED_TRAILS, ...userTrails];
-      saveTrails(merged);
-      return merged;
-    }
-
-    saveTrails(SEED_TRAILS);
-    return SEED_TRAILS;
-  } catch { return []; }
-}
-
-export function saveTrails(trails: Trail[]): void {
-  localStorage.setItem('trails', JSON.stringify(trails));
 }

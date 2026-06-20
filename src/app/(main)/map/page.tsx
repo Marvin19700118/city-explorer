@@ -8,6 +8,7 @@ import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
 import { GuideModal } from '@/components/GuideModal';
 import { useLocation } from '@/context/LocationTrackingContext';
+import { useGame } from '@/context/FirebaseGameContext';
 import type { PointOfInterest, Trip, Settings, GenerateLocationIntroOutput, CityPoints, CurrentArea, AskedQuestionHistory } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -19,10 +20,8 @@ import { createQuiz } from '@/app/actions';
 import { generateLocationIntro as generateLocationIntroAction } from '@/app/actions';
 import Link from 'next/link';
 import { DailyGoalCard } from '@/components/DailyGoalCard';
-import { addDistanceToday, recordWalkToday } from '@/lib/dailyStats';
-import { loadTrails, saveTrails } from '@/lib/gpxParser';
 import { checkTrailCompletion, getTrailXpBonus } from '@/lib/trailCompletion';
-import { fetchNearbyPOIs, shouldRefreshPOIs, saveNearbyPOIsMeta } from '@/lib/nearbyPlaces';
+import { fetchNearbyPOIs } from '@/lib/nearbyPlaces';
 import { useJsApiLoader } from '@react-google-maps/api';
 import type { Trail } from '@/lib/types';
 
@@ -60,16 +59,14 @@ export default function MapPage() {
     isTracking,
     startTracking,
     stopTracking,
-    addXp,
     elevationGain,
     getAreaNameFromPosition,
     currentArea,
     setCurrentArea,
   } = useLocation();
+  const game = useGame();
   const { toast } = useToast();
-  
-  const [trips, setTrips] = React.useState<Trip[]>([]);
-  const [trails, setTrails] = React.useState<Trail[]>([]);
+
   const tripStartTimeRef = React.useRef<string | null>(null);
 
   // poiId -> timestamp when user entered 200m radius
@@ -77,30 +74,24 @@ export default function MapPage() {
   // poiId currently mid-visit (don't double-count until user leaves & re-enters)
   const poiVisitingRef = React.useRef<Set<string>>(new Set());
 
-  const [pois, setPois] = React.useState<PointOfInterest[]>([]);
   const [activeQuizPoi, setActiveQuizPoi] = React.useState<PointOfInterest | null>(null);
-  
+
   const [isChatbotOpen, setIsChatbotOpen] = React.useState(false);
   const [chatbotLocationName, setChatbotLocationName] = React.useState<string | null>(null);
   const [isChatbotLoading, setIsChatbotLoading] = React.useState(false);
-
-  const [settings, setSettings] = React.useState<Settings>({
-    fogOpacity: 70,
-    areaNotifications: true,
-  });
 
   const [goalRefresh, setGoalRefresh] = React.useState(0);
   const [isGuideModalOpen, setIsGuideModalOpen] = React.useState(false);
   const [guideData, setGuideData] = React.useState<GenerateLocationIntroOutput | null>(null);
   const [isGuideLoading, setIsGuideLoading] = React.useState(false);
-  
+
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
   const { isLoaded: isMapsLoaded } = useJsApiLoader({
     googleMapsApiKey,
     preventGoogleFontsLoading: true,
     libraries: MAP_LIBRARIES,
   });
-  
+
   const handleStartTracking = () => {
     tripStartTimeRef.current = new Date().toISOString();
     startTracking();
@@ -117,33 +108,29 @@ export default function MapPage() {
         endTime: new Date().toISOString(),
         elevationGainM: Math.round(elevationGain),
       };
-      const existingTripsJSON = localStorage.getItem('trips');
-      const existingTrips: Trip[] = existingTripsJSON ? JSON.parse(existingTripsJSON) : [];
-      const updatedTrips = [...existingTrips, newTrip];
-      localStorage.setItem('trips', JSON.stringify(updatedTrips));
-      setTrips(updatedTrips);
-
-      addDistanceToday(distance);
-      recordWalkToday();
+      game.addTrip(newTrip);
+      game.addDistanceToday(distance);
+      game.recordWalkToday();
       setGoalRefresh(n => n + 1);
 
       // Update trail completion in background to avoid UI jank
       setTimeout(() => {
-        const currentTrails = loadTrails();
-        if (currentTrails.length === 0) return;
-        const updatedTrails = currentTrails.map(trail => {
+        if (game.trails.length === 0) return;
+        const updatedTrails = game.trails.map(trail => {
           const prevWalkedKm = trail.walkedDistanceKm;
           const updated = checkTrailCompletion(trail, [path]);
           const bonus = getTrailXpBonus(updated, prevWalkedKm);
           if (bonus > 0 && position) {
             getAreaNameFromPosition(position).then(area => {
-              if (area) addXp(bonus, area.county, area.district);
+              if (area) game.addXp(bonus, area.county, area.district);
             });
           }
           return updated;
         });
-        saveTrails(updatedTrails);
-        setTrails(updatedTrails);
+        // Save progress for changed trails
+        updatedTrails.forEach(t => {
+          game.updateTrailProgress(t.id, { walkedPoints: t.walkedPoints, walkedDistanceKm: t.walkedDistanceKm, completionPercent: t.completionPercent });
+        });
       }, 0);
 
       toast({
@@ -155,34 +142,13 @@ export default function MapPage() {
     tripStartTimeRef.current = null;
   };
 
+  // Once game context finishes loading, sync trail waypoints into POIs
   React.useEffect(() => {
-    // Load saved data from localStorage on mount
-    const savedSettings = localStorage.getItem('settings');
-    if (savedSettings) {
-        setSettings(JSON.parse(savedSettings));
-    }
-    // Force re-fetch if POIs have English names (one-time migration to zh-TW)
-    const rawPois = localStorage.getItem('pois');
-    if (rawPois) {
-      try {
-        const parsed: PointOfInterest[] = JSON.parse(rawPois);
-        const hasEnglish = parsed.some(p => /^[A-Za-z]/.test(p.name));
-        if (hasEnglish) {
-          localStorage.removeItem('pois');
-          localStorage.removeItem('nearbyPoisMeta');
-        }
-      } catch { /* ignore */ }
-    }
+    if (game.isLoading) return;
 
-    const savedPois: PointOfInterest[] = (() => {
-      try { return JSON.parse(localStorage.getItem('pois') || '[]'); } catch { return []; }
-    })();
-
-    // Sync trail waypoints into POIs so the "郊山步道" tab shows data
-    const loadedTrails = loadTrails();
-    const existingPoiIds = new Set(savedPois.map(p => p.id));
+    const existingPoiIds = new Set(game.pois.map(p => p.id));
     const waypointPois: PointOfInterest[] = [];
-    for (const trail of loadedTrails) {
+    for (const trail of game.trails) {
       for (const wpt of trail.waypoints) {
         if (!existingPoiIds.has(wpt.id)) {
           waypointPois.push({
@@ -199,56 +165,48 @@ export default function MapPage() {
         }
       }
     }
-    const mergedPois = [...savedPois, ...waypointPois];
-    // Always persist so newly imported trail waypoints appear on next load too
-    localStorage.setItem('pois', JSON.stringify(mergedPois));
-    setPois(mergedPois);
-    setTrails(loadedTrails);
-
-    const existingTripsJSON = localStorage.getItem('trips');
-    if (existingTripsJSON) {
-        const existingTrips: Trip[] = JSON.parse(existingTripsJSON);
-        setTrips(existingTrips);
-    } else {
-        const initialTrips = [mockTrip];
-        localStorage.setItem('trips', JSON.stringify(initialTrips));
-        setTrips(initialTrips);
+    if (waypointPois.length > 0) {
+      game.updatePois([...game.pois, ...waypointPois]);
     }
-    
-  }, []);
+  }, [game.isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // Fetch nearby POIs from Google Maps when position + API ready
   React.useEffect(() => {
     if (!position || !isMapsLoaded) return;
-    if (!shouldRefreshPOIs(position)) return;
+
+    const shouldRefresh = !game.nearbyPoisMeta ||
+      Date.now() - game.nearbyPoisMeta.fetchedAt > 60 * 60 * 1000 ||
+      Math.abs(game.nearbyPoisMeta.center.lat - position.lat) > 0.01 ||
+      Math.abs(game.nearbyPoisMeta.center.lng - position.lng) > 0.01;
+
+    if (!shouldRefresh) return;
 
     fetchNearbyPOIs(position).then(freshPois => {
       if (freshPois.length === 0) return;
 
       // Preserve discovered status and county/district from existing POIs
-      const existingMap = new Map(pois.map(p => [p.id, p]));
+      const existingMap = new Map(game.pois.map(p => [p.id, p]));
       const merged = freshPois.map(fp => {
         const existing = existingMap.get(fp.id);
         return existing ? { ...fp, discovered: existing.discovered, county: existing.county, district: existing.district } : fp;
       });
 
       // Keep any discovered POIs not in fresh results
-      for (const existing of pois) {
+      for (const existing of game.pois) {
         if (existing.discovered && !merged.find(p => p.id === existing.id)) {
           merged.push(existing);
         }
       }
 
-      setPois(merged);
-      localStorage.setItem('pois', JSON.stringify(merged));
-      saveNearbyPOIsMeta(position);
+      game.updatePois(merged);
+      game.updateNearbyPoisMeta({ center: position, fetchedAt: Date.now() });
     });
   }, [position, isMapsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
-    if (!position || !isTracking || pois.length === 0) return;
-      
+    if (!position || !isTracking || game.pois.length === 0) return;
+
     const getDistanceInKm = (pos1: { lat: number; lng: number }, pos2: { lat: number; lng: number }) => {
       const R = 6371; // Radius of the earth in km
       const dLat = (pos2.lat - pos1.lat) * (Math.PI / 180);
@@ -262,9 +220,9 @@ export default function MapPage() {
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       return R * c;
     };
-      
-    const DISCOVERY_RADIUS_KM = settings.areaNotifications ? 3 : 0.5; // 3km or 500m
-    let updatedPois = pois;
+
+    const DISCOVERY_RADIUS_KM = (game.settings?.areaNotifications ?? true) ? 3 : 0.5; // 3km or 500m
+    let updatedPois = game.pois;
     let didDiscover = false;
 
     const undiscoveredPois = updatedPois.filter(p => !p.discovered);
@@ -276,13 +234,10 @@ export default function MapPage() {
         // Geocode the POI to get county/district for XP tracking
         getAreaNameFromPosition(poi.position).then(area => {
           if (!area) return;
-          setPois(prev => {
-            const updated = prev.map(p =>
-              p.id === poi.id ? { ...p, county: area.county, district: area.district } : p
-            );
-            localStorage.setItem('pois', JSON.stringify(updated));
-            return updated;
-          });
+          const updated = game.pois.map(p =>
+            p.id === poi.id ? { ...p, county: area.county, district: area.district } : p
+          );
+          game.updatePois(updated);
         });
 
         updatedPois = updatedPois.map(p => p.id === poi.id ? { ...p, discovered: true } : p);
@@ -296,16 +251,15 @@ export default function MapPage() {
         });
       }
     }
-    
+
     if (didDiscover) {
-        setPois(updatedPois);
-        localStorage.setItem('pois', JSON.stringify(updatedPois));
+        game.updatePois(updatedPois);
     }
-  }, [position, pois, toast, isTracking, settings.areaNotifications]);
+  }, [position, game.pois, toast, isTracking, game.settings?.areaNotifications]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Dwell-time visit tracking — 200m radius, 1 hour threshold
   React.useEffect(() => {
-    if (!position || pois.length === 0) return;
+    if (!position || game.pois.length === 0) return;
 
     const VISIT_RADIUS_KM = 0.2;
     const VISIT_DURATION_MS = 60 * 60 * 1000;
@@ -322,7 +276,7 @@ export default function MapPage() {
 
     const toRecord: string[] = [];
 
-    for (const poi of pois) {
+    for (const poi of game.pois) {
       const dist = getDistKm(poi.position, position);
 
       if (dist < VISIT_RADIUS_KM) {
@@ -343,40 +297,35 @@ export default function MapPage() {
     }
 
     if (toRecord.length > 0) {
-      setPois(prev => {
-        const updated = prev.map(p => {
-          if (!toRecord.includes(p.id)) return p;
-          const newCount = (p.visitCount ?? 0) + 1;
-          toast({
-            title: `📍 已記錄造訪：${p.name}`,
-            description: `第 ${newCount} 次造訪！待滿一小時計入記錄。`,
-          });
-          return { ...p, visitCount: newCount, lastVisitedAt: new Date().toISOString() };
+      const updated = game.pois.map(p => {
+        if (!toRecord.includes(p.id)) return p;
+        const newCount = (p.visitCount ?? 0) + 1;
+        toast({
+          title: `📍 已記錄造訪：${p.name}`,
+          description: `第 ${newCount} 次造訪！待滿一小時計入記錄。`,
         });
-        localStorage.setItem('pois', JSON.stringify(updated));
-        return updated;
+        return { ...p, visitCount: newCount, lastVisitedAt: new Date().toISOString() };
       });
+      game.updatePois(updated);
     }
-  }, [position, pois, toast]);
+  }, [position, game.pois, toast]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleStartQuiz = (poi: PointOfInterest) => {
-    const askedQuestionsJSON = localStorage.getItem('askedQuestions');
-    const askedQuestionHistory: AskedQuestionHistory = askedQuestionsJSON ? JSON.parse(askedQuestionsJSON) : {};
+    const askedQuestionHistory: AskedQuestionHistory = game.askedQuestions ?? {};
     const previousQuestions = askedQuestionHistory[poi.district] || [];
 
     const poiWithPreviousQuestions = { ...poi, previousQuestions };
     setActiveQuizPoi(poiWithPreviousQuestions);
   };
-  
+
   const handleStartLocalChallenge = async () => {
     if (!position) return;
     const areaInfo = await getAreaNameFromPosition(position);
-    
+
     if (areaInfo && areaInfo.fullAddress && areaInfo.district) {
         setCurrentArea(areaInfo);
 
-        const askedQuestionsJSON = localStorage.getItem('askedQuestions');
-        const askedQuestionHistory: AskedQuestionHistory = askedQuestionsJSON ? JSON.parse(askedQuestionsJSON) : {};
+        const askedQuestionHistory: AskedQuestionHistory = game.askedQuestions ?? {};
         const previousQuestions = askedQuestionHistory[areaInfo.district] || [];
 
         const localPoi: PointOfInterest = {
@@ -385,7 +334,7 @@ export default function MapPage() {
             position: position,
             areaDescription: `關於台灣${areaInfo.fullAddress}的介紹`,
             discovered: true,
-            county: areaInfo.county, 
+            county: areaInfo.county,
             district: areaInfo.district,
             previousQuestions: previousQuestions,
         };
@@ -394,7 +343,7 @@ export default function MapPage() {
         toast({ title: "無法識別位置", description: "無法獲取您目前位置的詳細地址。", variant: "destructive" });
     }
   };
-  
+
   const handleToggleChatbot = async () => {
     if (isChatbotOpen) {
       setIsChatbotOpen(false);
@@ -451,7 +400,7 @@ export default function MapPage() {
     if (loading && !position) {
       return <Skeleton className="h-full w-full" />
     }
-    
+
     if (error && !position) {
        return (
         <div className="p-4">
@@ -477,18 +426,19 @@ export default function MapPage() {
         </div>
       );
     }
-    
+
     return (
        <GameMap
         apiKey={googleMapsApiKey}
         userPosition={position}
         defaultCenter={TAIPEI_CENTER}
-        pois={pois}
+        pois={game.pois}
         path={path}
-        trips={trips}
-        trails={trails}
+        trips={game.trips}
+        trails={game.trails}
         onStartQuiz={handleStartQuiz}
-        fogOpacity={settings.fogOpacity}
+        fogOpacity={game.settings?.fogOpacity ?? 70}
+        cityPoints={game.cityPoints}
       />
     )
   }
@@ -517,9 +467,9 @@ export default function MapPage() {
           >
             <Mic />
           </Button>
-          <Button 
-              onClick={handleStartLocalChallenge} 
-              disabled={!position} 
+          <Button
+              onClick={handleStartLocalChallenge}
+              disabled={!position}
               size="icon"
               className="bg-amber-500 hover:bg-amber-600 text-white"
           >
@@ -556,7 +506,7 @@ export default function MapPage() {
         poi={activeQuizPoi}
         isOpen={!!activeQuizPoi}
         onClose={handleCloseQuiz}
-        onQuizComplete={addXp}
+        onQuizComplete={game.addXp}
       />
 
       <GuideModal

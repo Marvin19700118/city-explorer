@@ -20,6 +20,7 @@ import type { PointOfInterest, QuizData, QuizQuestion, GenerateAreaQuizInput, As
 import { CheckCircle, XCircle, BrainCircuit, RotateCw, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useGame } from '@/context/FirebaseGameContext';
 
 type QuizModalProps = {
   poi: PointOfInterest | null;
@@ -41,6 +42,7 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete, overrideQuizDa
   const [showResult, setShowResult] = React.useState(false);
   const [score, setScore] = React.useState(0);
   const { toast } = useToast();
+  const game = useGame();
 
   const fetchQuiz = React.useCallback(async () => {
     if (!poi) return;
@@ -114,14 +116,13 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete, overrideQuizDa
            onQuizComplete(finalXp, poi.county, poi.district);
         }
 
-        // Save asked questions to localStorage only for non-overridden quizzes
+        // Save asked questions via game context only for non-overridden quizzes
         if (!overrideQuizData && poi?.district && quizData?.questions) {
-            const askedQuestionsJSON = localStorage.getItem('askedQuestions');
-            const askedQuestionHistory: AskedQuestionHistory = askedQuestionsJSON ? JSON.parse(askedQuestionsJSON) : {};
+            const askedQuestionHistory: AskedQuestionHistory = { ...game.askedQuestions };
             const newQuestions = quizData.questions.map(q => q.question);
             const existingQuestions = askedQuestionHistory[poi.district] || [];
             askedQuestionHistory[poi.district] = [...new Set([...existingQuestions, ...newQuestions])]; // Use Set to avoid duplicates
-            localStorage.setItem('askedQuestions', JSON.stringify(askedQuestionHistory));
+            game.updateAskedQuestions(askedQuestionHistory);
         }
         
         // Show final score card

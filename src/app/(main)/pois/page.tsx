@@ -2,11 +2,12 @@
 
 import * as React from 'react';
 import { MapPin, Compass, Star } from 'lucide-react';
-import type { PointOfInterest, PoiType } from '@/lib/types';
+import type { PoiType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ItemActionBar } from '@/components/ItemActionBar';
+import { useGame } from '@/context/FirebaseGameContext';
 
 const POI_EMOJI: Record<PoiType, string> = {
   trailhead: '⛺', summit: '🏔️', waterfall: '💧',
@@ -33,19 +34,10 @@ function formatLastVisit(iso: string): string {
 }
 
 export default function PoisPage() {
-  const [pois, setPois] = React.useState<PointOfInterest[]>([]);
-  const [isClient, setIsClient] = React.useState(false);
+  const game = useGame();
   const [tab, setTab] = React.useState<'all' | 'hike' | 'tourism'>('all');
 
-  React.useEffect(() => {
-    setIsClient(true);
-    try {
-      const saved = localStorage.getItem('pois');
-      if (saved) setPois(JSON.parse(saved));
-    } catch { /* ignore */ }
-  }, []);
-
-  if (!isClient) {
+  if (game.isLoading) {
     return (
       <div className="p-4 space-y-3">
         <div className="flex items-center gap-2 text-2xl font-bold font-headline text-primary">
@@ -58,10 +50,10 @@ export default function PoisPage() {
   }
 
   const filtered = tab === 'hike'
-    ? pois.filter(p => HIKE_TYPES.includes(p.poiType ?? 'general'))
+    ? game.pois.filter(p => HIKE_TYPES.includes(p.poiType ?? 'general'))
     : tab === 'tourism'
-    ? pois.filter(p => !HIKE_TYPES.includes(p.poiType ?? 'general'))
-    : pois;
+    ? game.pois.filter(p => !HIKE_TYPES.includes(p.poiType ?? 'general'))
+    : game.pois;
 
   const visited = filtered.filter(p => (p.visitCount ?? 0) > 0)
     .sort((a, b) => (b.visitCount ?? 0) - (a.visitCount ?? 0));

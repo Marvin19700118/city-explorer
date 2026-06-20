@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/context/I18nContext';
+import { useGame } from '@/context/FirebaseGameContext';
 import type { GameSaveData } from '@/lib/types';
+import { saveGameData } from '@/lib/db';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,45 +25,15 @@ import {
 
 const GDRIVE_FILE_NAME = 'aitourguide.json';
 
-type ApiCounts = {
-  gemini: number;
-  places: number;
-}
-
 export default function SettingsPage() {
   const { isSignedIn, gsiLoaded, tokenClient, getAccessToken, signOut } = useAuth();
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = React.useState(false);
   const { i18n, setLocale, t } = useI18n();
-  const [apiCounts, setApiCounts] = React.useState<ApiCounts>({ gemini: 0, places: 0 });
+  const game = useGame();
 
-  const loadApiCounts = React.useCallback(() => {
-    const geminiCount = parseInt(localStorage.getItem('geminiApiCallCount') || '0', 10);
-    const placesCount = parseInt(localStorage.getItem('placesApiCallCount') || '0', 10);
-    setApiCounts({ gemini: geminiCount, places: placesCount });
-  }, []);
-
-  React.useEffect(() => {
-    loadApiCounts();
-    
-    // Listen for storage changes from other tabs to keep counts in sync
-    const handleStorageChange = (e: StorageEvent) => {
-        if (e.key === 'geminiApiCallCount' || e.key === 'placesApiCallCount') {
-            loadApiCounts();
-        }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-        window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [loadApiCounts]);
-
-  const handleResetCounters = () => {
-    localStorage.setItem('geminiApiCallCount', '0');
-    localStorage.setItem('placesApiCallCount', '0');
-    loadApiCounts();
+  const handleResetCounters = async () => {
+    await game.resetApiCounts();
     toast({ title: "計數器已重設", description: "API 呼叫次數已歸零。" });
   };
 
@@ -73,7 +45,7 @@ export default function SettingsPage() {
       toast({ title: t('settings.gdrive.gsiErrorTitle'), description: t('settings.gdrive.gsiErrorDescription'), variant: 'destructive' });
     }
   };
-  
+
   const getFileId = async (accessToken: string): Promise<string | null> => {
     const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_FILE_NAME}'&spaces=appDataFolder`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -95,12 +67,12 @@ export default function SettingsPage() {
     try {
         const accessToken = await getAccessToken();
         if (!accessToken) throw new Error("Access Token not available");
-        
+
         const saveData: GameSaveData = {
-            pois: JSON.parse(localStorage.getItem('pois') || '[]'),
-            trips: JSON.parse(localStorage.getItem('trips') || '[]'),
-            cityPoints: JSON.parse(localStorage.getItem('cityPoints') || '{}'),
-            settings: JSON.parse(localStorage.getItem('settings') || '{}'),
+            pois: game.pois,
+            trips: game.trips,
+            cityPoints: game.cityPoints,
+            settings: game.settings,
             lastUpdated: new Date().toISOString(),
         };
 
@@ -114,8 +86,8 @@ export default function SettingsPage() {
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
         form.append('file', new Blob([JSON.stringify(saveData)], { type: 'application/json' }));
-        
-        const url = fileId 
+
+        const url = fileId
             ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
             : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
         const method = fileId ? 'PATCH' : 'POST';
@@ -130,7 +102,7 @@ export default function SettingsPage() {
             const errorData = await response.json();
             throw new Error(`Failed to upload file: ${errorData.error.message}`);
         }
-        
+
         toast({ title: t('settings.gdrive.syncSuccessTitle'), description: t('settings.gdrive.syncSuccessDescription')});
 
     } catch (error: any) {
@@ -150,7 +122,7 @@ export default function SettingsPage() {
     try {
         const accessToken = await getAccessToken();
         if (!accessToken) throw new Error("Access Token not available");
-        
+
         const fileId = await getFileId(accessToken);
         if (!fileId) {
             toast({ title: t('settings.gdrive.restoreNoFileTitle'), description: t('settings.gdrive.restoreNoFileDescription'), variant: "destructive" });
@@ -168,16 +140,23 @@ export default function SettingsPage() {
         }
 
         const saveData: GameSaveData = await response.json();
-        
-        localStorage.setItem('pois', JSON.stringify(saveData.pois || []));
-        localStorage.setItem('trips', JSON.stringify(saveData.trips || []));
-        localStorage.setItem('cityPoints', JSON.stringify(saveData.cityPoints || {}));
-        localStorage.setItem('settings', JSON.stringify(saveData.settings || {}));
+
+        if (!game.uid) throw new Error("User not authenticated");
+
+        // Restore pois and cityPoints/settings via Firebase
+        await game.updatePois(saveData.pois || []);
+        await saveGameData(game.uid, {
+            cityPoints: saveData.cityPoints || {},
+            settings: saveData.settings || game.settings,
+        });
+        // Restore trips
+        for (const trip of (saveData.trips || [])) {
+            await game.addTrip(trip);
+        }
 
         toast({ title: t('settings.gdrive.restoreSuccessTitle'), description: `${t('settings.gdrive.restoreSuccessDescription')} ${new Date(saveData.lastUpdated).toLocaleString()}` });
 
-        // Trigger a storage event to notify other tabs/components to update their state
-        window.dispatchEvent(new StorageEvent('storage', { key: 'cityPoints', newValue: localStorage.getItem('cityPoints') }));
+        window.location.reload();
 
     } catch (error: any) {
          console.error("Restore error:", error);
@@ -210,14 +189,14 @@ export default function SettingsPage() {
                     <BrainCircuit className="h-6 w-6 text-primary" />
                     <span className="font-medium">Gemini API 呼叫次數</span>
                 </div>
-                <span className="font-bold text-lg font-mono">{apiCounts.gemini}</span>
+                <span className="font-bold text-lg font-mono">{game.geminiApiCallCount}</span>
             </div>
              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <div className="flex items-center gap-3">
                     <Map className="h-6 w-6 text-green-500" />
                     <span className="font-medium">Places API 呼叫次數</span>
                 </div>
-                <span className="font-bold text-lg font-mono">{apiCounts.places}</span>
+                <span className="font-bold text-lg font-mono">{game.placesApiCallCount}</span>
             </div>
             <Button onClick={handleResetCounters} variant="outline" className="w-full">
                 <RotateCcw className="mr-2 h-4 w-4" />
@@ -276,7 +255,7 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>{t('settings.language.title')}</CardTitle>

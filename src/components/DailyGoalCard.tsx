@@ -2,8 +2,8 @@
 'use client';
 
 import * as React from 'react';
-import { Flame, Footprints, Target } from 'lucide-react';
-import { loadDailyStats, loadStreak, type DailyStats, type Streak } from '@/lib/dailyStats';
+import { Flame, Footprints } from 'lucide-react';
+import { useGame } from '@/context/FirebaseGameContext';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -11,25 +11,10 @@ type Props = {
   refreshTrigger?: number;
 };
 
-export function DailyGoalCard({ refreshTrigger }: Props) {
-  const [stats, setStats] = React.useState<DailyStats | null>(null);
-  const [streak, setStreak] = React.useState<Streak | null>(null);
-
-  const refresh = React.useCallback(() => {
-    setStats(loadDailyStats());
-    setStreak(loadStreak());
-  }, []);
-
-  React.useEffect(() => {
-    refresh();
-    const handler = () => refresh();
-    window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
-  }, [refresh]);
-
-  React.useEffect(() => {
-    refresh();
-  }, [refreshTrigger, refresh]);
+export function DailyGoalCard({ refreshTrigger: _refreshTrigger }: Props) {
+  const game = useGame();
+  const stats = game.dailyStats;
+  const streak = game.streak;
 
   if (!stats) return null;
 

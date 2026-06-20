@@ -1,10 +1,10 @@
-
 'use client';
 
 import * as React from 'react';
 import { History, MapPin, Footprints, Calendar, Clock, Timer, Download, Map as MapIcon, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { Trip } from '@/lib/types';
 import { formatDistance } from 'date-fns';
 import {
@@ -18,29 +18,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useGame } from '@/context/FirebaseGameContext';
 
 export default function HistoryPage() {
-  const [trips, setTrips] = React.useState<Trip[]>([]);
-  const [isClient, setIsClient] = React.useState(false);
+  const game = useGame();
 
-  React.useEffect(() => {
-    setIsClient(true);
-    const savedTrips = localStorage.getItem('trips');
-    if (savedTrips) {
-      setTrips(JSON.parse(savedTrips).sort((a: Trip, b: Trip) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    }
-  }, []);
-  
   const getTripDuration = (trip: Trip) => {
     if (!trip.startTime || !trip.endTime) return "N/A";
     return formatDistance(new Date(trip.endTime), new Date(trip.startTime), { includeSeconds: true });
   }
 
   const generateGpxContent = (trip: Trip): string => {
-    const points = trip.path.map(p => 
+    const points = trip.path.map(p =>
       `<trkpt lat="${p.lat}" lon="${p.lng}"></trkpt>`
     ).join('\n    ');
-  
+
     return `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="AI tour guide" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
   <metadata>
@@ -74,22 +66,27 @@ export default function HistoryPage() {
     const origin = `${trip.path[0].lat},${trip.path[0].lng}`;
     const destination = `${trip.path[trip.path.length - 1].lat},${trip.path[trip.path.length - 1].lng}`;
     const waypoints = trip.path.slice(1, -1).map(p => `${p.lat},${p.lng}`).join('|');
-    
+
     // Google Maps URL has a length limit, for very long trips, we might need to simplify waypoints
     // For now, let's assume it's okay.
     const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=walking`;
     window.open(url, '_blank');
   };
 
-  const handleDeleteTrip = (tripId: string) => {
-    const updatedTrips = trips.filter(trip => trip.id !== tripId);
-    setTrips(updatedTrips);
-    localStorage.setItem('trips', JSON.stringify(updatedTrips));
+  const handleDeleteTrip = async (tripId: string) => {
+    await game.removeTrip(tripId);
   };
 
-
-  if (!isClient) {
-    return null; // or a loading skeleton
+  if (game.isLoading) {
+    return (
+      <div className="p-4 space-y-4">
+        <header className="flex items-center gap-2 text-2xl font-bold font-headline text-primary">
+          <History className="h-6 w-6" />
+          <h2>探索紀錄</h2>
+        </header>
+        {[1, 2, 3].map(i => <Skeleton key={i} className="h-48 w-full rounded-lg" />)}
+      </div>
+    );
   }
 
   return (
@@ -99,7 +96,7 @@ export default function HistoryPage() {
         <h2>探索紀錄</h2>
       </header>
 
-      {trips.length === 0 ? (
+      {game.trips.length === 0 ? (
         <div className="text-center p-8 bg-muted/50 rounded-lg">
           <MapPin className="w-16 h-16 mx-auto text-accent" />
           <h3 className="text-2xl font-bold mt-4">還沒有任何旅程</h3>
@@ -107,7 +104,7 @@ export default function HistoryPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {trips.map((trip) => (
+          {game.trips.map((trip) => (
             <Card key={trip.id}>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between text-lg">

@@ -104,21 +104,3 @@ export async function fetchNearbyPOIs(
 
   return pois.slice(0, 40); // cap at 40 POIs
 }
-
-/** Returns true if position has moved >3km from last search center */
-export function shouldRefreshPOIs(position: { lat: number; lng: number }): boolean {
-  try {
-    const meta = JSON.parse(localStorage.getItem('nearbyPoisMeta') || 'null');
-    if (!meta) return true;
-    const sixHours = 6 * 60 * 60 * 1000;
-    if (Date.now() - meta.timestamp > sixHours) return true;
-    const dlat = position.lat - meta.center.lat;
-    const dlng = position.lng - meta.center.lng;
-    const distDeg = Math.sqrt(dlat * dlat + dlng * dlng);
-    return distDeg > 0.027; // ~3km
-  } catch { return true; }
-}
-
-export function saveNearbyPOIsMeta(center: { lat: number; lng: number }) {
-  localStorage.setItem('nearbyPoisMeta', JSON.stringify({ center, timestamp: Date.now() }));
-}

@@ -9,6 +9,7 @@ import { Terminal, WifiOff } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AttractionList } from '@/components/AttractionList';
 import { useJsApiLoader } from '@react-google-maps/api';
+import { useGame } from '@/context/FirebaseGameContext';
 
 const libraries: ('maps' | 'places')[] = ['maps', 'places'];
 
@@ -16,6 +17,7 @@ type Places = (google.maps.places.PlaceResult & { distance?: number })[];
 
 export default function AttractionsPage() {
   const { position, loading, error } = useLocation();
+  const game = useGame();
   const [isClient, setIsClient] = React.useState(false);
   const [places, setPlaces] = React.useState<Places | null>(null);
   const [isSearching, setIsSearching] = React.useState(false);
@@ -28,10 +30,7 @@ export default function AttractionsPage() {
   });
 
   const incrementPlacesApiCount = () => {
-    if (typeof window === 'undefined') return;
-    let count = parseInt(localStorage.getItem('placesApiCallCount') || '0', 10);
-    count++;
-    localStorage.setItem('placesApiCallCount', count.toString());
+    game.incrementPlacesCount();
   };
 
 

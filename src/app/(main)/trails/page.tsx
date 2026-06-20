@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { parseGpx, loadTrails, saveTrails } from '@/lib/gpxParser';
+import { parseGpx } from '@/lib/gpxParser';
+import { useGame } from '@/context/FirebaseGameContext';
 import type { Trail, TrailDifficulty, PoiType } from '@/lib/types';
 
 const isSeedTrail = (id: string) => id.startsWith('seed-') || id.startsWith('osm-');
@@ -40,17 +41,12 @@ function openGoogleMapsNav(lat: number, lng: number, name?: string) {
 type FilterTab = 'all' | TrailDifficulty;
 
 export default function TrailsPage() {
-  const [trails, setTrails] = React.useState<Trail[]>([]);
-  const [isClient, setIsClient] = React.useState(false);
+  const game = useGame();
+  const trails = game.trails;
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const [filterTab, setFilterTab] = React.useState<FilterTab>('all');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-
-  React.useEffect(() => {
-    setIsClient(true);
-    setTrails(loadTrails());
-  }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -65,22 +61,27 @@ export default function TrailsPage() {
       }
     }
     if (newTrails.length > 0) {
-      const updated = [...trails, ...newTrails];
-      saveTrails(updated);
-      setTrails(updated);
+      for (const trail of newTrails) {
+        await game.addCustomTrail(trail);
+      }
       toast({ title: `已匯入 ${newTrails.length} 條步道`, description: newTrails.map(t => t.name).join('、') });
     }
     e.target.value = '';
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (isSeedTrail(id)) return;
     if (!confirm('確定要刪除這條步道嗎？')) return;
-    const updated = trails.filter(t => t.id !== id);
-    saveTrails(updated);
-    setTrails(updated);
+    await game.removeCustomTrail(id);
   };
 
-  if (!isClient) return null;
+  if (game.isLoading) {
+    return (
+      <div className="p-4 flex items-center justify-center py-16">
+        <p className="text-muted-foreground">載入中...</p>
+      </div>
+    );
+  }
 
   const filtered = filterTab === 'all' ? trails : trails.filter(t => t.difficulty === filterTab);
 
@@ -277,16 +278,18 @@ export default function TrailsPage() {
                       </div>
                     )}
 
-                    {/* Delete */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-destructive hover:text-destructive gap-1.5 mt-1"
-                      onClick={() => handleDelete(trail.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      刪除此步道
-                    </Button>
+                    {/* Delete — only for custom trails */}
+                    {!isSeedTrail(trail.id) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-destructive hover:text-destructive gap-1.5 mt-1"
+                        onClick={() => handleDelete(trail.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        刪除此步道
+                      </Button>
+                    )}
                   </CardContent>
                 )}
               </Card>

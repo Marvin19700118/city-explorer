@@ -4,6 +4,7 @@
 import * as React from 'react';
 import { AttractionCard } from './AttractionCard';
 import { useLocation } from '@/context/LocationTrackingContext';
+import { useGame } from '@/context/FirebaseGameContext';
 
 type Places = (google.maps.places.PlaceResult & { distance?: number })[];
 
@@ -12,7 +13,8 @@ interface AttractionListProps {
 }
 
 export const AttractionList: React.FC<AttractionListProps> = ({ places }) => {
-  const { addXp, currentArea } = useLocation();
+  const { currentArea } = useLocation();
+  const { addXp } = useGame();
 
   return (
     <div className="space-y-3 p-4">

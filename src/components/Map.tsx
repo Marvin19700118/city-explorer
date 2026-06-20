@@ -174,6 +174,7 @@ type GameMapProps = {
   trails: Trail[];
   onStartQuiz: (poi: PointOfInterest) => void;
   fogOpacity: number;
+  cityPoints?: Record<string, number>;
 };
 
 const mapContainerStyle = {
@@ -229,15 +230,10 @@ const MIN_POINT_SPACING = 0.0005; // ~55m
 // Each explore point carries an intensity (1 = walked once, higher = visited more)
 type ExplorePoint = { lat: number; lng: number; radiusDeg: number; intensity: number };
 
-function getPathRadiusDeg(): number {
-  if (typeof window === 'undefined') return 0.003;
-  try {
-    const cityPoints = JSON.parse(localStorage.getItem('cityPoints') || '{}');
-    const totalXp = Object.values(cityPoints as Record<string, number>).reduce((s, v) => s + v, 0);
-    if (totalXp >= 2500) return 0.006;
-    if (totalXp >= 500)  return 0.004;
-    return 0.003;
-  } catch { return 0.003; }
+function getPathRadiusDeg(totalXp: number): number {
+  if (totalXp >= 2500) return 0.006;
+  if (totalXp >= 500)  return 0.004;
+  return 0.003;
 }
 
 function samplePath(path: { lat: number; lng: number }[]): { lat: number; lng: number }[] {
@@ -256,9 +252,10 @@ function samplePath(path: { lat: number; lng: number }[]): { lat: number; lng: n
 function buildExplorePoints(
   pois: PointOfInterest[],
   currentPath: { lat: number; lng: number }[],
-  trips: Trip[]
+  trips: Trip[],
+  totalXp: number
 ): ExplorePoint[] {
-  const pathRadius = getPathRadiusDeg();
+  const pathRadius = getPathRadiusDeg(totalXp);
   const pts: ExplorePoint[] = [];
 
   // Visited POIs: larger radius, intensity = visitCount (max 8)
@@ -329,7 +326,7 @@ function drawExploreCanvas(
 
 const libraries: ('maps' | 'places')[] = ['maps', 'places'];
 
-export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips, trails, onStartQuiz, fogOpacity }: GameMapProps) => {
+export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips, trails, onStartQuiz, fogOpacity, cityPoints = {} }: GameMapProps) => {
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
     preventGoogleFontsLoading: true, 
@@ -360,10 +357,10 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips
     return () => clearTimeout(id);
   }, [path]);
 
-  const explorePoints = React.useMemo(
-    () => buildExplorePoints(pois, debouncedPath, trips),
-    [pois, debouncedPath, trips]
-  );
+  const explorePoints = React.useMemo(() => {
+    const totalXp = Object.values(cityPoints).reduce((s, v) => s + (v || 0), 0);
+    return buildExplorePoints(pois, debouncedPath, trips, totalXp);
+  }, [pois, debouncedPath, trips, cityPoints]);
 
   const redrawFog = React.useCallback(() => {
     if (canvasRef.current && mapRef.current)
