@@ -2,7 +2,8 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Prevent webpack from bundling genkit/handlebars (they use require.extensions)
+  serverExternalPackages: ['genkit', '@genkit-ai/core', '@genkit-ai/googleai', 'dotprompt', 'handlebars'],
   typescript: {
     ignoreBuildErrors: true,
   },

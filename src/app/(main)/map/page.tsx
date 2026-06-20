@@ -69,6 +69,10 @@ export default function MapPage() {
 
   const tripStartTimeRef = React.useRef<string | null>(null);
 
+  // Always-current pois ref — prevents stale closures in async callbacks
+  const poisRef = React.useRef(game.pois);
+  React.useEffect(() => { poisRef.current = game.pois; }, [game.pois]);
+
   // poiId -> timestamp when user entered 200m radius
   const poiDwellEntryRef = React.useRef<Map<string, number>>(new Map());
   // poiId currently mid-visit (don't double-count until user leaves & re-enters)
@@ -232,10 +236,11 @@ export default function MapPage() {
 
       if (dist < DISCOVERY_RADIUS_KM) {
         // Geocode the POI to get county/district for XP tracking
+        // Use poisRef.current (not closure game.pois) to avoid overwriting discovered: true
         getAreaNameFromPosition(poi.position).then(area => {
           if (!area) return;
-          const updated = game.pois.map(p =>
-            p.id === poi.id ? { ...p, county: area.county, district: area.district } : p
+          const updated = poisRef.current.map(p =>
+            p.id === poi.id ? { ...p, county: area.county, district: area.district, discovered: true } : p
           );
           game.updatePois(updated);
         });
