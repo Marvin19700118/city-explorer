@@ -3,7 +3,7 @@
 import * as React from 'react';
 import {
   Mountain, Upload, Trash2, CheckCircle2, Circle,
-  Navigation, MapPin, ChevronDown, ChevronUp,
+  Navigation, MapPin, ChevronDown, ChevronUp, Footprints,
 } from 'lucide-react';
 import { ItemActionBar } from '@/components/ItemActionBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,8 @@ import { parseGpx } from '@/lib/gpxParser';
 import { useGame } from '@/context/FirebaseGameContext';
 import type { Trail, TrailDifficulty, PoiType } from '@/lib/types';
 
-const isSeedTrail = (id: string) => id.startsWith('seed-') || id.startsWith('osm-');
+const isSeedTrail   = (id: string) => id.startsWith('seed-') || id.startsWith('osm-');
+const isWalkRecord  = (id: string) => id.startsWith('walk-');
 
 const DIFFICULTY_LABEL: Record<TrailDifficulty, { text: string; color: string }> = {
   easy:     { text: '輕鬆', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
@@ -23,28 +24,170 @@ const DIFFICULTY_LABEL: Record<TrailDifficulty, { text: string; color: string }>
   expert:   { text: '挑戰', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
 };
 
-const DIFFICULTY_ORDER: TrailDifficulty[] = ['easy', 'moderate', 'hard', 'expert'];
-
 const POI_EMOJI: Record<PoiType, string> = {
   trailhead: '⛺', summit: '🏔️', waterfall: '💧',
   viewpoint: '👁️', temple: '🏛️', general: '📍',
 };
 
-function openGoogleMapsNav(lat: number, lng: number, name?: string) {
-  const dest = `${lat},${lng}`;
-  const label = name ? encodeURIComponent(name) : '';
-  // Opens Google Maps app on mobile, browser on desktop
-  const url = `https://www.google.com/maps/dir/?api=1&destination=${dest}&destination_place_id=&travelmode=driving${label ? `&destination=${label}` : ''}`;
-  window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`, '_blank');
+function openGoogleMapsNav(lat: number, lng: number) {
+  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`, '_blank');
 }
 
-type FilterTab = 'all' | TrailDifficulty;
+// ─── Single trail card ────────────────────────────────────────────────────────
+
+function TrailCard({
+  trail,
+  expandedId,
+  setExpandedId,
+  onDelete,
+  deletable,
+}: {
+  trail: Trail;
+  expandedId: string | null;
+  setExpandedId: (id: string | null) => void;
+  onDelete: (id: string) => void;
+  deletable: boolean;
+}) {
+  const diff = DIFFICULTY_LABEL[trail.difficulty];
+  const done = trail.completionPercent >= 100;
+  const isExpanded = expandedId === trail.id;
+  const trailhead = trail.waypoints.find(w => w.poiType === 'trailhead') ?? trail.waypoints[0];
+  const firstPoint = trail.points[0];
+
+  return (
+    <Card className={done ? 'border-green-500/40 bg-green-500/5' : ''}>
+      <button className="w-full text-left" onClick={() => setExpandedId(isExpanded ? null : trail.id)}>
+        <CardHeader className="pb-2 pt-3 px-4">
+          <div className="flex items-start gap-2">
+            <div className="mt-0.5 shrink-0">
+              {done
+                ? <CheckCircle2 className="h-5 w-5 text-green-500" />
+                : <Circle className="h-5 w-5 text-muted-foreground" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-base leading-snug pr-2">{trail.name}</CardTitle>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                <Badge variant="outline" className={`text-xs ${diff.color}`}>{diff.text}</Badge>
+                <Badge variant="outline" className="text-xs">{trail.totalDistanceKm.toFixed(1)} km</Badge>
+                {trail.elevationGainM > 0 && (
+                  <Badge variant="outline" className="text-xs">↑{trail.elevationGainM} m</Badge>
+                )}
+              </div>
+            </div>
+            {isExpanded
+              ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+              : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />}
+          </div>
+        </CardHeader>
+        <div className="px-4 pb-3">
+          <div className="flex justify-between text-xs text-muted-foreground mb-1">
+            <span>完成度 {trail.completionPercent}%</span>
+            <span>{trail.walkedDistanceKm.toFixed(1)} / {trail.totalDistanceKm.toFixed(1)} km</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${trail.completionPercent}%` }} />
+          </div>
+        </div>
+      </button>
+
+      {isExpanded && (
+        <CardContent className="px-4 pb-4 pt-0 space-y-3 border-t border-border/50">
+          {(trailhead || firstPoint) && (
+            <Button
+              className="w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => {
+                const pt = trailhead?.position ?? firstPoint;
+                openGoogleMapsNav(pt.lat, pt.lng);
+              }}
+            >
+              <Navigation className="h-4 w-4" />
+              Google Maps 導航前往起點
+            </Button>
+          )}
+
+          {trailhead && (
+            <ItemActionBar
+              name={trail.name}
+              lat={trailhead.position.lat}
+              lng={trailhead.position.lng}
+              searchQuery={trail.name + ' 步道 台灣'}
+            />
+          )}
+
+          {trail.waypoints.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">地標</p>
+              {trail.waypoints.map(wpt => (
+                <div key={wpt.id} className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-lg bg-muted/40">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base shrink-0">{POI_EMOJI[wpt.poiType]}</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium leading-tight truncate">{wpt.name}</p>
+                      {wpt.elevation && <p className="text-xs text-muted-foreground">{wpt.elevation} m</p>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => openGoogleMapsNav(wpt.position.lat, wpt.position.lng)}
+                    className="shrink-0 flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    <MapPin className="h-3.5 w-3.5" />導航
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {deletable && (
+            <Button
+              variant="ghost" size="sm"
+              className="w-full text-destructive hover:text-destructive gap-1.5 mt-1"
+              onClick={() => onDelete(trail.id)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />刪除
+            </Button>
+          )}
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+// ─── Section wrapper ──────────────────────────────────────────────────────────
+
+function Section({
+  title, icon, count, children, defaultOpen = true,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  count: number;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  return (
+    <div className="space-y-2">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2 py-1 text-left"
+      >
+        {icon}
+        <span className="font-bold text-sm text-foreground">{title}</span>
+        <Badge variant="secondary" className="text-xs ml-1">{count}</Badge>
+        <span className="ml-auto text-muted-foreground">
+          {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </span>
+      </button>
+      {open && <div className="space-y-2">{children}</div>}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TrailsPage() {
   const game = useGame();
   const trails = game.trails;
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
-  const [filterTab, setFilterTab] = React.useState<FilterTab>('all');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -61,17 +204,14 @@ export default function TrailsPage() {
       }
     }
     if (newTrails.length > 0) {
-      for (const trail of newTrails) {
-        await game.addCustomTrail(trail);
-      }
+      for (const trail of newTrails) await game.addCustomTrail(trail);
       toast({ title: `已匯入 ${newTrails.length} 條步道`, description: newTrails.map(t => t.name).join('、') });
     }
     e.target.value = '';
   };
 
   const handleDelete = async (id: string) => {
-    if (isSeedTrail(id)) return;
-    if (!confirm('確定要刪除這條步道嗎？')) return;
+    if (!confirm('確定要刪除嗎？')) return;
     await game.removeCustomTrail(id);
   };
 
@@ -83,11 +223,19 @@ export default function TrailsPage() {
     );
   }
 
-  const filtered = filterTab === 'all' ? trails : trails.filter(t => t.difficulty === filterTab);
+  const seedTrails     = trails.filter(t => isSeedTrail(t.id));
+  const walkRecords    = trails.filter(t => isWalkRecord(t.id));
+  const importedTrails = trails.filter(t => !isSeedTrail(t.id) && !isWalkRecord(t.id));
 
-  // Stats
-  const completedCount = trails.filter(t => t.completionPercent >= 100).length;
   const totalKm = trails.reduce((s, t) => s + t.walkedDistanceKm, 0);
+  const completedCount = trails.filter(t => t.completionPercent >= 100).length;
+
+  const cardProps = (deletable: boolean) => ({
+    expandedId,
+    setExpandedId,
+    onDelete: handleDelete,
+    deletable,
+  });
 
   return (
     <div className="p-4 space-y-4">
@@ -122,179 +270,56 @@ export default function TrailsPage() {
         </div>
       )}
 
-      {/* Filter tabs */}
-      {trails.length > 0 && (
-        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          <button
-            onClick={() => setFilterTab('all')}
-            className={`px-3 py-1 rounded-full text-xs font-semibold border whitespace-nowrap transition-colors ${
-              filterTab === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'text-muted-foreground border-border hover:bg-muted/50'
-            }`}
-          >
-            全部 ({trails.length})
-          </button>
-          {DIFFICULTY_ORDER.map(d => {
-            const cnt = trails.filter(t => t.difficulty === d).length;
-            if (cnt === 0) return null;
-            const style = DIFFICULTY_LABEL[d];
-            return (
-              <button
-                key={d}
-                onClick={() => setFilterTab(d)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold border whitespace-nowrap transition-colors ${
-                  filterTab === d
-                    ? `${style.color} border-current`
-                    : 'text-muted-foreground border-border hover:bg-muted/50'
-                }`}
-              >
-                {style.text} ({cnt})
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Trail list */}
-      {filtered.length === 0 && trails.length === 0 ? (
+      {trails.length === 0 ? (
         <div className="text-center py-16 space-y-3">
           <Mountain className="h-16 w-16 mx-auto text-muted-foreground/40" />
           <p className="text-lg font-semibold text-muted-foreground">尚無步道</p>
-          <p className="text-sm text-muted-foreground">從健行筆記下載 GPX 後點選「匯入 GPX」</p>
+          <p className="text-sm text-muted-foreground">從健行筆記下載 GPX 後點選「匯入 GPX」，或到紀錄頁匯出散步紀錄</p>
           <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2">
             <Upload className="h-4 w-4" />選擇 GPX 檔案
           </Button>
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map(trail => {
-            const diff = DIFFICULTY_LABEL[trail.difficulty];
-            const done = trail.completionPercent >= 100;
-            const isExpanded = expandedId === trail.id;
-            const trailhead = trail.waypoints.find(w => w.poiType === 'trailhead') ?? trail.waypoints[0];
+        <div className="space-y-5">
+          {/* 我的散步紀錄 */}
+          {walkRecords.length > 0 && (
+            <Section
+              title="我的散步紀錄"
+              icon={<Footprints className="h-4 w-4 text-blue-400" />}
+              count={walkRecords.length}
+            >
+              {walkRecords.map(trail => (
+                <TrailCard key={trail.id} trail={trail} {...cardProps(true)} />
+              ))}
+            </Section>
+          )}
 
-            return (
-              <Card
-                key={trail.id}
-                className={done ? 'border-green-500/40 bg-green-500/5' : ''}
-              >
-                {/* Main row — tap to expand */}
-                <button
-                  className="w-full text-left"
-                  onClick={() => setExpandedId(isExpanded ? null : trail.id)}
-                >
-                  <CardHeader className="pb-2 pt-3 px-4">
-                    <div className="flex items-start gap-2">
-                      <div className="mt-0.5 shrink-0">
-                        {done
-                          ? <CheckCircle2 className="h-5 w-5 text-green-500" />
-                          : <Circle className="h-5 w-5 text-muted-foreground" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base leading-snug pr-2">{trail.name}</CardTitle>
-                        <div className="flex flex-wrap gap-1.5 mt-1.5">
-                          <Badge variant="outline" className={`text-xs ${diff.color}`}>{diff.text}</Badge>
-                          <Badge variant="outline" className="text-xs">{trail.totalDistanceKm.toFixed(1)} km</Badge>
-                          <Badge variant="outline" className="text-xs">↑{trail.elevationGainM} m</Badge>
-                        </div>
-                      </div>
-                      {isExpanded
-                        ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
-                        : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />}
-                    </div>
-                  </CardHeader>
+          {/* 預設步道 */}
+          {seedTrails.length > 0 && (
+            <Section
+              title="預設步道"
+              icon={<Mountain className="h-4 w-4 text-green-400" />}
+              count={seedTrails.length}
+              defaultOpen={walkRecords.length === 0}
+            >
+              {seedTrails.map(trail => (
+                <TrailCard key={trail.id} trail={trail} {...cardProps(false)} />
+              ))}
+            </Section>
+          )}
 
-                  {/* Progress bar — always visible */}
-                  <div className="px-4 pb-3">
-                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                      <span>完成度 {trail.completionPercent}%</span>
-                      <span>{trail.walkedDistanceKm.toFixed(1)} / {trail.totalDistanceKm.toFixed(1)} km</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-green-500 transition-all"
-                        style={{ width: `${trail.completionPercent}%` }}
-                      />
-                    </div>
-                  </div>
-                </button>
-
-                {/* Expanded detail */}
-                {isExpanded && (
-                  <CardContent className="px-4 pb-4 pt-0 space-y-3 border-t border-border/50">
-
-                    {/* Navigate to trailhead */}
-                    {trailhead && (
-                      <Button
-                        className="w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                        onClick={() => openGoogleMapsNav(
-                          trailhead.position.lat,
-                          trailhead.position.lng,
-                          `${trail.name} 登山口`
-                        )}
-                      >
-                        <Navigation className="h-4 w-4" />
-                        Google Maps 導航前往登山口
-                      </Button>
-                    )}
-
-                    {/* Three action buttons */}
-                    {trailhead && (
-                      <ItemActionBar
-                        name={trail.name}
-                        lat={trailhead.position.lat}
-                        lng={trailhead.position.lng}
-                        searchQuery={trail.name + ' 步道 台灣'}
-                      />
-                    )}
-
-                    {/* Waypoints */}
-                    {trail.waypoints.length > 0 && (
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">地標</p>
-                        {trail.waypoints.map(wpt => (
-                          <div
-                            key={wpt.id}
-                            className="flex items-center justify-between gap-2 py-1.5 px-2 rounded-lg bg-muted/40"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-base shrink-0">{POI_EMOJI[wpt.poiType]}</span>
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium leading-tight truncate">{wpt.name}</p>
-                                {wpt.elevation && (
-                                  <p className="text-xs text-muted-foreground">{wpt.elevation} m</p>
-                                )}
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => openGoogleMapsNav(wpt.position.lat, wpt.position.lng, wpt.name)}
-                              className="shrink-0 flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                              title={`導航至 ${wpt.name}`}
-                            >
-                              <MapPin className="h-3.5 w-3.5" />
-                              導航
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Delete — only for custom trails */}
-                    {!isSeedTrail(trail.id) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full text-destructive hover:text-destructive gap-1.5 mt-1"
-                        onClick={() => handleDelete(trail.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        刪除此步道
-                      </Button>
-                    )}
-                  </CardContent>
-                )}
-              </Card>
-            );
-          })}
+          {/* 匯入步道 */}
+          {importedTrails.length > 0 && (
+            <Section
+              title="匯入步道"
+              icon={<Upload className="h-4 w-4 text-orange-400" />}
+              count={importedTrails.length}
+            >
+              {importedTrails.map(trail => (
+                <TrailCard key={trail.id} trail={trail} {...cardProps(true)} />
+              ))}
+            </Section>
+          )}
         </div>
       )}
     </div>
