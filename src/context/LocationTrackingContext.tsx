@@ -89,6 +89,8 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
+    previousPositionRef.current = null;
+    previousAltitudeRef.current = null;
     setIsTracking(false);
   }, []);
 
@@ -104,8 +106,9 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
     setIsTracking(true);
     setDistance(0);
     setElevationGain(0);
+    previousPositionRef.current = null;
     previousAltitudeRef.current = null;
-    setPath(p => position ? [position] : []);
+    setPath(position ? [position] : []);
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
