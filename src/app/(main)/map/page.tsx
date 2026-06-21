@@ -51,7 +51,7 @@ const mockTrip: Trip = {
   endTime: new Date(Date.now() - 86400000).toISOString(),
 };
 
-export default function MapPage() {
+function MapPageInner() {
   const {
     position,
     distance,
@@ -644,5 +644,13 @@ export default function MapPage() {
         onCancel={() => setTripDraft(null)}
       />
     </div>
+  );
+}
+
+export default function MapPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <MapPageInner />
+    </React.Suspense>
   );
 }
