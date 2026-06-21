@@ -137,7 +137,7 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
     const provider = new GoogleAuthProvider();
     if (isMobile()) {
       sessionStorage.setItem(REDIRECT_KEY, '1');
-      await linkWithRedirect(auth.currentUser, provider);
+      linkWithRedirect(auth.currentUser, provider); // no await — preserve iOS gesture chain
     } else {
       const result = await linkWithPopup(auth.currentUser, provider);
       setIsAnonymous(false);
@@ -148,10 +148,12 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
   const switchToGoogleAccount = useCallback(async () => {
     const provider = new GoogleAuthProvider();
     if (isMobile()) {
-      // Set flag BEFORE sign-out so onAuthStateChanged(null) skips anonymous
+      // Set flag first so onAuthStateChanged(null) skips anonymous sign-in
       sessionStorage.setItem(REDIRECT_KEY, '1');
-      await firebaseSignOut(auth);
-      await signInWithRedirect(auth, provider);
+      // Do NOT await signOut before redirect — iOS Safari blocks window navigation
+      // if the user gesture chain is broken by an async call. Firebase will
+      // overwrite the anonymous session after the Google redirect completes.
+      signInWithRedirect(auth, provider);
     } else {
       await firebaseSignOut(auth);
       await signInWithPopup(auth, provider);
