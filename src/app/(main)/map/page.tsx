@@ -19,6 +19,7 @@ import { Chatbot } from '@/components/Chatbot';
 import { createQuiz } from '@/app/actions';
 import { generateLocationIntro as generateLocationIntroAction } from '@/app/actions';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { DailyGoalCard } from '@/components/DailyGoalCard';
 import { checkTrailCompletion, getTrailXpBonus } from '@/lib/trailCompletion';
 import { fetchNearbyPOIs } from '@/lib/nearbyPlaces';
@@ -67,6 +68,10 @@ export default function MapPage() {
   } = useLocation();
   const game = useGame();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const previewTrailId = searchParams.get('trail');
+  const previewTrail = previewTrailId ? game.trails.find(t => t.id === previewTrailId) ?? null : null;
 
   const tripStartTimeRef = React.useRef<string | null>(null);
   const wakeLockRef = React.useRef<WakeLockSentinel | null>(null);
@@ -509,6 +514,7 @@ export default function MapPage() {
         onStartQuiz={handleStartQuiz}
         fogOpacity={game.settings?.fogOpacity ?? 70}
         cityPoints={game.cityPoints}
+        previewTrail={previewTrail}
       />
     )
   }
@@ -558,6 +564,19 @@ export default function MapPage() {
       </header>
 
       <DailyGoalCard refreshTrigger={goalRefresh} />
+
+      {/* Preview trail banner */}
+      {previewTrail && (
+        <div className="flex items-center justify-between bg-blue-500/10 border-b border-blue-500/30 px-4 py-2 text-sm text-blue-400">
+          <span className="font-medium truncate flex-1 mr-2">📍 {previewTrail.name}</span>
+          <button
+            onClick={() => router.replace('/map')}
+            className="shrink-0 text-xs text-blue-400/70 hover:text-blue-400 border border-blue-400/30 rounded px-2 py-0.5"
+          >
+            離開預覽
+          </button>
+        </div>
+      )}
 
       {/* Recording status bar */}
       {isTracking && (

@@ -140,7 +140,7 @@ function TrailCard({
 
           {deletable && (
             <div className="space-y-1 mt-1">
-              <Link href="/map" className="block">
+              <Link href={`/map?trail=${trail.id}`} className="block">
                 <Button variant="outline" size="sm" className="w-full gap-1.5">
                   <MapIcon className="h-3.5 w-3.5" />在地圖查看軌跡
                 </Button>
