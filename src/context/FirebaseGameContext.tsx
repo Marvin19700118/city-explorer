@@ -1,7 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import {
+  signInAnonymously, onAuthStateChanged,
+  GoogleAuthProvider, linkWithPopup, signInWithPopup, signOut as firebaseSignOut,
+} from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import {
   loadGameData, saveGameData,
@@ -19,6 +22,10 @@ import type { PointOfInterest, Trip, Settings, CityPoints, Trail, AskedQuestionH
 interface GameContextType {
   uid: string | null;
   isLoading: boolean;
+  isAnonymous: boolean;
+  googleEmail: string | null;
+  linkWithGoogle: () => Promise<void>;
+  switchToGoogleAccount: () => Promise<void>;
 
   // POIs
   pois: PointOfInterest[];
@@ -72,6 +79,8 @@ const GameContext = createContext<GameContextType | null>(null);
 export function FirebaseGameProvider({ children }: { children: React.ReactNode }) {
   const [uid, setUid] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAnonymous, setIsAnonymous] = useState(true);
+  const [googleEmail, setGoogleEmail] = useState<string | null>(null);
 
   // Game data state
   const [gameData, setGameData] = useState<GameData>(defaultGameData());
@@ -85,12 +94,31 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUid(user.uid);
+        setIsAnonymous(user.isAnonymous);
+        setGoogleEmail(user.email);
       } else {
         const cred = await signInAnonymously(auth);
         setUid(cred.user.uid);
+        setIsAnonymous(true);
+        setGoogleEmail(null);
       }
     });
     return unsub;
+  }, []);
+
+  const linkWithGoogle = useCallback(async () => {
+    if (!auth.currentUser) throw new Error('Not signed in');
+    const provider = new GoogleAuthProvider();
+    const result = await linkWithPopup(auth.currentUser, provider);
+    setIsAnonymous(false);
+    setGoogleEmail(result.user.email);
+  }, []);
+
+  const switchToGoogleAccount = useCallback(async () => {
+    const provider = new GoogleAuthProvider();
+    await firebaseSignOut(auth);
+    await signInWithPopup(auth, provider);
+    // onAuthStateChanged fires next and loads data for the Google UID
   }, []);
 
   // ─── Load all data when uid is ready ──────────────────────────────────────
@@ -216,7 +244,7 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
 
   return (
     <GameContext.Provider value={{
-      uid, isLoading,
+      uid, isLoading, isAnonymous, googleEmail, linkWithGoogle, switchToGoogleAccount,
       pois: gameData.pois, updatePois,
       trips, addTrip, removeTrip,
       cityPoints: gameData.cityPoints, addXp,
