@@ -176,6 +176,7 @@ type GameMapProps = {
   fogOpacity: number;
   cityPoints?: Record<string, number>;
   previewTrail?: Trail | null;
+  previewTrip?: Trip | null;
 };
 
 const mapContainerStyle = {
@@ -327,7 +328,7 @@ function drawExploreCanvas(
 
 const libraries: ('maps' | 'places')[] = ['maps', 'places'];
 
-export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips, trails, onStartQuiz, fogOpacity, cityPoints = {}, previewTrail = null }: GameMapProps) => {
+export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips, trails, onStartQuiz, fogOpacity, cityPoints = {}, previewTrail = null, previewTrip = null }: GameMapProps) => {
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
     preventGoogleFontsLoading: true, 
@@ -340,13 +341,22 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips
   const previewTrailRef = React.useRef(previewTrail);
   React.useEffect(() => { previewTrailRef.current = previewTrail; }, [previewTrail]);
 
+  const previewTripRef = React.useRef(previewTrip);
+  React.useEffect(() => { previewTripRef.current = previewTrip; }, [previewTrip]);
+
   const onLoad = React.useCallback(function callback(map: google.maps.Map) {
     mapRef.current = map;
-    // If arriving from trails page, fit to preview trail immediately
     const pt = previewTrailRef.current;
     if (pt && pt.points.length > 0) {
       const bounds = new google.maps.LatLngBounds();
       pt.points.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
+      map.fitBounds(bounds, 48);
+      return;
+    }
+    const trip = previewTripRef.current;
+    if (trip && trip.path.length > 0) {
+      const bounds = new google.maps.LatLngBounds();
+      trip.path.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
       map.fitBounds(bounds, 48);
     }
   }, []);
@@ -368,6 +378,14 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips
     previewTrail.points.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
     mapRef.current.fitBounds(bounds, 48);
   }, [previewTrail]);
+
+  // Fit map to preview trip when it changes
+  React.useEffect(() => {
+    if (!previewTrip || !mapRef.current || previewTrip.path.length === 0) return;
+    const bounds = new google.maps.LatLngBounds();
+    previewTrip.path.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
+    mapRef.current.fitBounds(bounds, 48);
+  }, [previewTrip]);
 
   // Debounce path updates — fog recomputes after GPS settles for 800ms
   const [debouncedPath, setDebouncedPath] = React.useState(path);
@@ -471,6 +489,14 @@ export const GameMap = ({ apiKey, userPosition, defaultCenter, pois, path, trips
           <PolylineF
             path={previewTrail.points.map(p => ({ lat: p.lat, lng: p.lng }))}
             options={{ strokeColor: '#f97316', strokeOpacity: 0.95, strokeWeight: 5, zIndex: 10 }}
+          />
+        )}
+
+        {/* Preview trip — highlighted in purple */}
+        {previewTrip && previewTrip.path.length > 0 && (
+          <PolylineF
+            path={previewTrip.path}
+            options={{ strokeColor: '#a855f7', strokeOpacity: 0.95, strokeWeight: 5, zIndex: 10 }}
           />
         )}
 

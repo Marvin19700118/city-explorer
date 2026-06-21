@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { History, MapPin, Footprints, Calendar, Clock, Timer, Download, Map as MapIcon, Trash2, BookMarked } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,6 +23,7 @@ import { useGame } from '@/context/FirebaseGameContext';
 
 export default function HistoryPage() {
   const game = useGame();
+  const router = useRouter();
 
   const getTripDuration = (trip: Trip) => {
     if (!trip.startTime || !trip.endTime) return "N/A";
@@ -181,7 +183,7 @@ ${points}
                     <BookMarked />
                     匯出到步道
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleOpenInGoogleMaps(trip)} disabled={trip.path.length < 2}>
+                <Button variant="ghost" size="sm" onClick={() => router.push(`/map?trip=${trip.id}`)} disabled={trip.path.length < 2}>
                     <MapIcon />
                     在地圖上開啟
                 </Button>

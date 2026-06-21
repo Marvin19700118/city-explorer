@@ -73,6 +73,9 @@ export default function MapPage() {
   const previewTrailId = searchParams.get('trail');
   const previewTrail = previewTrailId ? game.trails.find(t => t.id === previewTrailId) ?? null : null;
 
+  const previewTripId = searchParams.get('trip');
+  const previewTrip = previewTripId ? game.trips.find(t => t.id === previewTripId) ?? null : null;
+
   const tripStartTimeRef = React.useRef<string | null>(null);
   const wakeLockRef = React.useRef<WakeLockSentinel | null>(null);
 
@@ -516,6 +519,7 @@ export default function MapPage() {
         fogOpacity={game.settings?.fogOpacity ?? 70}
         cityPoints={game.cityPoints}
         previewTrail={previewTrail}
+        previewTrip={previewTrip}
       />
     )
   }
@@ -570,10 +574,17 @@ export default function MapPage() {
       {previewTrail && (
         <div className="flex items-center justify-between bg-blue-500/10 border-b border-blue-500/30 px-4 py-2 text-sm text-blue-400">
           <span className="font-medium truncate flex-1 mr-2">📍 {previewTrail.name}</span>
-          <button
-            onClick={() => router.replace('/map')}
-            className="shrink-0 text-xs text-blue-400/70 hover:text-blue-400 border border-blue-400/30 rounded px-2 py-0.5"
-          >
+          <button onClick={() => router.replace('/map')} className="shrink-0 text-xs text-blue-400/70 hover:text-blue-400 border border-blue-400/30 rounded px-2 py-0.5">
+            離開預覽
+          </button>
+        </div>
+      )}
+
+      {/* Preview trip banner */}
+      {previewTrip && (
+        <div className="flex items-center justify-between bg-purple-500/10 border-b border-purple-500/30 px-4 py-2 text-sm text-purple-400">
+          <span className="font-medium truncate flex-1 mr-2">🗺️ {previewTrip.name ?? new Date(previewTrip.date).toLocaleDateString('zh-TW')} 的紀錄</span>
+          <button onClick={() => router.replace('/map')} className="shrink-0 text-xs text-purple-400/70 hover:text-purple-400 border border-purple-400/30 rounded px-2 py-0.5">
             離開預覽
           </button>
         </div>
