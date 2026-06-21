@@ -1,12 +1,12 @@
 'use client';
 
 import * as React from 'react';
-import { History, MapPin, Footprints, Calendar, Clock, Timer, BookMarked, Map as MapIcon, Trash2, Pencil, Check, X } from 'lucide-react';
+import { History, MapPin, Footprints, Calendar, Clock, Timer, Download, Map as MapIcon, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Trip, Trail } from '@/lib/types';
+import type { Trip } from '@/lib/types';
 import { formatDistance } from 'date-fns';
 import {
   AlertDialog,
@@ -72,42 +72,43 @@ function TripCard({ trip }: { trip: Trip }) {
 </gpx>`;
   };
 
-  const handleDownloadGpx = () => {
-    const blob = new Blob([generateGpxContent()], { type: 'application/gpx+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
+  const getGpxFileName = () => {
     const startDt = trip.startTime ? new Date(trip.startTime) : new Date(trip.date);
     const pad = (n: number) => String(n).padStart(2, '0');
-    a.download = `walk_${startDt.getFullYear()}-${pad(startDt.getMonth()+1)}-${pad(startDt.getDate())}_${pad(startDt.getHours())}-${pad(startDt.getMinutes())}-${pad(startDt.getSeconds())}.gpx`;
+    return `walk_${startDt.getFullYear()}-${pad(startDt.getMonth()+1)}-${pad(startDt.getDate())}_${pad(startDt.getHours())}-${pad(startDt.getMinutes())}-${pad(startDt.getSeconds())}.gpx`;
+  };
+
+  const handleExportGpx = async () => {
+    const content = generateGpxContent();
+    const fileName = getGpxFileName();
+    const file = new File([content], fileName, { type: 'application/gpx+xml' });
+
+    // Try Web Share API (mobile: shows native share sheet with Mail, LINE, etc.)
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: displayName,
+          text: `GPX 軌跡：${displayName}`,
+        });
+        return;
+      } catch (e: any) {
+        if (e.name === 'AbortError') return; // user cancelled — do nothing
+        // Share failed, fall through to download
+      }
+    }
+
+    // Fallback: direct download (desktop)
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  const handleSaveToTrails = async () => {
-    const trail: Trail = {
-      id: `walk-${trip.id}`,
-      name: displayName,
-      difficulty: 'easy',
-      points: trip.path.map(p => ({ lat: p.lat, lng: p.lng })),
-      waypoints: [],
-      totalDistanceKm: trip.distance,
-      elevationGainM: trip.elevationGainM ?? 0,
-      walkedPoints: [],
-      walkedDistanceKm: 0,
-      completionPercent: 0,
-      importedAt: new Date().toISOString(),
-    };
-    await game.addCustomTrail(trail);
-    toast({ title: '已儲存到步道', description: `「${displayName}」已加入步道列表。` });
-  };
-
-  const handleDownloadAndSave = () => {
-    handleDownloadGpx();
-    handleSaveToTrails();
-  };
 
   return (
     <Card>
@@ -182,8 +183,8 @@ function TripCard({ trip }: { trip: Trip }) {
       </CardContent>
 
       <CardFooter className="p-2 border-t bg-muted/30 grid grid-cols-3 gap-2">
-        <Button variant="ghost" size="sm" onClick={handleDownloadAndSave}>
-          <BookMarked className="h-4 w-4 mr-1" />匯出到步道
+        <Button variant="ghost" size="sm" onClick={handleExportGpx}>
+          <Download className="h-4 w-4 mr-1" />匯出 GPX
         </Button>
         <Button variant="ghost" size="sm" onClick={() => router.push(`/map?trip=${trip.id}`)} disabled={trip.path.length < 2}>
           <MapIcon className="h-4 w-4 mr-1" />在地圖上開啟
