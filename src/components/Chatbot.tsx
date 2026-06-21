@@ -19,6 +19,7 @@ import type { Message } from '@/lib/types';
 import { getChatbotResponse } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useGame } from '@/context/FirebaseGameContext';
 
 
 type ChatbotProps = {
@@ -48,6 +49,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const game = useGame();
 
   React.useEffect(() => {
     if (isOpen && locationName) {
@@ -112,6 +114,7 @@ export const Chatbot = ({ isOpen, onClose, locationName }: ChatbotProps) => {
       
       const botMessage: Message = { role: 'model', content: response.response };
       setMessages((prev) => [...prev, botMessage]);
+      game.incrementGeminiCount();
     } catch (error) {
        toast({
         title: "AI 響應錯誤",
