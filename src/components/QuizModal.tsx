@@ -67,6 +67,7 @@ export const QuizModal = ({ poi, isOpen, onClose, onQuizComplete, overrideQuizDa
       const data = await createQuiz(input);
       if (data && data.questions.length > 0) {
         setQuizData({ questions: data.questions });
+        game.incrementGeminiCount();
       } else {
         toast({ title: "問答生成失敗", description: "無法為此區域生成問答。", variant: "destructive"});
         onClose();

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { MapPin, Search, Sparkles, X, Loader2 } from 'lucide-react';
 import { generateLocationIntro } from '@/app/actions';
+import { useGame } from '@/context/FirebaseGameContext';
 
 type Props = {
   name: string;
@@ -15,6 +16,7 @@ export function ItemActionBar({ name, lat, lng, searchQuery }: Props) {
   const [introOpen, setIntroOpen] = React.useState(false);
   const [introText, setIntroText] = React.useState<string | null>(null);
   const [introLoading, setIntroLoading] = React.useState(false);
+  const game = useGame();
 
   const openMap = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -34,7 +36,12 @@ export function ItemActionBar({ name, lat, lng, searchQuery }: Props) {
     setIntroLoading(true);
     try {
       const result = await generateLocationIntro({ locationName: name });
-      setIntroText(result?.introduction ?? '無法取得介紹，請稍後再試。');
+      if (result?.introduction) {
+        setIntroText(result.introduction);
+        game.incrementGeminiCount();
+      } else {
+        setIntroText('無法取得介紹，請稍後再試。');
+      }
     } catch {
       setIntroText('無法取得介紹，請稍後再試。');
     } finally {

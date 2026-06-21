@@ -454,6 +454,7 @@ export default function MapPage() {
         const result = await generateLocationIntroAction({ locationName: areaInfo.fullAddress });
         if (result) {
             setGuideData(result);
+            game.incrementGeminiCount();
         } else {
             toast({ title: "AI 指南生成失敗", description: "抱歉，無法為您目前的位置生成語音導覽。", variant: "destructive" });
             setIsGuideModalOpen(false);
