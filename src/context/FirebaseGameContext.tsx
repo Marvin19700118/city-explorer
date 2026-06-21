@@ -3,7 +3,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   signInAnonymously, onAuthStateChanged,
-  GoogleAuthProvider, linkWithPopup, signInWithPopup, signOut as firebaseSignOut,
+  GoogleAuthProvider, linkWithPopup, linkWithRedirect,
+  signInWithPopup, signInWithRedirect, getRedirectResult,
+  signOut as firebaseSignOut,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import {
@@ -89,6 +91,13 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
   const [customTrails, setCustomTrails] = useState<Trail[]>([]);
   const [trailProgress, setTrailProgress] = useState<Record<string, TrailProgress>>({});
 
+  const isMobile = () => /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+  // ─── Auth: handle redirect result first, then normal auth state ───────────
+  useEffect(() => {
+    getRedirectResult(auth).catch(() => null); // consume any pending redirect
+  }, []);
+
   // ─── Auth: sign in anonymously ─────────────────────────────────────────────
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -109,16 +118,25 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
   const linkWithGoogle = useCallback(async () => {
     if (!auth.currentUser) throw new Error('Not signed in');
     const provider = new GoogleAuthProvider();
-    const result = await linkWithPopup(auth.currentUser, provider);
-    setIsAnonymous(false);
-    setGoogleEmail(result.user.email);
+    if (isMobile()) {
+      await linkWithRedirect(auth.currentUser, provider);
+      // page will redirect; onAuthStateChanged handles the result on return
+    } else {
+      const result = await linkWithPopup(auth.currentUser, provider);
+      setIsAnonymous(false);
+      setGoogleEmail(result.user.email);
+    }
   }, []);
 
   const switchToGoogleAccount = useCallback(async () => {
     const provider = new GoogleAuthProvider();
     await firebaseSignOut(auth);
-    await signInWithPopup(auth, provider);
-    // onAuthStateChanged fires next and loads data for the Google UID
+    if (isMobile()) {
+      await signInWithRedirect(auth, provider);
+      // page will redirect; onAuthStateChanged handles the result on return
+    } else {
+      await signInWithPopup(auth, provider);
+    }
   }, []);
 
   // ─── Load all data when uid is ready ──────────────────────────────────────
