@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Settings as SettingsIcon, Languages, BrainCircuit, Map, RotateCcw, ShieldCheck, UserX, RefreshCw } from 'lucide-react';
+import { Settings as SettingsIcon, Languages, BrainCircuit, Map, RotateCcw, ShieldCheck, UserX, RefreshCw, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +14,8 @@ import { GoogleAuthProvider, signInWithRedirect, linkWithRedirect } from 'fireba
 export default function SettingsPage() {
   const { toast } = useToast();
   const [isLinking, setIsLinking] = React.useState(false);
+  const [goalInput, setGoalInput] = React.useState('');
+  const [goalEditing, setGoalEditing] = React.useState(false);
   const { i18n, setLocale, t } = useI18n();
   const game = useGame();
 
@@ -72,6 +74,53 @@ export default function SettingsPage() {
         <SettingsIcon className="h-6 w-6" />
         <h2>{t('settings.title')}</h2>
       </header>
+
+      {/* 每日目標 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5 text-accent" />
+            每日步行目標
+          </CardTitle>
+          <CardDescription>設定每天想走的距離目標，顯示在地圖頁頂部進度條。</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {goalEditing ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="0.5"
+                max="50"
+                step="0.5"
+                value={goalInput}
+                onChange={e => setGoalInput(e.target.value)}
+                className="flex-1 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                autoFocus
+              />
+              <span className="text-sm text-muted-foreground">km</span>
+              <Button size="sm" onClick={async () => {
+                const val = parseFloat(goalInput);
+                if (isNaN(val) || val < 0.5 || val > 50) {
+                  toast({ title: '請輸入 0.5 ~ 50 之間的數字', variant: 'destructive' });
+                  return;
+                }
+                await game.updateDailyGoal(val);
+                setGoalEditing(false);
+                toast({ title: `每日目標已設為 ${val} km` });
+              }}>儲存</Button>
+              <Button size="sm" variant="ghost" onClick={() => setGoalEditing(false)}>取消</Button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <span className="text-2xl font-bold text-accent">{game.dailyStats?.goalKm ?? 5} km</span>
+              <Button variant="outline" size="sm" onClick={() => {
+                setGoalInput(String(game.dailyStats?.goalKm ?? 5));
+                setGoalEditing(true);
+              }}>修改</Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* API 使用統計 */}
       <Card>

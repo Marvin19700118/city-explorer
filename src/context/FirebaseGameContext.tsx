@@ -56,6 +56,7 @@ interface GameContextType {
   streak: Streak;
   addDistanceToday: (km: number) => Promise<void>;
   recordWalkToday: () => Promise<void>;
+  updateDailyGoal: (goalKm: number) => Promise<void>;
 
   // Trails (seed + custom + progress merged)
   trails: Trail[];
@@ -243,6 +244,11 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
     await partialSave({ streak: updated });
   }, [gameData.streak, partialSave]);
 
+  const updateDailyGoal = useCallback(async (goalKm: number) => {
+    const updated = { ...gameData.dailyStats, goalKm };
+    await partialSave({ dailyStats: updated });
+  }, [gameData.dailyStats, partialSave]);
+
   // ─── Trail Progress ───────────────────────────────────────────────────────
   const updateTrailProgress = useCallback(async (trailId: string, progress: TrailProgress) => {
     if (!uid) return;
@@ -297,7 +303,7 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
       settings: gameData.settings, updateSettings,
       askedQuestions: gameData.askedQuestions, updateAskedQuestions,
       dailyStats: gameData.dailyStats, streak: gameData.streak,
-      addDistanceToday, recordWalkToday,
+      addDistanceToday, recordWalkToday, updateDailyGoal,
       trails, updateTrailProgress, addCustomTrail, removeCustomTrail,
       placesApiCallCount: gameData.placesApiCallCount,
       geminiApiCallCount: gameData.geminiApiCallCount,

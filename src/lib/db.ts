@@ -52,7 +52,7 @@ export function defaultGameData(): GameData {
     settings: { fogOpacity: 70, areaNotifications: true },
     askedQuestions: {},
     nearbyPoisMeta: null,
-    dailyStats: { date: todayStr(), distance: 0, goalKm: 2.0 },
+    dailyStats: { date: todayStr(), distance: 0, goalKm: 5.0 },
     streak: { lastWalkDate: '', count: 0 },
     placesApiCallCount: 0,
     geminiApiCallCount: 0,
