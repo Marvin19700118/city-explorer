@@ -3,7 +3,7 @@
 import * as React from 'react';
 import {
   Mountain, Upload, Trash2, CheckCircle2, Circle,
-  Navigation, MapPin, ChevronDown, ChevronUp, Footprints,
+  Navigation, MapPin, ChevronDown, ChevronUp, Footprints, Map as MapIcon,
 } from 'lucide-react';
 import { ItemActionBar } from '@/components/ItemActionBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { parseGpx } from '@/lib/gpxParser';
 import { useGame } from '@/context/FirebaseGameContext';
 import type { Trail, TrailDifficulty, PoiType } from '@/lib/types';
+import Link from 'next/link';
 
 const isSeedTrail   = (id: string) => id.startsWith('seed-') || id.startsWith('osm-');
 const isWalkRecord  = (id: string) => id.startsWith('walk-');
@@ -138,13 +139,20 @@ function TrailCard({
           )}
 
           {deletable && (
-            <Button
-              variant="ghost" size="sm"
-              className="w-full text-destructive hover:text-destructive gap-1.5 mt-1"
-              onClick={() => onDelete(trail.id)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />刪除
-            </Button>
+            <div className="space-y-1 mt-1">
+              <Link href="/map" className="block">
+                <Button variant="outline" size="sm" className="w-full gap-1.5">
+                  <MapIcon className="h-3.5 w-3.5" />在地圖查看軌跡
+                </Button>
+              </Link>
+              <Button
+                variant="ghost" size="sm"
+                className="w-full text-destructive hover:text-destructive gap-1.5"
+                onClick={() => onDelete(trail.id)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />刪除
+              </Button>
+            </div>
           )}
         </CardContent>
       )}

@@ -72,6 +72,8 @@ export type LatLng = {
 
 export type Trip = {
   id: string;
+  name?: string;
+  notes?: string;
   date: string;
   distance: number;
   path: LatLng[];

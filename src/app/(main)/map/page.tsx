@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { MapPin, Play, Square, Trophy, Mic, Sparkles } from 'lucide-react';
+import { MapPin, Play, Square, Trophy, Mic, Sparkles, Clock, Footprints } from 'lucide-react';
 import { StatusBar } from '@/components/StatusBar';
 import { GameMap } from '@/components/Map';
 import { QuizModal } from '@/components/QuizModal';
@@ -24,6 +24,7 @@ import { checkTrailCompletion, getTrailXpBonus } from '@/lib/trailCompletion';
 import { fetchNearbyPOIs } from '@/lib/nearbyPlaces';
 import { useJsApiLoader } from '@react-google-maps/api';
 import type { Trail } from '@/lib/types';
+import { TripSummaryModal, type TripDraft } from '@/components/TripSummaryModal';
 
 const TAIPEI_CENTER = { lat: 25.0330, lng: 121.5654 };
 const MAP_LIBRARIES: ('maps' | 'places')[] = ['maps', 'places'];
@@ -70,6 +71,17 @@ export default function MapPage() {
   const tripStartTimeRef = React.useRef<string | null>(null);
   const wakeLockRef = React.useRef<WakeLockSentinel | null>(null);
 
+  const [trackingStartedAt, setTrackingStartedAt] = React.useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = React.useState(0);
+  const [tripDraft, setTripDraft] = React.useState<TripDraft | null>(null);
+
+  // Elapsed time ticker
+  React.useEffect(() => {
+    if (!isTracking || !trackingStartedAt) { setElapsedSeconds(0); return; }
+    const id = setInterval(() => setElapsedSeconds(Math.floor((Date.now() - trackingStartedAt) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [isTracking, trackingStartedAt]);
+
   // Always-current pois ref — prevents stale closures in async callbacks
   const poisRef = React.useRef(game.pois);
   React.useEffect(() => { poisRef.current = game.pois; }, [game.pois]);
@@ -98,64 +110,94 @@ export default function MapPage() {
   });
 
   const handleStartTracking = async () => {
-    tripStartTimeRef.current = new Date().toISOString();
+    const now = new Date().toISOString();
+    tripStartTimeRef.current = now;
+    setTrackingStartedAt(Date.now());
     startTracking();
-    // Keep screen on while recording
     try {
-      if ('wakeLock' in navigator) {
-        wakeLockRef.current = await navigator.wakeLock.request('screen');
-      }
-    } catch { /* wake lock not supported or denied — silent */ }
+      if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
+    } catch { /* silent */ }
   }
 
   const handleStopTracking = async () => {
-    // Release wake lock
     if (wakeLockRef.current) {
       await wakeLockRef.current.release().catch(() => {});
       wakeLockRef.current = null;
     }
+    stopTracking();
+    setTrackingStartedAt(null);
+
     if (path.length > 1 && distance > 0.01) {
-      const newTrip: Trip = {
-        id: Date.now().toString(),
-        date: new Date().toISOString(),
-        distance: distance,
-        path: path,
-        startTime: tripStartTimeRef.current,
-        endTime: new Date().toISOString(),
-        elevationGainM: Math.round(elevationGain),
-      };
-      game.addTrip(newTrip);
-      game.addDistanceToday(distance);
-      game.recordWalkToday();
-      setGoalRefresh(n => n + 1);
-
-      // Update trail completion in background to avoid UI jank
-      setTimeout(() => {
-        if (game.trails.length === 0) return;
-        const updatedTrails = game.trails.map(trail => {
-          const prevWalkedKm = trail.walkedDistanceKm;
-          const updated = checkTrailCompletion(trail, [path]);
-          const bonus = getTrailXpBonus(updated, prevWalkedKm);
-          if (bonus > 0 && position) {
-            getAreaNameFromPosition(position).then(area => {
-              if (area) game.addXp(bonus, area.county, area.district);
-            });
-          }
-          return updated;
-        });
-        // Save progress for changed trails
-        updatedTrails.forEach(t => {
-          game.updateTrailProgress(t.id, { walkedPoints: t.walkedPoints, walkedDistanceKm: t.walkedDistanceKm, completionPercent: t.completionPercent });
-        });
-      }, 0);
-
-      toast({
-        title: "旅程已儲存!",
-        description: `您 ${distance.toFixed(2)} km，爬升 ${Math.round(elevationGain)} m 的旅程已儲存。`,
+      const endTime = new Date().toISOString();
+      const startTime = tripStartTimeRef.current ?? endTime;
+      const durationSeconds = Math.floor((new Date(endTime).getTime() - new Date(startTime).getTime()) / 1000);
+      setTripDraft({
+        path: [...path],
+        distance,
+        elevationGain,
+        durationSeconds,
+        startTime,
+        endTime,
       });
     }
-    stopTracking();
     tripStartTimeRef.current = null;
+  };
+
+  const handleSaveTripDraft = async (name: string, notes: string) => {
+    if (!tripDraft) return;
+    const id = Date.now().toString();
+    const newTrip: Trip = {
+      id,
+      name,
+      notes,
+      date: tripDraft.startTime,
+      distance: tripDraft.distance,
+      path: tripDraft.path,
+      startTime: tripDraft.startTime,
+      endTime: tripDraft.endTime,
+      elevationGainM: Math.round(tripDraft.elevationGain),
+    };
+    await game.addTrip(newTrip);
+    await game.addDistanceToday(tripDraft.distance);
+    await game.recordWalkToday();
+    setGoalRefresh(n => n + 1);
+
+    // Save as trail in "匯入" category (rec- prefix)
+    const startDt = new Date(tripDraft.startTime);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const trail = {
+      id: `rec-${id}`,
+      name,
+      difficulty: 'easy' as const,
+      points: tripDraft.path.map(p => ({ lat: p.lat, lng: p.lng })),
+      waypoints: [],
+      totalDistanceKm: tripDraft.distance,
+      elevationGainM: Math.round(tripDraft.elevationGain),
+      walkedPoints: [],
+      walkedDistanceKm: 0,
+      completionPercent: 0,
+      importedAt: new Date().toISOString(),
+    };
+    await game.addCustomTrail(trail);
+
+    // Update trail completion for seed trails
+    setTimeout(() => {
+      if (game.trails.length === 0) return;
+      game.trails.forEach(t => {
+        const prevWalkedKm = t.walkedDistanceKm;
+        const updated = checkTrailCompletion(t, [tripDraft.path]);
+        const bonus = getTrailXpBonus(updated, prevWalkedKm);
+        if (bonus > 0 && position) {
+          getAreaNameFromPosition(position).then(area => {
+            if (area) game.addXp(bonus, area.county, area.district);
+          });
+        }
+        game.updateTrailProgress(t.id, { walkedPoints: updated.walkedPoints, walkedDistanceKm: updated.walkedDistanceKm, completionPercent: updated.completionPercent });
+      });
+    }, 0);
+
+    toast({ title: '✅ 紀錄已儲存', description: `「${name}」已加入步道列表。` });
+    setTripDraft(null);
   };
 
   // Re-acquire wake lock when page becomes visible again (e.g. user switched apps briefly)
@@ -519,6 +561,26 @@ export default function MapPage() {
 
       <DailyGoalCard refreshTrigger={goalRefresh} />
 
+      {/* Recording status bar */}
+      {isTracking && (
+        <div className="flex items-center justify-around bg-red-500/10 border-b border-red-500/30 px-4 py-1.5 text-sm font-medium text-red-400">
+          <span className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" />
+            {String(Math.floor(elapsedSeconds / 3600)).padStart(2,'0')}:{String(Math.floor((elapsedSeconds % 3600)/60)).padStart(2,'0')}:{String(elapsedSeconds % 60).padStart(2,'0')}
+          </span>
+          <span className="w-px h-4 bg-red-500/30" />
+          <span className="flex items-center gap-1.5">
+            <Footprints className="h-3.5 w-3.5" />
+            ~{Math.round(distance * 1320).toLocaleString()} 步
+          </span>
+          <span className="w-px h-4 bg-red-500/30" />
+          <span className="flex items-center gap-1.5 animate-pulse">
+            <span className="h-2 w-2 rounded-full bg-red-500" />
+            錄製中
+          </span>
+        </div>
+      )}
+
       <div className="relative flex-1 bg-muted">
         {renderMapComponent()}
         <Chatbot
@@ -545,6 +607,13 @@ export default function MapPage() {
         guideData={guideData}
         isLoading={isGuideLoading}
        />
+
+      <TripSummaryModal
+        draft={tripDraft}
+        pois={game.pois}
+        onSave={handleSaveTripDraft}
+        onCancel={() => setTripDraft(null)}
+      />
     </div>
   );
 }
