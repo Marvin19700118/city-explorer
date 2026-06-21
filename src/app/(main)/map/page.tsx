@@ -163,8 +163,6 @@ export default function MapPage() {
     setGoalRefresh(n => n + 1);
 
     // Save as trail in "匯入" category (rec- prefix)
-    const startDt = new Date(tripDraft.startTime);
-    const pad = (n: number) => String(n).padStart(2, '0');
     const trail = {
       id: `rec-${id}`,
       name,
@@ -180,10 +178,10 @@ export default function MapPage() {
     };
     await game.addCustomTrail(trail);
 
-    // Update trail completion for seed trails
+    // Update trail completion for seed/imported trails only (skip self-recorded walks)
     setTimeout(() => {
       if (game.trails.length === 0) return;
-      game.trails.forEach(t => {
+      game.trails.filter(t => !t.id.startsWith('rec-')).forEach(t => {
         const prevWalkedKm = t.walkedDistanceKm;
         const updated = checkTrailCompletion(t, [tripDraft.path]);
         const bonus = getTrailXpBonus(updated, prevWalkedKm);
