@@ -10,7 +10,7 @@ import {
 import { auth } from '@/lib/firebase';
 import {
   loadGameData, saveGameData,
-  loadTrips, addTrip as dbAddTrip, deleteTrip as dbDeleteTrip,
+  loadTrips, addTrip as dbAddTrip, deleteTrip as dbDeleteTrip, updateTripMeta,
   loadAllTrailProgress, saveTrailProgress,
   loadCustomTrails, saveCustomTrailDoc, deleteCustomTrailDoc,
   buildTrails, computeAddDistance, computeStreak,
@@ -37,6 +37,7 @@ interface GameContextType {
   trips: Trip[];
   addTrip: (trip: Trip) => Promise<void>;
   removeTrip: (tripId: string) => Promise<void>;
+  updateTrip: (tripId: string, name: string, notes: string) => Promise<void>;
 
   // City Points / XP
   cityPoints: CityPoints;
@@ -204,6 +205,12 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
     await dbDeleteTrip(uid, tripId);
   }, [uid]);
 
+  const updateTrip = useCallback(async (tripId: string, name: string, notes: string) => {
+    if (!uid) return;
+    setTrips(prev => prev.map(t => t.id === tripId ? { ...t, name, notes } : t));
+    await updateTripMeta(uid, tripId, name, notes);
+  }, [uid]);
+
   // ─── City Points / XP ─────────────────────────────────────────────────────
   const addXp = useCallback(async (xpGained: number, county: string, district: string) => {
     if (xpGained <= 0 || !county || !district) return;
@@ -285,7 +292,7 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
     <GameContext.Provider value={{
       uid, isLoading, isAnonymous, googleEmail, linkWithGoogle, switchToGoogleAccount,
       pois: gameData.pois, updatePois,
-      trips, addTrip, removeTrip,
+      trips, addTrip, removeTrip, updateTrip,
       cityPoints: gameData.cityPoints, addXp,
       settings: gameData.settings, updateSettings,
       askedQuestions: gameData.askedQuestions, updateAskedQuestions,

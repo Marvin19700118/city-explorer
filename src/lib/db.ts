@@ -90,6 +90,10 @@ export async function deleteTrip(uid: string, tripId: string): Promise<void> {
   await deleteDoc(doc(db, 'users', uid, 'trips', tripId));
 }
 
+export async function updateTripMeta(uid: string, tripId: string, name: string, notes: string): Promise<void> {
+  await setDoc(doc(db, 'users', uid, 'trips', tripId), { name, notes }, { merge: true });
+}
+
 // ─── Trail Progress ───────────────────────────────────────────────────────────
 
 export async function loadAllTrailProgress(uid: string): Promise<Record<string, TrailProgress>> {

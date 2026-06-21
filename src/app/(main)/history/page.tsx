@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { History, MapPin, Footprints, Calendar, Clock, Timer, Download, Map as MapIcon, Trash2, BookMarked } from 'lucide-react';
+import { History, MapPin, Footprints, Calendar, Clock, Timer, BookMarked, Map as MapIcon, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,70 +20,76 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useGame } from '@/context/FirebaseGameContext';
+import { useToast } from '@/hooks/use-toast';
 
-export default function HistoryPage() {
+function TripCard({ trip }: { trip: Trip }) {
   const game = useGame();
   const router = useRouter();
+  const { toast } = useToast();
 
-  const getTripDuration = (trip: Trip) => {
-    if (!trip.startTime || !trip.endTime) return "N/A";
+  const [editing, setEditing] = React.useState(false);
+  const [editName, setEditName] = React.useState('');
+  const [editNotes, setEditNotes] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+
+  const displayName = trip.name ?? `${new Date(trip.date).toLocaleDateString()} 的旅程`;
+
+  const startEdit = () => {
+    setEditName(trip.name ?? displayName);
+    setEditNotes(trip.notes ?? '');
+    setEditing(true);
+  };
+
+  const cancelEdit = () => setEditing(false);
+
+  const saveEdit = async () => {
+    setSaving(true);
+    await game.updateTrip(trip.id, editName.trim() || displayName, editNotes.trim());
+    setSaving(false);
+    setEditing(false);
+    toast({ title: '已更新', description: '旅程名稱與備註已儲存。' });
+  };
+
+  const getTripDuration = () => {
+    if (!trip.startTime || !trip.endTime) return 'N/A';
     return formatDistance(new Date(trip.endTime), new Date(trip.startTime), { includeSeconds: true });
-  }
+  };
 
-  const generateGpxContent = (trip: Trip): string => {
+  const generateGpxContent = (): string => {
     const startDt = trip.startTime ? new Date(trip.startTime) : new Date(trip.date);
-    const endDt   = trip.endTime   ? new Date(trip.endTime)   : null;
+    const endDt = trip.endTime ? new Date(trip.endTime) : null;
     const totalMs = endDt ? endDt.getTime() - startDt.getTime() : 0;
-    const intervalMs = trip.path.length > 1 && totalMs > 0
-      ? totalMs / (trip.path.length - 1)
-      : 0;
-
+    const intervalMs = trip.path.length > 1 && totalMs > 0 ? totalMs / (trip.path.length - 1) : 0;
     const points = trip.path.map((p, i) => {
       const ptTime = new Date(startDt.getTime() + i * intervalMs);
       return `    <trkpt lat="${p.lat}" lon="${p.lng}"><time>${ptTime.toISOString()}</time></trkpt>`;
     }).join('\n');
-
-    const trackName = `散步紀錄 ${startDt.toLocaleDateString('zh-TW')} ${startDt.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}`;
-
+    const trackName = displayName;
     return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="AI城市導遊" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
-  <metadata>
-    <name>${trackName}</name>
-    <time>${startDt.toISOString()}</time>
-  </metadata>
-  <trk>
-    <name>${trackName}</name>
-    <trkseg>
-${points}
-    </trkseg>
-  </trk>
+<gpx version="1.1" creator="AI城市導遊" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata><name>${trackName}</name><time>${startDt.toISOString()}</time></metadata>
+  <trk><name>${trackName}</name><trkseg>\n${points}\n  </trkseg></trk>
 </gpx>`;
   };
 
-  const handleDownloadGpx = (trip: Trip) => {
-    const gpxContent = generateGpxContent(trip);
-    const blob = new Blob([gpxContent], { type: 'application/gpx+xml' });
+  const handleDownloadGpx = () => {
+    const blob = new Blob([generateGpxContent()], { type: 'application/gpx+xml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     const startDt = trip.startTime ? new Date(trip.startTime) : new Date(trip.date);
     const pad = (n: number) => String(n).padStart(2, '0');
-    const fileName = `walk_${startDt.getFullYear()}-${pad(startDt.getMonth()+1)}-${pad(startDt.getDate())}_${pad(startDt.getHours())}-${pad(startDt.getMinutes())}-${pad(startDt.getSeconds())}.gpx`;
-    a.download = fileName;
+    a.download = `walk_${startDt.getFullYear()}-${pad(startDt.getMonth()+1)}-${pad(startDt.getDate())}_${pad(startDt.getHours())}-${pad(startDt.getMinutes())}-${pad(startDt.getSeconds())}.gpx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  const handleSaveToTrails = async (trip: Trip) => {
-    const startDt = trip.startTime ? new Date(trip.startTime) : new Date(trip.date);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const name = `散步紀錄 ${startDt.getFullYear()}-${pad(startDt.getMonth()+1)}-${pad(startDt.getDate())} ${pad(startDt.getHours())}:${pad(startDt.getMinutes())}`;
-
+  const handleSaveToTrails = async () => {
     const trail: Trail = {
       id: `walk-${trip.id}`,
-      name,
+      name: displayName,
       difficulty: 'easy',
       points: trip.path.map(p => ({ lat: p.lat, lng: p.lng })),
       waypoints: [],
@@ -94,31 +100,120 @@ ${points}
       completionPercent: 0,
       importedAt: new Date().toISOString(),
     };
-
     await game.addCustomTrail(trail);
-    toast({ title: '已儲存到步道', description: `「${name}」已加入步道列表。` });
+    toast({ title: '已儲存到步道', description: `「${displayName}」已加入步道列表。` });
   };
 
-  const handleDownloadAndSave = async (trip: Trip) => {
-    handleDownloadGpx(trip);
-    await handleSaveToTrails(trip);
+  const handleDownloadAndSave = () => {
+    handleDownloadGpx();
+    handleSaveToTrails();
   };
 
-  const handleOpenInGoogleMaps = (trip: Trip) => {
-    if (trip.path.length < 2) return;
-    const origin = `${trip.path[0].lat},${trip.path[0].lng}`;
-    const destination = `${trip.path[trip.path.length - 1].lat},${trip.path[trip.path.length - 1].lng}`;
-    const waypoints = trip.path.slice(1, -1).map(p => `${p.lat},${p.lng}`).join('|');
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        {editing ? (
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              maxLength={50}
+              className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50"
+              placeholder="旅程名稱"
+              autoFocus
+            />
+            <textarea
+              value={editNotes}
+              onChange={e => setEditNotes(e.target.value.slice(0, 30))}
+              rows={2}
+              maxLength={30}
+              className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+              placeholder="備註（最多 30 字）"
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">{editNotes.length}/30</span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={cancelEdit} disabled={saving}>
+                  <X className="h-3.5 w-3.5 mr-1" />取消
+                </Button>
+                <Button size="sm" onClick={saveEdit} disabled={saving}>
+                  <Check className="h-3.5 w-3.5 mr-1" />{saving ? '儲存中…' : '儲存'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <CardTitle className="flex items-start justify-between gap-2 text-base leading-snug">
+            <div className="flex items-start gap-2 min-w-0">
+              <Calendar className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="truncate">{displayName}</p>
+                {trip.notes && (
+                  <p className="text-sm font-normal text-muted-foreground mt-0.5 line-clamp-2">{trip.notes}</p>
+                )}
+              </div>
+            </div>
+            <button onClick={startEdit} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors mt-0.5">
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          </CardTitle>
+        )}
+        <CardDescription className="flex items-center gap-2 pt-1">
+          <Clock className="h-4 w-4" />
+          <span>
+            {trip.startTime ? new Date(trip.startTime).toLocaleTimeString() : 'N/A'} - {trip.endTime ? new Date(trip.endTime).toLocaleTimeString() : 'N/A'}
+          </span>
+        </CardDescription>
+      </CardHeader>
 
-    // Google Maps URL has a length limit, for very long trips, we might need to simplify waypoints
-    // For now, let's assume it's okay.
-    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=walking`;
-    window.open(url, '_blank');
-  };
+      <CardContent className="space-y-3 pt-1">
+        <div className="flex items-center justify-between text-muted-foreground">
+          <div className="flex items-center gap-2 text-accent font-bold">
+            <Footprints className="h-5 w-5" />
+            <span>{trip.distance.toFixed(2)} 公里</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Timer className="h-5 w-5" />
+            <span>{getTripDuration()}</span>
+          </div>
+        </div>
+        <CardDescription>一段包含 {trip.path.length} 個紀錄點的旅程。</CardDescription>
+      </CardContent>
 
-  const handleDeleteTrip = async (tripId: string) => {
-    await game.removeTrip(tripId);
-  };
+      <CardFooter className="p-2 border-t bg-muted/30 grid grid-cols-3 gap-2">
+        <Button variant="ghost" size="sm" onClick={handleDownloadAndSave}>
+          <BookMarked className="h-4 w-4 mr-1" />匯出到步道
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => router.push(`/map?trip=${trip.id}`)} disabled={trip.path.length < 2}>
+          <MapIcon className="h-4 w-4 mr-1" />在地圖上開啟
+        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+              <Trash2 className="h-4 w-4 mr-1" />刪除紀錄
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>確定要刪除嗎？</AlertDialogTitle>
+              <AlertDialogDescription>這個操作無法復原，將永久刪除此旅程紀錄。</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction onClick={() => game.removeTrip(trip.id)} className="bg-destructive hover:bg-destructive/90">
+                確認刪除
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardFooter>
+    </Card>
+  );
+}
+
+export default function HistoryPage() {
+  const game = useGame();
 
   if (game.isLoading) {
     return (
@@ -147,71 +242,7 @@ ${points}
         </div>
       ) : (
         <div className="space-y-4">
-          {game.trips.map((trip) => (
-            <Card key={trip.id}>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between text-lg">
-                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{new Date(trip.date).toLocaleDateString()} 的旅程</span>
-                  </div>
-                </CardTitle>
-                 <CardDescription className="flex items-center gap-2 pt-1">
-                   <Clock className="h-4 w-4" />
-                   <span>
-                      {trip.startTime ? new Date(trip.startTime).toLocaleTimeString() : 'N/A'} - {trip.endTime ? new Date(trip.endTime).toLocaleTimeString() : 'N/A'}
-                   </span>
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between text-muted-foreground">
-                    <div className="flex items-center gap-2 text-accent font-bold">
-                        <Footprints className="h-5 w-5" />
-                        <span>{trip.distance.toFixed(2)} 公里</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Timer className="h-5 w-5" />
-                        <span>{getTripDuration(trip)}</span>
-                    </div>
-                </div>
-                <CardDescription>
-                  一段包含 {trip.path.length} 個紀錄點的旅程。
-                </CardDescription>
-              </CardContent>
-              <CardFooter className="p-2 border-t bg-muted/30 grid grid-cols-3 gap-2">
-                <Button variant="ghost" size="sm" onClick={() => handleDownloadAndSave(trip)}>
-                    <BookMarked />
-                    匯出到步道
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => router.push(`/map?trip=${trip.id}`)} disabled={trip.path.length < 2}>
-                    <MapIcon />
-                    在地圖上開啟
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                        <Trash2 />
-                        刪除紀錄
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>確定要刪除嗎？</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        這個操作無法復原。這將會永久刪除您這次的旅程紀錄。
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>取消</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDeleteTrip(trip.id)} className="bg-destructive hover:bg-destructive/90">
-                        確認刪除
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </CardFooter>
-            </Card>
-          ))}
+          {game.trips.map(trip => <TripCard key={trip.id} trip={trip} />)}
         </div>
       )}
     </div>
