@@ -1,10 +1,10 @@
 
-import { Footprints, MapPin, TrendingUp } from 'lucide-react';
+import { Footprints, MapPin, Gauge } from 'lucide-react';
 import { useLocation } from '@/context/LocationTrackingContext';
 import { Card } from './ui/card';
 
 export const StatusBar = () => {
-  const { distance, currentArea, elevationGain } = useLocation();
+  const { distance, currentArea, speed } = useLocation();
   return (
     <div className="grid grid-cols-3 gap-2">
       <Card className="flex flex-col items-center justify-center rounded-lg p-3 text-center border">
@@ -19,12 +19,12 @@ export const StatusBar = () => {
 
       <Card className="flex flex-col items-center justify-center rounded-lg p-3 text-center border">
         <div className="flex items-center gap-1">
-          <TrendingUp className="h-4 w-4 text-green-500" />
-          <span className="text-xs text-muted-foreground">累積爬升</span>
+          <Gauge className="h-4 w-4 text-blue-400" />
+          <span className="text-xs text-muted-foreground">目前速度</span>
         </div>
         <p className="font-headline text-xl font-bold text-foreground">
-          {elevationGain > 0 ? Math.round(elevationGain) : '--'}{' '}
-          <span className="text-sm font-normal text-muted-foreground">m</span>
+          {speed != null ? speed.toFixed(1) : '--'}{' '}
+          <span className="text-sm font-normal text-muted-foreground">km/h</span>
         </p>
       </Card>
 

@@ -36,6 +36,7 @@ interface LocationContextType {
   isTracking: boolean;
   currentArea: CurrentArea | null;
   elevationGain: number;
+  speed: number | null;
   setCurrentArea: React.Dispatch<React.SetStateAction<CurrentArea | null>>;
   startTracking: () => void;
   stopTracking: () => void;
@@ -53,6 +54,7 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
   const [isTracking, setIsTracking] = useState(false);
   const [currentArea, setCurrentArea] = useState<CurrentArea | null>(null);
   const [elevationGain, setElevationGain] = useState(0);
+  const [speed, setSpeed] = useState<number | null>(null);
 
   const previousPositionRef = useRef<{ latitude: number, longitude: number} | null>(null);
   const previousAltitudeRef = useRef<number | null>(null);
@@ -116,6 +118,8 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
         const newPosition = { lat: latitude, lng: longitude };
         setPosition(newPosition);
         setPath(p => [...p, newPosition]);
+        // speed in m/s → convert to km/h
+        setSpeed(pos.coords.speed != null ? pos.coords.speed * 3.6 : null);
 
         if (previousPositionRef.current) {
           const newDistance = haversineDistance(
@@ -196,6 +200,7 @@ export const LocationTrackingProvider = ({ children }: { children: React.ReactNo
         isTracking,
         currentArea,
         elevationGain,
+        speed,
         setCurrentArea,
         startTracking,
         stopTracking,
