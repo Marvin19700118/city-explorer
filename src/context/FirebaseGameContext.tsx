@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   signInAnonymously, onAuthStateChanged,
-  GoogleAuthProvider, linkWithPopup, linkWithRedirect,
+  GoogleAuthProvider, GithubAuthProvider, linkWithPopup, linkWithRedirect,
   signInWithPopup, signInWithRedirect, getRedirectResult,
   signOut as firebaseSignOut,
 } from 'firebase/auth';
@@ -28,6 +28,8 @@ interface GameContextType {
   googleEmail: string | null;
   linkWithGoogle: () => Promise<void>;
   switchToGoogleAccount: () => Promise<void>;
+  linkWithGithub: () => Promise<void>;
+  switchToGithubAccount: () => Promise<void>;
 
   // POIs
   pois: PointOfInterest[];
@@ -150,11 +152,31 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
   const switchToGoogleAccount = useCallback(async () => {
     const provider = new GoogleAuthProvider();
     if (isMobile()) {
-      // Set flag first so onAuthStateChanged(null) skips anonymous sign-in
       sessionStorage.setItem(REDIRECT_KEY, '1');
-      // Do NOT await signOut before redirect — iOS Safari blocks window navigation
-      // if the user gesture chain is broken by an async call. Firebase will
-      // overwrite the anonymous session after the Google redirect completes.
+      signInWithRedirect(auth, provider);
+    } else {
+      await firebaseSignOut(auth);
+      await signInWithPopup(auth, provider);
+    }
+  }, []);
+
+  const linkWithGithub = useCallback(async () => {
+    if (!auth.currentUser) throw new Error('Not signed in');
+    const provider = new GithubAuthProvider();
+    if (isMobile()) {
+      sessionStorage.setItem(REDIRECT_KEY, '1');
+      linkWithRedirect(auth.currentUser, provider);
+    } else {
+      const result = await linkWithPopup(auth.currentUser, provider);
+      setIsAnonymous(false);
+      setGoogleEmail(result.user.email);
+    }
+  }, []);
+
+  const switchToGithubAccount = useCallback(async () => {
+    const provider = new GithubAuthProvider();
+    if (isMobile()) {
+      sessionStorage.setItem(REDIRECT_KEY, '1');
       signInWithRedirect(auth, provider);
     } else {
       await firebaseSignOut(auth);
@@ -296,7 +318,7 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
 
   return (
     <GameContext.Provider value={{
-      uid, isLoading, isAnonymous, googleEmail, linkWithGoogle, switchToGoogleAccount,
+      uid, isLoading, isAnonymous, googleEmail, linkWithGoogle, switchToGoogleAccount, linkWithGithub, switchToGithubAccount,
       pois: gameData.pois, updatePois,
       trips, addTrip, removeTrip, updateTrip,
       cityPoints: gameData.cityPoints, addXp,

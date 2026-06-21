@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/context/I18nContext';
 import { useGame } from '@/context/FirebaseGameContext';
 import { auth } from '@/lib/firebase';
-import { GoogleAuthProvider, signInWithRedirect, linkWithRedirect } from 'firebase/auth';
+import { GoogleAuthProvider, GithubAuthProvider, signInWithRedirect, linkWithRedirect } from 'firebase/auth';
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -47,12 +47,44 @@ export default function SettingsPage() {
   const handleSwitchToGoogle = () => {
     if (!confirm('切換後會使用 Google 帳號的資料，目前的匿名資料將不再顯示。確定繼續？')) return;
     if (isMobile()) {
-      // iOS: fully synchronous — no await anywhere before signInWithRedirect
       sessionStorage.setItem(REDIRECT_KEY, '1');
       signInWithRedirect(auth, new GoogleAuthProvider());
     } else {
       setIsLinking(true);
       game.switchToGoogleAccount()
+        .catch((e: any) => toast({ title: '切換失敗', description: e.message, variant: 'destructive' }))
+        .finally(() => setIsLinking(false));
+    }
+  };
+
+  const handleLinkGithub = () => {
+    if (isMobile()) {
+      if (!auth.currentUser) return;
+      sessionStorage.setItem(REDIRECT_KEY, '1');
+      linkWithRedirect(auth.currentUser, new GithubAuthProvider());
+    } else {
+      setIsLinking(true);
+      game.linkWithGithub()
+        .then(() => toast({ title: '已綁定 GitHub 帳號', description: '您的資料現在已與 GitHub 帳號連結。' }))
+        .catch((e: any) => {
+          if (e.code === 'auth/credential-already-in-use') {
+            toast({ title: '此 GitHub 帳號已被使用', description: '請試試「切換到已有 GitHub 帳號」。', variant: 'destructive' });
+          } else {
+            toast({ title: '綁定失敗', description: e.message, variant: 'destructive' });
+          }
+        })
+        .finally(() => setIsLinking(false));
+    }
+  };
+
+  const handleSwitchToGithub = () => {
+    if (!confirm('切換後會使用 GitHub 帳號的資料，目前的匿名資料將不再顯示。確定繼續？')) return;
+    if (isMobile()) {
+      sessionStorage.setItem(REDIRECT_KEY, '1');
+      signInWithRedirect(auth, new GithubAuthProvider());
+    } else {
+      setIsLinking(true);
+      game.switchToGithubAccount()
         .catch((e: any) => toast({ title: '切換失敗', description: e.message, variant: 'destructive' }))
         .finally(() => setIsLinking(false));
     }
@@ -168,6 +200,7 @@ export default function SettingsPage() {
                 <UserX className="h-4 w-4 shrink-0 mt-0.5" />
                 <span>目前使用匿名帳號，清除瀏覽器資料後將遺失所有進度。</span>
               </div>
+              {/* Google */}
               <Button className="w-full gap-2" onClick={handleLinkGoogle} disabled={isLinking}>
                 <svg className="h-4 w-4" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -181,12 +214,24 @@ export default function SettingsPage() {
                 <RefreshCw className="h-4 w-4" />
                 已有舊帳號？切換到 Google 登入
               </Button>
+
+              {/* GitHub */}
+              <Button variant="outline" className="w-full gap-2" onClick={handleLinkGithub} disabled={isLinking}>
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+                {isLinking ? '處理中…' : '綁定 GitHub 帳號'}
+              </Button>
+              <Button variant="ghost" className="w-full gap-2 text-muted-foreground" onClick={handleSwitchToGithub} disabled={isLinking}>
+                <RefreshCw className="h-4 w-4" />
+                已有舊帳號？切換到 GitHub 登入
+              </Button>
             </>
           ) : (
             <div className="flex items-center gap-3 rounded-lg bg-green-500/10 border border-green-500/30 px-3 py-2">
               <ShieldCheck className="h-5 w-5 text-green-400 shrink-0" />
               <div className="text-sm">
-                <p className="font-semibold text-green-400">已綁定 Google 帳號</p>
+                <p className="font-semibold text-green-400">已綁定帳號</p>
                 <p className="text-muted-foreground">{game.googleEmail}</p>
               </div>
             </div>
