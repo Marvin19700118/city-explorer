@@ -90,8 +90,8 @@ export async function deleteTrip(uid: string, tripId: string): Promise<void> {
   await deleteDoc(doc(db, 'users', uid, 'trips', tripId));
 }
 
-export async function updateTripMeta(uid: string, tripId: string, name: string, notes: string): Promise<void> {
-  await setDoc(doc(db, 'users', uid, 'trips', tripId), { name, notes }, { merge: true });
+export async function updateTripMeta(uid: string, tripId: string, name: string, notes: string, activityType: string): Promise<void> {
+  await setDoc(doc(db, 'users', uid, 'trips', tripId), { name, notes, activityType }, { merge: true });
 }
 
 // ─── Trail Progress ───────────────────────────────────────────────────────────

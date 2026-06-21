@@ -6,7 +6,10 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Trip } from '@/lib/types';
+import type { Trip, ActivityType } from '@/lib/types';
+
+const ACTIVITY_OPTIONS: ActivityType[] = ['步行', '登山', '腳踏車'];
+const ACTIVITY_ICON: Record<ActivityType, string> = { '步行': '🚶', '登山': '🥾', '腳踏車': '🚴' };
 import { formatDistance } from 'date-fns';
 import {
   AlertDialog,
@@ -30,6 +33,7 @@ function TripCard({ trip }: { trip: Trip }) {
   const [editing, setEditing] = React.useState(false);
   const [editName, setEditName] = React.useState('');
   const [editNotes, setEditNotes] = React.useState('');
+  const [editActivity, setEditActivity] = React.useState<ActivityType>('步行');
   const [saving, setSaving] = React.useState(false);
 
   const displayName = trip.name ?? `${new Date(trip.date).toLocaleDateString()} 的旅程`;
@@ -37,6 +41,7 @@ function TripCard({ trip }: { trip: Trip }) {
   const startEdit = () => {
     setEditName(trip.name ?? displayName);
     setEditNotes(trip.notes ?? '');
+    setEditActivity((trip.activityType as ActivityType) ?? '步行');
     setEditing(true);
   };
 
@@ -44,10 +49,10 @@ function TripCard({ trip }: { trip: Trip }) {
 
   const saveEdit = async () => {
     setSaving(true);
-    await game.updateTrip(trip.id, editName.trim() || displayName, editNotes.trim());
+    await game.updateTrip(trip.id, editName.trim() || displayName, editNotes.trim(), editActivity);
     setSaving(false);
     setEditing(false);
-    toast({ title: '已更新', description: '旅程名稱與備註已儲存。' });
+    toast({ title: '已更新', description: '旅程資訊已儲存。' });
   };
 
   const getTripDuration = () => {
@@ -132,6 +137,15 @@ function TripCard({ trip }: { trip: Trip }) {
               className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
               placeholder="備註（最多 30 字）"
             />
+            <select
+              value={editActivity}
+              onChange={e => setEditActivity(e.target.value as ActivityType)}
+              className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              {ACTIVITY_OPTIONS.map(opt => (
+                <option key={opt} value={opt}>{ACTIVITY_ICON[opt]} {opt}</option>
+              ))}
+            </select>
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">{editNotes.length}/30</span>
               <div className="flex gap-2">
@@ -160,10 +174,15 @@ function TripCard({ trip }: { trip: Trip }) {
             </button>
           </CardTitle>
         )}
-        <CardDescription className="flex items-center gap-2 pt-1">
-          <Clock className="h-4 w-4" />
-          <span>
-            {trip.startTime ? new Date(trip.startTime).toLocaleTimeString() : 'N/A'} - {trip.endTime ? new Date(trip.endTime).toLocaleTimeString() : 'N/A'}
+        <CardDescription className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            <span>
+              {trip.startTime ? new Date(trip.startTime).toLocaleTimeString() : 'N/A'} - {trip.endTime ? new Date(trip.endTime).toLocaleTimeString() : 'N/A'}
+            </span>
+          </div>
+          <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
+            {ACTIVITY_ICON[(trip.activityType as ActivityType) ?? '步行']} {trip.activityType ?? '步行'}
           </span>
         </CardDescription>
       </CardHeader>

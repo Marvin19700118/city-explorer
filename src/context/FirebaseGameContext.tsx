@@ -37,7 +37,7 @@ interface GameContextType {
   trips: Trip[];
   addTrip: (trip: Trip) => Promise<void>;
   removeTrip: (tripId: string) => Promise<void>;
-  updateTrip: (tripId: string, name: string, notes: string) => Promise<void>;
+  updateTrip: (tripId: string, name: string, notes: string, activityType: string) => Promise<void>;
 
   // City Points / XP
   cityPoints: CityPoints;
@@ -206,10 +206,10 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
     await dbDeleteTrip(uid, tripId);
   }, [uid]);
 
-  const updateTrip = useCallback(async (tripId: string, name: string, notes: string) => {
+  const updateTrip = useCallback(async (tripId: string, name: string, notes: string, activityType: string) => {
     if (!uid) return;
-    setTrips(prev => prev.map(t => t.id === tripId ? { ...t, name, notes } : t));
-    await updateTripMeta(uid, tripId, name, notes);
+    setTrips(prev => prev.map(t => t.id === tripId ? { ...t, name, notes, activityType } : t));
+    await updateTripMeta(uid, tripId, name, notes, activityType);
   }, [uid]);
 
   // ─── City Points / XP ─────────────────────────────────────────────────────

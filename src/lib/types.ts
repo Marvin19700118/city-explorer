@@ -70,6 +70,8 @@ export type LatLng = {
   lng: number;
 };
 
+export type ActivityType = '步行' | '登山' | '腳踏車';
+
 export type Trip = {
   id: string;
   name?: string;
@@ -81,6 +83,7 @@ export type Trip = {
   endTime: string | null;
   elevationGainM?: number;
   trailId?: string;
+  activityType?: ActivityType;
 };
 
 export type Settings = {
