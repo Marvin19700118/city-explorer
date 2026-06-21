@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/context/I18nContext';
 import { useGame } from '@/context/FirebaseGameContext';
+import { auth } from '@/lib/firebase';
+import { GoogleAuthProvider, signInWithRedirect, linkWithRedirect } from 'firebase/auth';
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -15,30 +17,42 @@ export default function SettingsPage() {
   const { i18n, setLocale, t } = useI18n();
   const game = useGame();
 
-  const handleLinkGoogle = async () => {
-    setIsLinking(true);
-    try {
-      await game.linkWithGoogle();
-      toast({ title: '已綁定 Google 帳號', description: '您的資料現在已與 Google 帳號連結，換裝置也不會遺失。' });
-    } catch (e: any) {
-      if (e.code === 'auth/credential-already-in-use') {
-        toast({ title: '此 Google 帳號已被使用', description: '請試試「切換到已有 Google 帳號」。', variant: 'destructive' });
-      } else {
-        toast({ title: '綁定失敗', description: e.message, variant: 'destructive' });
-      }
-    } finally {
-      setIsLinking(false);
+  const isMobile = () => /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  const REDIRECT_KEY = 'ts_google_redirect';
+
+  const handleLinkGoogle = () => {
+    if (isMobile()) {
+      // iOS: must call signInWithRedirect synchronously from the click handler
+      // Any async intermediary breaks the user gesture chain and blocks navigation
+      if (!auth.currentUser) return;
+      sessionStorage.setItem(REDIRECT_KEY, '1');
+      linkWithRedirect(auth.currentUser, new GoogleAuthProvider());
+    } else {
+      setIsLinking(true);
+      game.linkWithGoogle()
+        .then(() => toast({ title: '已綁定 Google 帳號', description: '您的資料現在已與 Google 帳號連結，換裝置也不會遺失。' }))
+        .catch((e: any) => {
+          if (e.code === 'auth/credential-already-in-use') {
+            toast({ title: '此 Google 帳號已被使用', description: '請試試「切換到已有 Google 帳號」。', variant: 'destructive' });
+          } else {
+            toast({ title: '綁定失敗', description: e.message, variant: 'destructive' });
+          }
+        })
+        .finally(() => setIsLinking(false));
     }
   };
 
-  const handleSwitchToGoogle = async () => {
+  const handleSwitchToGoogle = () => {
     if (!confirm('切換後會使用 Google 帳號的資料，目前的匿名資料將不再顯示。確定繼續？')) return;
-    setIsLinking(true);
-    try {
-      await game.switchToGoogleAccount();
-    } catch (e: any) {
-      toast({ title: '切換失敗', description: e.message, variant: 'destructive' });
-      setIsLinking(false);
+    if (isMobile()) {
+      // iOS: fully synchronous — no await anywhere before signInWithRedirect
+      sessionStorage.setItem(REDIRECT_KEY, '1');
+      signInWithRedirect(auth, new GoogleAuthProvider());
+    } else {
+      setIsLinking(true);
+      game.switchToGoogleAccount()
+        .catch((e: any) => toast({ title: '切換失敗', description: e.message, variant: 'destructive' }))
+        .finally(() => setIsLinking(false));
     }
   };
 
