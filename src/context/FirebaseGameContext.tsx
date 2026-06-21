@@ -97,42 +97,51 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
 
   const isMobile = () => /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
-  // SessionStorage key — survives redirect navigation, cleared after sign-in
   const REDIRECT_KEY = 'ts_google_redirect';
 
-  // ─── Auth: handle redirect result first, then normal auth state ───────────
+  // ─── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
-    // Process any pending redirect sign-in result on page load
-    getRedirectResult(auth)
+    // Resolve getRedirectResult first, then set up onAuthStateChanged.
+    // This prevents the race where onAuthStateChanged(null) fires before
+    // the redirect result is processed, causing signInAnonymously to run.
+    const redirectPromise = getRedirectResult(auth)
       .then(result => {
-        if (result?.user) {
-          // Redirect completed — clear flag; onAuthStateChanged handles the rest
-          sessionStorage.removeItem(REDIRECT_KEY);
-        }
+        if (result?.user) sessionStorage.removeItem(REDIRECT_KEY);
+        return result;
       })
-      .catch(() => {
-        // Redirect failed or was cancelled — allow anonymous fallback
+      .catch(err => {
         sessionStorage.removeItem(REDIRECT_KEY);
+        console.warn('getRedirectResult error:', err?.code ?? err);
+        return null;
       });
-  }, []);
 
-  // ─── Auth: sign in anonymously ─────────────────────────────────────────────
-  useEffect(() => {
+    let redirectSettled = false;
+    redirectPromise.finally(() => { redirectSettled = true; });
+
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         sessionStorage.removeItem(REDIRECT_KEY);
         setUid(user.uid);
         setIsAnonymous(user.isAnonymous);
         setGoogleEmail(user.email);
-      } else {
-        // Skip anonymous sign-in if we're mid-redirect to Google
-        if (sessionStorage.getItem(REDIRECT_KEY)) return;
-        const cred = await signInAnonymously(auth);
-        setUid(cred.user.uid);
-        setIsAnonymous(true);
-        setGoogleEmail(null);
+        return;
       }
+
+      // user is null — wait for redirect to settle before deciding to go anonymous
+      if (!redirectSettled) {
+        await redirectPromise;
+        // After redirect resolves, onAuthStateChanged will fire again with the real user
+        // (if redirect succeeded). Only sign in anonymously if still no user.
+        if (auth.currentUser) return;
+      }
+
+      if (sessionStorage.getItem(REDIRECT_KEY)) return;
+      const cred = await signInAnonymously(auth);
+      setUid(cred.user.uid);
+      setIsAnonymous(true);
+      setGoogleEmail(null);
     });
+
     return unsub;
   }, []);
 
