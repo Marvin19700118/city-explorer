@@ -93,19 +93,36 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
 
   const isMobile = () => /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
+  // SessionStorage key — survives redirect navigation, cleared after sign-in
+  const REDIRECT_KEY = 'ts_google_redirect';
+
   // ─── Auth: handle redirect result first, then normal auth state ───────────
   useEffect(() => {
-    getRedirectResult(auth).catch(() => null); // consume any pending redirect
+    // Process any pending redirect sign-in result on page load
+    getRedirectResult(auth)
+      .then(result => {
+        if (result?.user) {
+          // Redirect completed — clear flag; onAuthStateChanged handles the rest
+          sessionStorage.removeItem(REDIRECT_KEY);
+        }
+      })
+      .catch(() => {
+        // Redirect failed or was cancelled — allow anonymous fallback
+        sessionStorage.removeItem(REDIRECT_KEY);
+      });
   }, []);
 
   // ─── Auth: sign in anonymously ─────────────────────────────────────────────
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        sessionStorage.removeItem(REDIRECT_KEY);
         setUid(user.uid);
         setIsAnonymous(user.isAnonymous);
         setGoogleEmail(user.email);
       } else {
+        // Skip anonymous sign-in if we're mid-redirect to Google
+        if (sessionStorage.getItem(REDIRECT_KEY)) return;
         const cred = await signInAnonymously(auth);
         setUid(cred.user.uid);
         setIsAnonymous(true);
@@ -119,8 +136,8 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
     if (!auth.currentUser) throw new Error('Not signed in');
     const provider = new GoogleAuthProvider();
     if (isMobile()) {
+      sessionStorage.setItem(REDIRECT_KEY, '1');
       await linkWithRedirect(auth.currentUser, provider);
-      // page will redirect; onAuthStateChanged handles the result on return
     } else {
       const result = await linkWithPopup(auth.currentUser, provider);
       setIsAnonymous(false);
@@ -130,11 +147,13 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
 
   const switchToGoogleAccount = useCallback(async () => {
     const provider = new GoogleAuthProvider();
-    await firebaseSignOut(auth);
     if (isMobile()) {
+      // Set flag BEFORE sign-out so onAuthStateChanged(null) skips anonymous
+      sessionStorage.setItem(REDIRECT_KEY, '1');
+      await firebaseSignOut(auth);
       await signInWithRedirect(auth, provider);
-      // page will redirect; onAuthStateChanged handles the result on return
     } else {
+      await firebaseSignOut(auth);
       await signInWithPopup(auth, provider);
     }
   }, []);
