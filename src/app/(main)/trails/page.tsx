@@ -126,6 +126,14 @@ function TrailCard({
 
       {isExpanded && (
         <CardContent className="px-4 pb-4 pt-0 space-y-3 border-t border-border/50">
+          {/* Duration + trailType */}
+          {(trail.duration || trail.trailType) && (
+            <div className="flex gap-2 flex-wrap">
+              {trail.trailType && <Badge variant="outline" className="text-xs">{trail.trailType}</Badge>}
+              {trail.duration && <span className="text-xs text-muted-foreground">⏱ {trail.duration}</span>}
+            </div>
+          )}
+
           {/* Description */}
           {trail.description && (
             <p className="text-sm text-muted-foreground leading-relaxed">{trail.description}</p>
@@ -193,6 +201,18 @@ function TrailCard({
             </div>
           )}
 
+          {/* 健行筆記 */}
+          {trail.hikingUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1.5"
+              onClick={() => window.open(trail.hikingUrl, '_blank')}
+            >
+              🥾 健行筆記步道頁面
+            </Button>
+          )}
+
           {/* GPS track controls */}
           {deletable && (
             <div className="space-y-1 mt-1">
@@ -250,14 +270,28 @@ function Section({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+const COUNTY_ORDER = [
+  '臺北市','新北市','基隆市','桃園市','新竹市','新竹縣','苗栗縣',
+  '臺中市','彰化縣','南投縣','雲林縣','嘉義市','嘉義縣',
+  '臺南市','高雄市','屏東縣','宜蘭縣','花蓮縣','臺東縣',
+  '澎湖縣','金門縣','連江縣',
+];
+
 export default function TrailsPage() {
   const game = useGame();
   const { position } = useLocation();
   const trails = game.trails;
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState('');
+  const [countyFilter, setCountyFilter] = React.useState<string>('全部');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Get counties that actually exist in seed data
+  const availableCounties = React.useMemo(() => {
+    const set = new Set(trails.filter(t => isSeedTrail(t.id)).map(t => t.county).filter(Boolean) as string[]);
+    return COUNTY_ORDER.filter(c => set.has(c));
+  }, [trails]);
 
   const userLat = position?.lat ?? null;
   const userLng = position?.lng ?? null;
@@ -319,14 +353,12 @@ export default function TrailsPage() {
     return da - db;
   });
 
-  // Filter by search
-  const filteredSeed = search
-    ? sortedSeedTrails.filter(t =>
-        t.name.includes(search) ||
-        t.district?.includes(search) ||
-        t.description?.includes(search)
-      )
-    : sortedSeedTrails;
+  // Filter by county then search
+  const filteredSeed = sortedSeedTrails.filter(t => {
+    const countyOk = countyFilter === '全部' || t.county === countyFilter || t.district?.includes(countyFilter);
+    const searchOk = !search || t.name.includes(search) || t.district?.includes(search);
+    return countyOk && searchOk;
+  });
 
   const totalKm = trails.reduce((s, t) => s + t.walkedDistanceKm, 0);
   const completedCount = trails.filter(t => t.completionPercent >= 100).length;
@@ -374,6 +406,27 @@ export default function TrailsPage() {
         </div>
       )}
 
+      {/* County filter tabs */}
+      {availableCounties.length > 0 && (
+        <div className="overflow-x-auto -mx-4 px-4">
+          <div className="flex gap-1.5 pb-1 w-max">
+            {['全部', ...availableCounties].map(c => (
+              <button
+                key={c}
+                onClick={() => setCountyFilter(c)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border whitespace-nowrap transition-colors ${
+                  countyFilter === c
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'text-muted-foreground border-border hover:bg-muted/50'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Search */}
       {seedTrails.length > 0 && (
         <div className="relative">
@@ -382,7 +435,7 @@ export default function TrailsPage() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="搜尋步道名稱或地區..."
+            placeholder="搜尋步道名稱..."
             className="w-full rounded-lg border border-border bg-muted/30 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>

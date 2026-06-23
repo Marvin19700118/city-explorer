@@ -51,9 +51,13 @@ export type Trail = {
   importedAt: string;
   // Metadata from Excel database
   district?: string;
+  county?: string;
   description?: string;
   entranceAddress?: string;
   googleMapsUrl?: string;
+  hikingUrl?: string;
+  duration?: string;
+  trailType?: string;
   centerLat?: number;
   centerLng?: number;
 };
