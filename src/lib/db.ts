@@ -39,6 +39,7 @@ export type TrailProgress = {
   walkedPoints: number[];   // indices into trail.points
   walkedDistanceKm: number;
   completionPercent: number;
+  manuallyCompleted?: boolean;
 };
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
@@ -134,6 +135,7 @@ export function buildTrails(customTrails: Trail[], progress: Record<string, Trai
       walkedPoints: prog.walkedPoints,
       walkedDistanceKm: prog.walkedDistanceKm,
       completionPercent: prog.completionPercent,
+      manuallyCompleted: prog.manuallyCompleted ?? false,
     };
   });
 }

@@ -47,6 +47,7 @@ export type Trail = {
   walkedPoints: number[];
   walkedDistanceKm: number;
   completionPercent: number;
+  manuallyCompleted?: boolean;
   importedAt: string;
   // Metadata from Excel database
   district?: string;

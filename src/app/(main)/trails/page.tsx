@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import {
-  Mountain, Upload, Trash2, CheckCircle2, Circle,
+  Mountain, Upload, Trash2, CheckCircle2,
   Navigation, MapPin, ChevronDown, ChevronUp, Footprints, Map as MapIcon, Search,
 } from 'lucide-react';
 import { ItemActionBar } from '@/components/ItemActionBar';
@@ -65,6 +65,7 @@ function TrailCard({
   deletable,
   userLat,
   userLng,
+  onToggleComplete,
 }: {
   trail: Trail;
   expandedId: string | null;
@@ -73,9 +74,10 @@ function TrailCard({
   deletable: boolean;
   userLat: number | null;
   userLng: number | null;
+  onToggleComplete: (trail: Trail) => void;
 }) {
   const diff = DIFFICULTY_LABEL[trail.difficulty];
-  const done = trail.completionPercent >= 100;
+  const done = trail.manuallyCompleted === true || trail.completionPercent >= 100;
   const isExpanded = expandedId === trail.id;
   const hasGpsTrack = trail.points.length > 1;
 
@@ -88,46 +90,39 @@ function TrailCard({
 
   return (
     <Card className={done ? 'border-green-500/40 bg-green-500/5' : ''}>
-      <button className="w-full text-left" onClick={() => setExpandedId(isExpanded ? null : trail.id)}>
-        <CardHeader className="pb-2 pt-3 px-4">
-          <div className="flex items-start gap-2">
-            <div className="mt-0.5 shrink-0">
-              {done
-                ? <CheckCircle2 className="h-5 w-5 text-green-500" />
-                : <Circle className="h-5 w-5 text-muted-foreground" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-base leading-snug pr-2">{trail.name}</CardTitle>
-              <div className="flex flex-wrap gap-1.5 mt-1.5">
-                <Badge variant="outline" className={`text-xs ${diff.color}`}>{diff.text}</Badge>
-                <Badge variant="outline" className="text-xs">{trail.totalDistanceKm.toFixed(1)} km</Badge>
-                {trail.district && (
-                  <Badge variant="outline" className="text-xs text-muted-foreground">{trail.district.split(',')[0]}</Badge>
-                )}
-                {distFromUser != null && (
-                  <Badge variant="outline" className="text-xs text-blue-400 border-blue-400/30">
-                    📍 {formatDist(distFromUser)}
-                  </Badge>
-                )}
-              </div>
-            </div>
-            {isExpanded
-              ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
-              : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />}
+      <div className="flex items-start gap-3 pt-3 px-4 pb-2">
+        {/* Completion checkbox */}
+        <button
+          className="mt-0.5 shrink-0"
+          onClick={e => { e.stopPropagation(); onToggleComplete(trail); }}
+          title={done ? '取消完成' : '標記為已完成'}
+        >
+          <CheckCircle2 className={`h-5 w-5 transition-colors ${done ? 'text-green-500' : 'text-muted-foreground/30 hover:text-muted-foreground'}`} />
+        </button>
+
+        {/* Expand button */}
+        <button className="flex-1 min-w-0 text-left" onClick={() => setExpandedId(isExpanded ? null : trail.id)}>
+          <CardTitle className={`text-base leading-snug ${done ? 'line-through text-muted-foreground' : ''}`}>{trail.name}</CardTitle>
+          <div className="flex flex-wrap gap-1.5 mt-1.5">
+            <Badge variant="outline" className={`text-xs ${diff.color}`}>{diff.text}</Badge>
+            <Badge variant="outline" className="text-xs">{trail.totalDistanceKm.toFixed(1)} km</Badge>
+            {trail.district && (
+              <Badge variant="outline" className="text-xs text-muted-foreground">{trail.district.split(',')[0]}</Badge>
+            )}
+            {distFromUser != null && (
+              <Badge variant="outline" className="text-xs text-blue-400 border-blue-400/30">
+                📍 {formatDist(distFromUser)}
+              </Badge>
+            )}
           </div>
-        </CardHeader>
-        {hasGpsTrack && (
-          <div className="px-4 pb-3">
-            <div className="flex justify-between text-xs text-muted-foreground mb-1">
-              <span>完成度 {trail.completionPercent}%</span>
-              <span>{trail.walkedDistanceKm.toFixed(1)} / {trail.totalDistanceKm.toFixed(1)} km</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-              <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${trail.completionPercent}%` }} />
-            </div>
-          </div>
-        )}
-      </button>
+        </button>
+
+        <button onClick={() => setExpandedId(isExpanded ? null : trail.id)} className="shrink-0 mt-1">
+          {isExpanded
+            ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        </button>
+      </div>
 
       {isExpanded && (
         <CardContent className="px-4 pb-4 pt-0 space-y-3 border-t border-border/50">
@@ -291,6 +286,16 @@ export default function TrailsPage() {
     await game.removeCustomTrail(id);
   };
 
+  const handleToggleComplete = async (trail: Trail) => {
+    const nowDone = !(trail.manuallyCompleted === true || trail.completionPercent >= 100);
+    await game.updateTrailProgress(trail.id, {
+      walkedPoints: trail.walkedPoints,
+      walkedDistanceKm: trail.walkedDistanceKm,
+      completionPercent: nowDone ? 100 : 0,
+      manuallyCompleted: nowDone,
+    });
+  };
+
   if (game.isLoading) {
     return (
       <div className="p-4 flex items-center justify-center py-16">
@@ -299,9 +304,12 @@ export default function TrailsPage() {
     );
   }
 
-  const seedTrails     = trails.filter(t => isSeedTrail(t.id));
-  const walkRecords    = trails.filter(t => isWalkRecord(t.id));
-  const importedTrails = trails.filter(t => !isSeedTrail(t.id) && !isWalkRecord(t.id));
+  const isDone = (t: Trail) => t.manuallyCompleted === true || t.completionPercent >= 100;
+
+  const completedTrails = trails.filter(isDone);
+  const seedTrails      = trails.filter(t => isSeedTrail(t.id) && !isDone(t));
+  const walkRecords     = trails.filter(t => isWalkRecord(t.id) && !isDone(t));
+  const importedTrails  = trails.filter(t => !isSeedTrail(t.id) && !isWalkRecord(t.id) && !isDone(t));
 
   // Sort seed trails by distance from user
   const sortedSeedTrails = [...seedTrails].sort((a, b) => {
@@ -330,6 +338,7 @@ export default function TrailsPage() {
     deletable,
     userLat,
     userLng,
+    onToggleComplete: handleToggleComplete,
   });
 
   return (
@@ -424,6 +433,20 @@ export default function TrailsPage() {
           <div className="text-center py-8 text-muted-foreground text-sm">
             找不到符合「{search}」的步道
           </div>
+        )}
+
+        {/* 已完成步道 */}
+        {completedTrails.length > 0 && (
+          <Section
+            title="已完成"
+            icon={<CheckCircle2 className="h-4 w-4 text-green-500" />}
+            count={completedTrails.length}
+            defaultOpen={false}
+          >
+            {completedTrails.map(trail => (
+              <TrailCard key={trail.id} trail={trail} {...cardProps(isWalkRecord(trail.id) || (!isSeedTrail(trail.id)))} />
+            ))}
+          </Section>
         )}
       </div>
     </div>
