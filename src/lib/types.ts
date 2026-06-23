@@ -48,6 +48,13 @@ export type Trail = {
   walkedDistanceKm: number;
   completionPercent: number;
   importedAt: string;
+  // Metadata from Excel database
+  district?: string;
+  description?: string;
+  entranceAddress?: string;
+  googleMapsUrl?: string;
+  centerLat?: number;
+  centerLng?: number;
 };
 
 export type PointOfInterest = {

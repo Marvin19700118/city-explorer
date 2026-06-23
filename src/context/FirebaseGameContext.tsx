@@ -239,7 +239,7 @@ export function FirebaseGameProvider({ children }: { children: React.ReactNode }
 
   const updateTrip = useCallback(async (tripId: string, name: string, notes: string, activityType: string) => {
     if (!uid) return;
-    setTrips(prev => prev.map(t => t.id === tripId ? { ...t, name, notes, activityType } : t));
+    setTrips(prev => prev.map(t => t.id === tripId ? { ...t, name, notes, activityType: activityType as import('@/lib/types').ActivityType } : t));
     await updateTripMeta(uid, tripId, name, notes, activityType);
   }, [uid]);
 

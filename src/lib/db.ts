@@ -3,7 +3,7 @@ import {
   doc, getDoc, setDoc, collection, getDocs, deleteDoc,
 } from 'firebase/firestore';
 import type { PointOfInterest, Trip, Settings, CityPoints, Trail, AskedQuestionHistory } from './types';
-import { SEED_TRAILS } from './seedTrails';
+import SEED_TRAILS from './seedTrails';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
